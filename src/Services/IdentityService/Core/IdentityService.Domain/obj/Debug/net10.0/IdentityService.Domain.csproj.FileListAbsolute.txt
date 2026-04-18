@@ -1,0 +1,11 @@
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/bin/Debug/net10.0/IdentityService.Domain.deps.json
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/bin/Debug/net10.0/IdentityService.Domain.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/bin/Debug/net10.0/IdentityService.Domain.pdb
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/IdentityService.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/IdentityService.Domain.AssemblyInfoInputs.cache
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/IdentityService.Domain.AssemblyInfo.cs
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/IdentityService.Domain.csproj.CoreCompileInputs.cache
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/IdentityService.Domain.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/refint/IdentityService.Domain.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/IdentityService.Domain.pdb
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/obj/Debug/net10.0/ref/IdentityService.Domain.dll

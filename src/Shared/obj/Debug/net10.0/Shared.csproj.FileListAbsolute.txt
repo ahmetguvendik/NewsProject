@@ -1,0 +1,11 @@
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/bin/Debug/net10.0/Shared.deps.json
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/bin/Debug/net10.0/Shared.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/bin/Debug/net10.0/Shared.pdb
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.GeneratedMSBuildEditorConfig.editorconfig
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.AssemblyInfoInputs.cache
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.AssemblyInfo.cs
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.csproj.CoreCompileInputs.cache
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/refint/Shared.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.pdb
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/ref/Shared.dll

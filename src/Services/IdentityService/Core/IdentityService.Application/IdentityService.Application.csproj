@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Features\Commands\User\Request\" />
+      <Folder Include="Features\Commands\User\Response\" />
+      <Folder Include="Features\Handlers\User\CommandHandlers\" />
+      <Folder Include="Features\Handlers\User\QueryHandlers\" />
+      <Folder Include="Features\Queries\User\Request\" />
+      <Folder Include="Features\Queries\User\Response\" />
+      <Folder Include="Validators\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MediatR" Version="14.1.0" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.6" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.6" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\IdentityService.Domain\IdentityService.Domain.csproj" />
+    </ItemGroup>
+
+</Project>
