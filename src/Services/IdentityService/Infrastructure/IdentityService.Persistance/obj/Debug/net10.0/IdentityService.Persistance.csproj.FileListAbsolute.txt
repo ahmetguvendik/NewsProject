@@ -17,3 +17,6 @@
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Infrastructure/IdentityService.Persistance/obj/Debug/net10.0/Identity.4F25C7F1.Up2Date
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Infrastructure/IdentityService.Persistance/bin/Debug/net10.0/IdentityService.Persistance.runtimeconfig.json
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Infrastructure/IdentityService.Persistance/obj/Debug/net10.0/IdentityService.Persistance.genruntimeconfig.cache
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Infrastructure/IdentityService.Persistance/obj/Debug/net10.0/IdentityService.Persistance.sourcelink.json
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Infrastructure/IdentityService.Persistance/bin/Debug/net10.0/Shared.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Infrastructure/IdentityService.Persistance/bin/Debug/net10.0/Shared.pdb

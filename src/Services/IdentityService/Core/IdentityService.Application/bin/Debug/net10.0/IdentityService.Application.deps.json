@@ -11,7 +11,8 @@
           "IdentityService.Domain": "1.0.0",
           "MediatR": "14.1.0",
           "Microsoft.EntityFrameworkCore": "10.0.6",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.6"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.6",
+          "Shared": "1.0.0"
         },
         "runtime": {
           "IdentityService.Application.dll": {}
@@ -198,6 +199,14 @@
             "fileVersion": "1.0.0.0"
           }
         }
+      },
+      "Shared/1.0.0": {
+        "runtime": {
+          "Shared.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
       }
     }
   },
@@ -320,6 +329,11 @@
       "hashPath": "microsoft.identitymodel.tokens.8.14.0.nupkg.sha512"
     },
     "IdentityService.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Shared/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

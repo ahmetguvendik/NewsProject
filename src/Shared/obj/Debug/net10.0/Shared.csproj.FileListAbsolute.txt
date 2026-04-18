@@ -9,3 +9,4 @@
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/refint/Shared.dll
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.pdb
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/ref/Shared.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/obj/Debug/net10.0/Shared.sourcelink.json

@@ -296,6 +296,16 @@
         "runtime": {
           "bin/placeholder/IdentityService.Domain.dll": {}
         }
+      },
+      "Shared/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/Shared.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Shared.dll": {}
+        }
       }
     }
   },
@@ -781,6 +791,11 @@
       "type": "project",
       "path": "../IdentityService.Domain/IdentityService.Domain.csproj",
       "msbuildProject": "../IdentityService.Domain/IdentityService.Domain.csproj"
+    },
+    "Shared/1.0.0": {
+      "type": "project",
+      "path": "../../../../Shared/Shared.csproj",
+      "msbuildProject": "../../../../Shared/Shared.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -788,7 +803,8 @@
       "IdentityService.Domain >= 1.0.0",
       "MediatR >= 14.1.0",
       "Microsoft.EntityFrameworkCore >= 10.0.6",
-      "Microsoft.Extensions.DependencyInjection.Abstractions >= 10.0.6"
+      "Microsoft.Extensions.DependencyInjection.Abstractions >= 10.0.6",
+      "Shared >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -818,6 +834,9 @@
           "projectReferences": {
             "/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/IdentityService.Domain.csproj": {
               "projectPath": "/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Domain/IdentityService.Domain.csproj"
+            },
+            "/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/Shared.csproj": {
+              "projectPath": "/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Shared/Shared.csproj"
             }
           }
         }
@@ -867,7 +886,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/Users/ahmetguvendik/.dotnet/sdk/10.0.202/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.202/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

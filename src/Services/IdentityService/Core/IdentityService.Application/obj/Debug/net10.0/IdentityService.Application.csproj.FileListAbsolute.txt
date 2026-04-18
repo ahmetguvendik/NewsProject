@@ -13,3 +13,6 @@
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Application/bin/Debug/net10.0/IdentityService.Domain.pdb
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Application/obj/Debug/net10.0/IdentityService.Application.csproj.AssemblyReference.cache
 /Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Application/obj/Debug/net10.0/Identity.52144512.Up2Date
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Application/obj/Debug/net10.0/IdentityService.Application.sourcelink.json
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Application/bin/Debug/net10.0/Shared.dll
+/Users/ahmetguvendik/Desktop/Asp.NetProject/NewsProject/src/Services/IdentityService/Core/IdentityService.Application/bin/Debug/net10.0/Shared.pdb

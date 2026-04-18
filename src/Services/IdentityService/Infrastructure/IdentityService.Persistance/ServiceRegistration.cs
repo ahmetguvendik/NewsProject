@@ -1,6 +1,8 @@
 using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
 using IdentityService.Persistance.Contexts;
+using IdentityService.Persistance.Keycloak;
+using IdentityService.Persistance.Messaging;
 using IdentityService.Persistance.Repositories;
 using IdentityService.Persistance.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +21,8 @@ public static class ServiceRegistration
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUserRoleRepository, UserRoleRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+        services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>();
 
         return services;
     }
