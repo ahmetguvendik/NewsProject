@@ -21,7 +21,7 @@ public static class ServiceRegistration
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUserRoleRepository, UserRoleRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+        services.AddScoped<IEventPublisher, OutboxEventPublisher>();
         services.AddHttpClient<IKeycloakAdminClient, KeycloakAdminClient>();
 
         return services;
