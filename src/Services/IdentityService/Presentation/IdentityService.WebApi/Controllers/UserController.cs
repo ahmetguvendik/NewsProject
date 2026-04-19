@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IdentityService.WebApi.Controllers;
 
-[Authorize]
+[Authorize(Roles = "admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class UserController : ControllerBase
@@ -17,14 +17,14 @@ public class UserController : ControllerBase
     {
         _mediator = mediator;
     }
-
+    
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetAllUsersQuery(), cancellationToken);
         return Ok(result);
     }
-
+    
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -32,27 +32,28 @@ public class UserController : ControllerBase
         if (result is null) return NotFound();
         return Ok(result);
     }
-
+    
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserCommand command, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
-
+    
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] UpdateUserCommand command, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
-
+    
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteUserCommand { Id = id }, cancellationToken);
         return NoContent();
     }
+
 
     [HttpPost("roles")]
     public async Task<IActionResult> AssignRole([FromBody] AssignRoleCommand command, CancellationToken cancellationToken)

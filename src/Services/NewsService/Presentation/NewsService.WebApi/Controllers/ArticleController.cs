@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ public class ArticleController : ControllerBase
         _mediator = mediator;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
@@ -25,6 +27,7 @@ public class ArticleController : ControllerBase
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -33,13 +36,20 @@ public class ArticleController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "editor,admin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateArticleCommand command, CancellationToken cancellationToken)
     {
+        var keycloakId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("Token içinde sub claim bulunamadı.");
+
+        command.AuthorKeycloakId = keycloakId;
+
         var result = await _mediator.Send(command, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
+    [Authorize(Roles = "editor,admin")]
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] UpdateArticleCommand command, CancellationToken cancellationToken)
     {
@@ -47,6 +57,7 @@ public class ArticleController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "editor,admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -54,6 +65,7 @@ public class ArticleController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "admin")]
     [HttpPost("{id:guid}/publish")]
     public async Task<IActionResult> Publish(Guid id, CancellationToken cancellationToken)
     {

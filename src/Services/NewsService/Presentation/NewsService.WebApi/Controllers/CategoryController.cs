@@ -18,6 +18,7 @@ public class CategoryController : ControllerBase
         _mediator = mediator;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
@@ -25,6 +26,7 @@ public class CategoryController : ControllerBase
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -33,6 +35,7 @@ public class CategoryController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "admin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCategoryCommand command, CancellationToken cancellationToken)
     {
@@ -40,6 +43,7 @@ public class CategoryController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
+    [Authorize(Roles = "admin")]
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] UpdateCategoryCommand command, CancellationToken cancellationToken)
     {
@@ -47,6 +51,7 @@ public class CategoryController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

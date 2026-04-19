@@ -61,6 +61,59 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         return location.Split('/').Last();
     }
 
+    public async Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken = default)
+    {
+        var token = await GetAdminTokenAsync(cancellationToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _httpClient.DeleteAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}", cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new Exception($"Keycloak user deletion failed: {error}");
+        }
+    }
+
+    public async Task AssignRoleAsync(string keycloakId, string roleName, CancellationToken cancellationToken = default)
+    {
+        var token = await GetAdminTokenAsync(cancellationToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // 1. Rol bilgisini Keycloak'tan al (id + name gerekiyor)
+        var roleResponse = await _httpClient.GetAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/roles/{roleName}", cancellationToken);
+
+        if (!roleResponse.IsSuccessStatusCode)
+        {
+            var err = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
+            throw new Exception($"Keycloak role not found '{roleName}': {err}");
+        }
+
+        var roleBody = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
+        var roleJson = JsonDocument.Parse(roleBody);
+        var roleId = roleJson.RootElement.GetProperty("id").GetString();
+        var roleNameFromKeycloak = roleJson.RootElement.GetProperty("name").GetString();
+
+        // 2. Kullanıcıya rolü ata
+        var payload = JsonSerializer.Serialize(new[]
+        {
+            new { id = roleId, name = roleNameFromKeycloak }
+        });
+
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+        var assignResponse = await _httpClient.PostAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}/role-mappings/realm",
+            content, cancellationToken);
+
+        if (!assignResponse.IsSuccessStatusCode)
+        {
+            var err = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
+            throw new Exception($"Keycloak role assignment failed: {err}");
+        }
+    }
+
     private async Task<string> GetAdminTokenAsync(CancellationToken cancellationToken)
     {
         var formData = new Dictionary<string, string>

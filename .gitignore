@@ -1,0 +1,38 @@
+# Build output
+**/bin/
+**/obj/
+
+# .NET
+*.user
+*.suo
+.vs/
+.vscode/
+
+# Rider / JetBrains
+.idea/
+
+# NuGet
+*.nupkg
+**/packages/
+!**/packages/build/
+nuget.config
+
+# Logs
+*.log
+logs/
+
+# Environment & secrets
+.env
+.env.*
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# Docker volumes (local data)
+postgres_data/
+esdata/
+redis_data/
+keycloak_data/
+
+# OS
+.DS_Store
+Thumbs.db
