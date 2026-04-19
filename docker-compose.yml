@@ -109,6 +109,50 @@ services:
     networks:
       - apisix
 
+  notification-inbox-worker:
+    build:
+      context: .
+      dockerfile: src/Workers/NotificationInboxWorker/Dockerfile
+    image: notification-inbox-worker:latest
+    container_name: notification-inbox-worker
+    restart: always
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
+      - Smtp__Host=smtp.gmail.com
+      - Smtp__Port=587
+      - Smtp__Username=${SMTP_USERNAME}
+      - Smtp__Password=${SMTP_PASSWORD}
+      - Smtp__FromName=News Portal
+    depends_on:
+      - postgres
+    networks:
+      - apisix
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: src/Services/NotificationService/Presentation/NotificationService.WebApi/Dockerfile
+    image: notification-service:latest
+    container_name: notification-service
+    restart: always
+    ports:
+      - "5003:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
+      - Kafka__BootstrapServers=kafka:9092
+      - Smtp__Host=smtp.gmail.com
+      - Smtp__Port=587
+      - Smtp__Username=${SMTP_USERNAME}
+      - Smtp__Password=${SMTP_PASSWORD}
+      - Smtp__FromName=News Portal
+      - Notification__AdminEmail=${SMTP_USERNAME}
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - apisix
+
   # ─── SEARCH ─────────────────────────────────────────────────
   elasticsearch:
     image: elasticsearch:8.13.0
@@ -191,6 +235,22 @@ services:
     restart: always
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
+      - Kafka__BootstrapServers=kafka:9092
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - apisix
+
+  news-outbox-worker:
+    build:
+      context: .
+      dockerfile: src/Workers/NewsOutboxWorker/Dockerfile
+    image: news-outbox-worker:latest
+    container_name: news-outbox-worker
+    restart: always
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
       - postgres

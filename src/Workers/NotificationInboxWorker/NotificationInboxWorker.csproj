@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-NotificationInboxWorker-9f26b8e2-bfcc-4250-a8b7-d70e7d0557e5</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.6" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Services\NotificationService\Core\NotificationService.Domain\NotificationService.Domain.csproj" />
+    <ProjectReference Include="..\..\Services\NotificationService\Core\NotificationService.Application\NotificationService.Application.csproj" />
+    <ProjectReference Include="..\..\Shared\Shared.csproj" />
+    <ProjectReference Include="..\..\Services\NotificationService\Infrastructure\NotificationService.Persistance\NotificationService.Persistance.csproj" />
+  </ItemGroup>
+</Project>

@@ -20,7 +20,7 @@ public static class ServiceRegistration
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IArticleTagRepository, ArticleTagRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
+        services.AddScoped<IEventPublisher, OutboxEventPublisher>();
 
         return services;
     }
