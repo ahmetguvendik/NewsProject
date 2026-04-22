@@ -2,6 +2,7 @@ using MediatR;
 using NewsService.Application.Features.Commands.Article.Request;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
+using Shared.Exceptions;
 
 namespace NewsService.Application.Features.Handlers.Article.CommandHandlers;
 
@@ -19,7 +20,7 @@ public class DeleteArticleCommandHandler : IRequestHandler<DeleteArticleCommand>
     public async Task Handle(DeleteArticleCommand request, CancellationToken cancellationToken)
     {
         var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new Exception($"Article not found: {request.Id}");
+            ?? throw NotFoundException.Article(request.Id);
 
         await _articleRepository.DeleteAsync(article, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

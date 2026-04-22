@@ -2,6 +2,7 @@ using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
 using MediatR;
+using Shared.Exceptions;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
@@ -19,7 +20,7 @@ public class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand>
     public async Task Handle(DeleteUserCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.Id.ToString(), cancellationToken)
-            ?? throw new Exception($"User not found: {request.Id}");
+            ?? throw NotFoundException.User(request.Id);
 
         await _userRepository.DeleteAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

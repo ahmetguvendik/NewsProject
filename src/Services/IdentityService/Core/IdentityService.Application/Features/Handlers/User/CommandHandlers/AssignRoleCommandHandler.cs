@@ -4,6 +4,7 @@ using IdentityService.Application.UnitOfWorks;
 using IdentityService.Domain.Constants;
 using IdentityService.Domain.Entities;
 using MediatR;
+using Shared.Exceptions;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
@@ -29,14 +30,14 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
     public async Task Handle(AssignRoleCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.UserId.ToString(), cancellationToken)
-            ?? throw new Exception($"User not found: {request.UserId}");
+            ?? throw NotFoundException.User(request.UserId);
 
         // RoleConstants.GetId — bilinmeyen rol gelirse exception fırlatır
         var roleId = RoleConstants.GetId(request.RoleName);
 
         var existing = await _userRoleRepository.GetAsync(user.Id, roleId, cancellationToken);
         if (existing is not null)
-            throw new Exception($"Role '{request.RoleName}' already assigned to this user.");
+            throw ConflictException.RoleAlreadyAssigned(request.UserId, request.RoleName);
 
         // Keycloak'ta ata
         await _keycloakAdminClient.AssignRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);

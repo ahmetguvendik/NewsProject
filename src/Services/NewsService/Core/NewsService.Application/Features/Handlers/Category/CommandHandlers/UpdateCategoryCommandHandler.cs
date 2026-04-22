@@ -3,6 +3,7 @@ using NewsService.Application.Features.Commands.Category.Request;
 using NewsService.Application.Features.Commands.Category.Response;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
+using Shared.Exceptions;
 
 namespace NewsService.Application.Features.Handlers.Category.CommandHandlers;
 
@@ -20,7 +21,7 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
     public async Task<UpdateCategoryResponse> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
     {
         var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new Exception($"Category not found: {request.Id}");
+            ?? throw NotFoundException.Category(request.Id);
 
         category.Name = request.Name;
         category.Description = request.Description;

@@ -2,6 +2,7 @@ using MediatR;
 using NewsService.Application.Features.Commands.Article.Request;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
+using Shared.Exceptions;
 using Shared.Messaging;
 using Shared.Messaging.Events;
 
@@ -26,10 +27,10 @@ public class PublishArticleCommandHandler : IRequestHandler<PublishArticleComman
     public async Task Handle(PublishArticleCommand request, CancellationToken cancellationToken)
     {
         var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new Exception($"Article not found: {request.Id}");
+            ?? throw NotFoundException.Article(request.Id);
 
         if (article.IsPublished)
-            throw new Exception($"Article already published: {request.Id}");
+            throw ConflictException.ArticleAlreadyPublished(request.Id);
 
         article.IsPublished = true;
         article.PublishedAt = DateTime.UtcNow;

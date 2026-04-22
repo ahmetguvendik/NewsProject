@@ -3,6 +3,7 @@ using NewsService.Application.Features.Commands.Tag.Request;
 using NewsService.Application.Features.Commands.Tag.Response;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
+using Shared.Exceptions;
 
 namespace NewsService.Application.Features.Handlers.Tag.CommandHandlers;
 
@@ -20,7 +21,7 @@ public class UpdateTagCommandHandler : IRequestHandler<UpdateTagCommand, UpdateT
     public async Task<UpdateTagResponse> Handle(UpdateTagCommand request, CancellationToken cancellationToken)
     {
         var tag = await _tagRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new Exception($"Tag not found: {request.Id}");
+            ?? throw NotFoundException.Tag(request.Id);
 
         tag.Name = request.Name;
         tag.UpdatedAt = DateTime.UtcNow;

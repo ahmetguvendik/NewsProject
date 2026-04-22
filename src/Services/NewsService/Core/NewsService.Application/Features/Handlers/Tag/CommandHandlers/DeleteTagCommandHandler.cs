@@ -2,6 +2,7 @@ using MediatR;
 using NewsService.Application.Features.Commands.Tag.Request;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
+using Shared.Exceptions;
 
 namespace NewsService.Application.Features.Handlers.Tag.CommandHandlers;
 
@@ -19,7 +20,7 @@ public class DeleteTagCommandHandler : IRequestHandler<DeleteTagCommand>
     public async Task Handle(DeleteTagCommand request, CancellationToken cancellationToken)
     {
         var tag = await _tagRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new Exception($"Tag not found: {request.Id}");
+            ?? throw NotFoundException.Tag(request.Id);
 
         await _tagRepository.DeleteAsync(tag, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

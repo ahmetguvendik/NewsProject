@@ -3,6 +3,7 @@ using NewsService.Application.Features.Commands.Article.Request;
 using NewsService.Application.Features.Commands.Article.Response;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
+using Shared.Exceptions;
 
 namespace NewsService.Application.Features.Handlers.Article.CommandHandlers;
 
@@ -20,7 +21,7 @@ public class UpdateArticleCommandHandler : IRequestHandler<UpdateArticleCommand,
     public async Task<UpdateArticleResponse> Handle(UpdateArticleCommand request, CancellationToken cancellationToken)
     {
         var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw new Exception($"Article not found: {request.Id}");
+            ?? throw NotFoundException.Article(request.Id);
 
         article.Title = request.Title;
         article.Content = request.Content;

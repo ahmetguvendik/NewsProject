@@ -3,6 +3,7 @@ using IdentityService.Application.Features.Commands.User.Response;
 using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
 using MediatR;
+using Shared.Exceptions;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
@@ -20,7 +21,7 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, Updat
     public async Task<UpdateUserResponse> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.Id.ToString(), cancellationToken)
-            ?? throw new Exception($"User not found: {request.Id}");
+            ?? throw NotFoundException.User(request.Id);
 
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
