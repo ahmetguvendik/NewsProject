@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewsService.Application.Features.Commands.Article.Request;
 using NewsService.Application.Features.Queries.Article.Request;
+using Shared.Exceptions;
 
 namespace NewsService.WebApi.Controllers;
 
@@ -32,7 +33,6 @@ public class ArticleController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetArticleByIdQuery { Id = id }, cancellationToken);
-        if (result is null) return NotFound();
         return Ok(result);
     }
 
@@ -41,7 +41,7 @@ public class ArticleController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateArticleCommand command, CancellationToken cancellationToken)
     {
         var keycloakId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? throw new UnauthorizedAccessException("Token içinde sub claim bulunamadı.");
+            ?? throw UnauthorizedException.MissingClaim("sub");
 
         command.AuthorKeycloakId = keycloakId;
 

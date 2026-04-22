@@ -217,7 +217,8 @@ services:
       - Keycloak__BaseUrl=http://keycloak:8080
       - Keycloak__Realm=news-portal
       - Keycloak__AdminClientId=admin-cli
-      - Keycloak__AdminClientSecret=
+      - Keycloak__AdminUsername=admin
+      - Keycloak__AdminPassword=admin
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
       - postgres

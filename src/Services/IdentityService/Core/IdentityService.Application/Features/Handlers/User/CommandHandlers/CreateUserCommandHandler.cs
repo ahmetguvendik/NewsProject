@@ -35,9 +35,8 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
         };
 
         await _userRepository.CreateAsync(user, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        
+        // Outbox mesajı context'e eklenir — SaveChanges ile user + outbox tek transaction'da kaydedilir
         await _eventPublisher.PublishAsync(Topics.User.Registered, new UserRegisteredEvent
         {
             UserId = user.Id,
@@ -47,6 +46,8 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
             LastName = user.LastName,
             RegisteredAt = user.CreatedAt
         }, cancellationToken);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CreateUserResponse
         {

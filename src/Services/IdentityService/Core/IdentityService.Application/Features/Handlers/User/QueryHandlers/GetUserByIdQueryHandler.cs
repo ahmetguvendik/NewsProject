@@ -3,10 +3,11 @@ using IdentityService.Application.Features.Queries.User.Response;
 using IdentityService.Application.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Shared.Exceptions;
 
 namespace IdentityService.Application.Features.Handlers.User.QueryHandlers;
 
-public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, GetUserByIdResponse?>
+public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, GetUserByIdResponse>
 {
     private readonly IGenericRepository<Domain.Entities.User> _userRepository;
 
@@ -15,14 +16,13 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, GetUser
         _userRepository = userRepository;
     }
 
-    public async Task<GetUserByIdResponse?> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetUserByIdResponse> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetQueryable()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken);
-
-        if (user is null) return null;
+            .FirstOrDefaultAsync(u => u.Id == request.Id, cancellationToken)
+            ?? throw NotFoundException.User(request.Id);
 
         return new GetUserByIdResponse
         {

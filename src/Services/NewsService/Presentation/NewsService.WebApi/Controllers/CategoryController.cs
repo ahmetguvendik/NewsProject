@@ -31,7 +31,6 @@ public class CategoryController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetCategoryByIdQuery { Id = id }, cancellationToken);
-        if (result is null) return NotFound();
         return Ok(result);
     }
 

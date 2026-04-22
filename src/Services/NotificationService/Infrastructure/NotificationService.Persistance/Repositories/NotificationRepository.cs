@@ -18,7 +18,4 @@ public class NotificationRepository : INotificationRepository
         _context.Notifications.Add(notification);
         return Task.CompletedTask;
     }
-
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
-        => _context.SaveChangesAsync(cancellationToken);
 }

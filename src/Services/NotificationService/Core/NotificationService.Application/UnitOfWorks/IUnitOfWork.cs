@@ -1,4 +1,4 @@
-namespace NewsService.Application.UnitOfWorks;
+namespace NotificationService.Application.UnitOfWorks;
 
 public interface IUnitOfWork : IDisposable
 {

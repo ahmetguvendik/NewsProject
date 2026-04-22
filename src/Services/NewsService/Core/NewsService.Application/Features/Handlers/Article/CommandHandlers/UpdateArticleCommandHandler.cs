@@ -10,11 +10,16 @@ namespace NewsService.Application.Features.Handlers.Article.CommandHandlers;
 public class UpdateArticleCommandHandler : IRequestHandler<UpdateArticleCommand, UpdateArticleResponse>
 {
     private readonly IGenericRepository<Domain.Entities.Article> _articleRepository;
+    private readonly IGenericRepository<Domain.Entities.Category> _categoryRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public UpdateArticleCommandHandler(IGenericRepository<Domain.Entities.Article> articleRepository, IUnitOfWork unitOfWork)
+    public UpdateArticleCommandHandler(
+        IGenericRepository<Domain.Entities.Article> articleRepository,
+        IGenericRepository<Domain.Entities.Category> categoryRepository,
+        IUnitOfWork unitOfWork)
     {
         _articleRepository = articleRepository;
+        _categoryRepository = categoryRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -22,6 +27,10 @@ public class UpdateArticleCommandHandler : IRequestHandler<UpdateArticleCommand,
     {
         var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Article(request.Id);
+
+        // Yeni CategoryId veritabanında var mı?
+        _ = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken)
+            ?? throw NotFoundException.Category(request.CategoryId);
 
         article.Title = request.Title;
         article.Content = request.Content;

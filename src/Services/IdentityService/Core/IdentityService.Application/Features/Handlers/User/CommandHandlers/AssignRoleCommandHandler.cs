@@ -32,8 +32,10 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
         var user = await _userRepository.GetByIdAsync(request.UserId.ToString(), cancellationToken)
             ?? throw NotFoundException.User(request.UserId);
 
-        // RoleConstants.GetId — bilinmeyen rol gelirse exception fırlatır
-        var roleId = RoleConstants.GetId(request.RoleName);
+        // Bilinmeyen rol adı → 400 ValidationException
+        var roleId = RoleConstants.TryGetId(request.RoleName)
+            ?? throw new ValidationException("roleName",
+                $"'{request.RoleName}' geçerli bir rol değil. Geçerli roller: admin, editor, user.");
 
         var existing = await _userRoleRepository.GetAsync(user.Id, roleId, cancellationToken);
         if (existing is not null)
@@ -42,11 +44,19 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
         // Keycloak'ta ata
         await _keycloakAdminClient.AssignRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);
 
-        // DB'de kaydet
-        await _userRoleRepository.CreateAsync(
-            new UserRole { UserId = user.Id, RoleId = roleId },
-            cancellationToken);
+        // DB başarısız olursa Keycloak'taki atamayı geri al (compensating transaction)
+        try
+        {
+            await _userRoleRepository.CreateAsync(
+                new UserRole { UserId = user.Id, RoleId = roleId },
+                cancellationToken);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            await _keycloakAdminClient.RemoveRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);
+            throw;
+        }
     }
 }

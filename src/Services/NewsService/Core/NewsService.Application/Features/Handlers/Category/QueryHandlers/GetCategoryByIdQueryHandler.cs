@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using NewsService.Application.Features.Queries.Category.Request;
 using NewsService.Application.Features.Queries.Category.Response;
 using NewsService.Application.Interfaces;
+using Shared.Exceptions;
 
 namespace NewsService.Application.Features.Handlers.Category.QueryHandlers;
 
-public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery, GetCategoryByIdResponse?>
+public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery, GetCategoryByIdResponse>
 {
     private readonly IGenericRepository<Domain.Entities.Category> _categoryRepository;
 
@@ -15,9 +16,9 @@ public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery,
         _categoryRepository = categoryRepository;
     }
 
-    public async Task<GetCategoryByIdResponse?> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetCategoryByIdResponse> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
-        return await _categoryRepository.GetQueryable()
+        var category = await _categoryRepository.GetQueryable()
             .Where(c => c.Id == request.Id && !c.IsDeleted)
             .Select(c => new GetCategoryByIdResponse
             {
@@ -27,5 +28,7 @@ public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery,
                 CreatedAt = c.CreatedAt
             })
             .FirstOrDefaultAsync(cancellationToken);
+
+        return category ?? throw NotFoundException.Category(request.Id);
     }
 }

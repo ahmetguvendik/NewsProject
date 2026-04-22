@@ -1,15 +1,15 @@
 using Microsoft.EntityFrameworkCore.Storage;
-using NewsService.Application.UnitOfWorks;
-using NewsService.Persistance.Contexts;
+using NotificationService.Application.UnitOfWorks;
+using NotificationService.Persistance.Contexts;
 
-namespace NewsService.Persistance.UnitOfWorks;
+namespace NotificationService.Persistance.UnitOfWorks;
 
 public class UnitOfWork : IUnitOfWork
 {
-    private readonly NewsServiceDbContext _context;
+    private readonly NotificationServiceDbContext _context;
     private IDbContextTransaction? _transaction;
 
-    public UnitOfWork(NewsServiceDbContext context)
+    public UnitOfWork(NotificationServiceDbContext context)
     {
         _context = context;
     }

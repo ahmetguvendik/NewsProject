@@ -29,7 +29,6 @@ public class UserController : ControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(new GetUserByIdQuery { Id = id }, cancellationToken);
-        if (result is null) return NotFound();
         return Ok(result);
     }
     

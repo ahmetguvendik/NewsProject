@@ -3,10 +3,39 @@ using IdentityService.Persistance;
 using IdentityService.WebApi.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Shared.Models;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // [ApiController]'ın varsayılan ValidationProblemDetails formatını devre dışı bırak,
+        // tüm servislerle tutarlı ErrorResponse formatına dönüştür.
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            var response = new ErrorResponse
+            {
+                Status = StatusCodes.Status400BadRequest,
+                ErrorCode = "VALIDATION_ERROR",
+                Message = "Gönderilen veriler geçersiz.",
+                Description = "Lütfen hatalı alanları düzelterek tekrar deneyin.",
+                Errors = errors
+            };
+
+            return new BadRequestObjectResult(response);
+        };
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddExceptionHandler<IdentityService.WebApi.Infrastructure.GlobalExceptionHandler>();

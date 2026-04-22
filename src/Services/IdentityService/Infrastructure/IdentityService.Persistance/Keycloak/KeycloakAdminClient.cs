@@ -14,6 +14,9 @@ public class KeycloakAdminClient : IKeycloakAdminClient
     private readonly string _adminClientSecret;
     private readonly string _baseUrl;
 
+    private readonly string _adminUsername;
+    private readonly string _adminPassword;
+
     public KeycloakAdminClient(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
@@ -21,6 +24,8 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         _realm = configuration["Keycloak:Realm"] ?? "news-portal";
         _adminClientId = configuration["Keycloak:AdminClientId"] ?? "admin-cli";
         _adminClientSecret = configuration["Keycloak:AdminClientSecret"] ?? string.Empty;
+        _adminUsername = configuration["Keycloak:AdminUsername"] ?? "admin";
+        _adminPassword = configuration["Keycloak:AdminPassword"] ?? "admin";
     }
 
     public async Task<string> CreateUserAsync(string email, string password, string firstName, string lastName, CancellationToken cancellationToken = default)
@@ -114,22 +119,69 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         }
     }
 
-    private async Task<string> GetAdminTokenAsync(CancellationToken cancellationToken)
+    public async Task DisableUserAsync(string keycloakId, CancellationToken cancellationToken = default)
     {
-        var formData = new Dictionary<string, string>
+        var token = await GetAdminTokenAsync(cancellationToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // Keycloak'ta kullanıcıyı enabled=false yaparak devre dışı bırak
+        var payload = JsonSerializer.Serialize(new { enabled = false });
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PutAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}", content, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
         {
-            ["grant_type"] = "client_credentials",
-            ["client_id"] = _adminClientId,
-            ["client_secret"] = _adminClientSecret
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new Exception($"Keycloak user disable failed: {error}");
+        }
+    }
+
+    public async Task RemoveRoleAsync(string keycloakId, string roleName, CancellationToken cancellationToken = default)
+    {
+        var token = await GetAdminTokenAsync(cancellationToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // Rol bilgisini Keycloak'tan al (id + name gerekiyor)
+        var roleResponse = await _httpClient.GetAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/roles/{roleName}", cancellationToken);
+
+        if (!roleResponse.IsSuccessStatusCode)
+            return; // Rol zaten yoksa sessizce geç
+
+        var roleBody = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
+        var roleJson = JsonDocument.Parse(roleBody);
+        var roleId = roleJson.RootElement.GetProperty("id").GetString();
+        var roleNameFromKeycloak = roleJson.RootElement.GetProperty("name").GetString();
+
+        var payload = JsonSerializer.Serialize(new[]
+        {
+            new { id = roleId, name = roleNameFromKeycloak }
+        });
+
+        var request = new HttpRequestMessage(HttpMethod.Delete,
+            $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}/role-mappings/realm")
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
         };
 
-        // AdminClientSecret boşsa username/password ile al
-        if (string.IsNullOrEmpty(_adminClientSecret))
+        await _httpClient.SendAsync(request, cancellationToken);
+        // Hata durumunda sessizce devam et — bu zaten compensating transaction
+    }
+
+    private async Task<string> GetAdminTokenAsync(CancellationToken cancellationToken)
+    {
+        // admin-cli is a public client in Keycloak's master realm — it only supports
+        // the password grant. client_credentials requires a confidential client with
+        // service accounts enabled, which admin-cli is not by default.
+        var formData = new Dictionary<string, string>
         {
-            formData["grant_type"] = "password";
-            formData["username"] = "admin";
-            formData["password"] = "admin";
-        }
+            ["grant_type"] = "password",
+            ["client_id"] = _adminClientId,
+            ["username"] = _adminUsername,
+            ["password"] = _adminPassword
+        };
 
         var response = await _httpClient.PostAsync(
             $"{_baseUrl}/realms/master/protocol/openid-connect/token",

@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using NewsService.Application.Features.Queries.Article.Request;
 using NewsService.Application.Features.Queries.Article.Response;
 using NewsService.Application.Interfaces;
+using Shared.Exceptions;
 
 namespace NewsService.Application.Features.Handlers.Article.QueryHandlers;
 
-public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, GetArticleByIdResponse?>
+public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, GetArticleByIdResponse>
 {
     private readonly IGenericRepository<Domain.Entities.Article> _articleRepository;
 
@@ -15,9 +16,9 @@ public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, G
         _articleRepository = articleRepository;
     }
 
-    public async Task<GetArticleByIdResponse?> Handle(GetArticleByIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetArticleByIdResponse> Handle(GetArticleByIdQuery request, CancellationToken cancellationToken)
     {
-        return await _articleRepository.GetQueryable()
+        var article = await _articleRepository.GetQueryable()
             .Include(a => a.Category)
             .Include(a => a.ArticleTags).ThenInclude(at => at.Tag)
             .Where(a => a.Id == request.Id && !a.IsDeleted)
@@ -36,5 +37,7 @@ public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, G
                 Tags = a.ArticleTags.Select(at => at.Tag.Name).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
+
+        return article ?? throw NotFoundException.Article(request.Id);
     }
 }

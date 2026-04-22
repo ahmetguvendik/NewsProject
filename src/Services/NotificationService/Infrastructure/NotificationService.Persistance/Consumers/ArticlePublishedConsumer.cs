@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NotificationService.Application.UnitOfWorks;
 using NotificationService.Domain.Entities;
 using NotificationService.Persistance.Contexts;
 using Shared.Messaging;
@@ -46,6 +47,7 @@ public class ArticlePublishedConsumer : BackgroundService
 
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<NotificationServiceDbContext>();
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
                 // Duplicate kontrolü
                 var alreadyExists = db.InboxMessages.Any(m => m.MessageId == result.Message.Key);
@@ -58,7 +60,7 @@ public class ArticlePublishedConsumer : BackgroundService
                         Payload = result.Message.Value
                     });
 
-                    await db.SaveChangesAsync(stoppingToken);
+                    await unitOfWork.SaveChangesAsync(stoppingToken);
                     _logger.LogInformation("InboxMessage saved for topic '{Topic}', key '{Key}'.", result.Topic, result.Message.Key);
                 }
                 else
