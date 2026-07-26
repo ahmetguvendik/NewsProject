@@ -53,8 +53,10 @@ public static class ErrorCodes
     {
         public const string UserCreationFailed  = "KEYCLOAK_USER_CREATION_FAILED";
         public const string UserDeletionFailed  = "KEYCLOAK_USER_DELETION_FAILED";
+        public const string UserDisableFailed   = "KEYCLOAK_USER_DISABLE_FAILED";
         public const string RoleAssignFailed    = "KEYCLOAK_ROLE_ASSIGN_FAILED";
         public const string RoleNotFound        = "KEYCLOAK_ROLE_NOT_FOUND";
+        public const string AdminAuthFailed     = "KEYCLOAK_ADMIN_AUTH_FAILED";
     }
 
     // ─── General ─────────────────────────────────────────────────

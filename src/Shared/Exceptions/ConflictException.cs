@@ -15,6 +15,11 @@ public class ConflictException : AppException
 
     // ── Hazır factory metotları ──────────────────────────────────────
 
+    public static ConflictException UserAlreadyExists(string email) => new(
+        ErrorCodes.User.AlreadyExists,
+        "Bu e-posta adresi zaten kayıtlı.",
+        $"'{email}' adresiyle bir kullanıcı zaten mevcut. Farklı bir e-posta deneyin veya giriş yapın.");
+
     public static ConflictException RoleAlreadyAssigned(Guid userId, string roleName) => new(
         ErrorCodes.User.RoleAlreadyAssigned,
         "Rol zaten atanmış.",

@@ -1,0 +1,25 @@
+# Build çıktıları — host'taki obj/ image'a sızarsa restore path'leri çakışır
+**/bin/
+**/obj/
+
+# VCS & IDE
+.git/
+.gitignore
+.idea/
+.vs/
+.vscode/
+
+# Docker
+docker-compose.yml
+**/Dockerfile
+.dockerignore
+
+# Yerel ayarlar & secret'lar
+.env
+.env.*
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/*.user
+
+# OS
+.DS_Store

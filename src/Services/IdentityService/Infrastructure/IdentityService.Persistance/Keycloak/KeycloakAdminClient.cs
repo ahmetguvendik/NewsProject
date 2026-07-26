@@ -1,5 +1,7 @@
 using IdentityService.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Shared.Exceptions;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -55,13 +57,27 @@ public class KeycloakAdminClient : IKeycloakAdminClient
 
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Keycloak user creation failed: {error}");
+            var detail = await ReadErrorAsync(response, cancellationToken);
+
+            throw response.StatusCode switch
+            {
+                // Aynı e-posta/kullanıcı adı zaten kayıtlı
+                HttpStatusCode.Conflict => ConflictException.UserAlreadyExists(email),
+
+                // Parola politikası, geçersiz e-posta formatı vb. — istemcinin düzeltebileceği hatalar
+                HttpStatusCode.BadRequest => new ValidationException("request", detail),
+
+                _ => ExternalServiceException.Keycloak(
+                    ErrorCodes.Keycloak.UserCreationFailed, "kullanıcı oluşturma", detail)
+            };
         }
 
         // Keycloak oluşturulan kullanıcının Location header'ında ID'yi döner
         var location = response.Headers.Location?.ToString()
-            ?? throw new Exception("Keycloak did not return a user location header.");
+            ?? throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.UserCreationFailed,
+                "kullanıcı oluşturma",
+                "Yanıtta Location header'ı yok, oluşturulan kullanıcının ID'si okunamadı.");
 
         return location.Split('/').Last();
     }
@@ -74,10 +90,16 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         var response = await _httpClient.DeleteAsync(
             $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}", cancellationToken);
 
+        // Kullanıcı zaten yoksa silme işlemi amacına ulaşmış sayılır (idempotent)
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return;
+
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Keycloak user deletion failed: {error}");
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.UserDeletionFailed,
+                "kullanıcı silme",
+                await ReadErrorAsync(response, cancellationToken));
         }
     }
 
@@ -92,8 +114,12 @@ public class KeycloakAdminClient : IKeycloakAdminClient
 
         if (!roleResponse.IsSuccessStatusCode)
         {
-            var err = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Keycloak role not found '{roleName}': {err}");
+            // Rol adı Application katmanında zaten doğrulandı; burada yoksa realm
+            // yapılandırması eksik demektir — istemcinin düzeltebileceği bir hata değil.
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.RoleNotFound,
+                "rol sorgulama",
+                $"'{roleName}' rolü realm'de tanımlı değil: {await ReadErrorAsync(roleResponse, cancellationToken)}");
         }
 
         var roleBody = await roleResponse.Content.ReadAsStringAsync(cancellationToken);
@@ -114,8 +140,10 @@ public class KeycloakAdminClient : IKeycloakAdminClient
 
         if (!assignResponse.IsSuccessStatusCode)
         {
-            var err = await assignResponse.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Keycloak role assignment failed: {err}");
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.RoleAssignFailed,
+                "rol atama",
+                await ReadErrorAsync(assignResponse, cancellationToken));
         }
     }
 
@@ -131,10 +159,16 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         var response = await _httpClient.PutAsync(
             $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}", content, cancellationToken);
 
+        // Kullanıcı Keycloak'ta zaten yoksa devre dışı bırakılacak bir şey de yok
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return;
+
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new Exception($"Keycloak user disable failed: {error}");
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.UserDisableFailed,
+                "kullanıcı devre dışı bırakma",
+                await ReadErrorAsync(response, cancellationToken));
         }
     }
 
@@ -188,11 +222,51 @@ public class KeycloakAdminClient : IKeycloakAdminClient
             new FormUrlEncodedContent(formData),
             cancellationToken);
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.AdminAuthFailed,
+                "admin token alma",
+                await ReadErrorAsync(response, cancellationToken));
+        }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         var json = JsonDocument.Parse(body);
         return json.RootElement.GetProperty("access_token").GetString()
-            ?? throw new Exception("Could not retrieve Keycloak admin token.");
+            ?? throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.AdminAuthFailed,
+                "admin token alma",
+                "Yanıtta 'access_token' alanı bulunamadı.");
+    }
+
+    /// <summary>
+    /// Keycloak hata yanıtından okunabilir mesajı çıkarır.
+    /// Keycloak duruma göre 'errorMessage', 'error_description' veya 'error' alanını döner;
+    /// hiçbiri yoksa ham gövde kullanılır.
+    /// </summary>
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        try
+        {
+            var root = JsonDocument.Parse(body).RootElement;
+
+            foreach (var field in new[] { "errorMessage", "error_description", "error" })
+            {
+                if (root.TryGetProperty(field, out var value) &&
+                    value.ValueKind == JsonValueKind.String &&
+                    value.GetString() is { Length: > 0 } message)
+                {
+                    return message;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // JSON değilse ham gövdeyi kullan
+        }
+
+        return string.IsNullOrWhiteSpace(body) ? $"HTTP {(int)response.StatusCode}" : body;
     }
 }

@@ -1,0 +1,328 @@
+/* ── News Portal — tasarım sistemi ───────────────────────────────
+   Gazete estetiği: kağıt zemin, serif manşetler, ince kurallar,
+   tek güçlü kırmızı vurgu. Harici font yok, sistem yığınları kullanılıyor. */
+
+:root {
+  --ink: #17130f;
+  --ink-soft: #3d352e;
+  --muted: #7a7169;
+  --paper: #f6f3ee;
+  --card: #fffdfa;
+  --rule: #ded7cc;
+  --rule-strong: #c4baab;
+  --accent: #b3261e;
+  --accent-dark: #8c1d17;
+  --accent-wash: #fbeceb;
+  --ok: #2f6b4f;
+  --ok-wash: #e8f2ec;
+  --warn: #8a5a12;
+  --warn-wash: #fbf1de;
+
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  --shadow: 0 1px 2px rgba(23, 19, 15, .06), 0 8px 24px rgba(23, 19, 15, .05);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button, input, textarea, select { font: inherit; }
+
+.container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Masthead ─────────────────────────────────────────────────── */
+
+.masthead { background: var(--ink); color: var(--paper); }
+
+.masthead__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 0 16px;
+}
+
+.masthead__brand { display: flex; align-items: baseline; gap: 12px; }
+
+.masthead__title {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.masthead__tagline {
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #a49a8f;
+}
+
+.masthead__user { display: flex; align-items: center; gap: 14px; }
+.masthead__name { font-size: 13px; color: #d8d0c6; }
+
+.nav {
+  display: flex;
+  gap: 4px;
+  border-top: 1px solid #2e2721;
+  padding: 2px 0;
+  overflow-x: auto;
+}
+
+.nav a {
+  padding: 11px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #b8afa4;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+
+.nav a:hover { color: var(--paper); }
+.nav a.is-active { color: var(--paper); border-bottom-color: var(--accent); }
+
+/* ── Sayfa başlığı ────────────────────────────────────────────── */
+
+/* Yatay padding .container'dan gelir; burada sadece dikey boşluk verilir. */
+.page { padding-top: 40px; padding-bottom: 72px; }
+
+.page__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 3px double var(--rule-strong);
+  margin-bottom: 28px;
+}
+
+.page__title { font-family: var(--serif); font-size: 34px; margin: 0; letter-spacing: -.01em; }
+.page__sub { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+
+/* ── Makale listesi ───────────────────────────────────────────── */
+
+.articles { display: grid; gap: 2px; background: var(--rule); border: 1px solid var(--rule); }
+
+.article-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 22px 24px;
+  background: var(--card);
+  transition: background .12s;
+}
+
+.article-row:hover { background: #fffaf3; }
+
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.article-row__title {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 5px 0 6px;
+}
+
+.article-row__title a:hover { color: var(--accent); }
+.article-row__summary { color: var(--ink-soft); margin: 0 0 10px; max-width: 62ch; }
+
+.meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+.article-row__actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+
+/* ── Rozetler ─────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.badge--published { background: var(--ok-wash); color: var(--ok); }
+.badge--draft { background: var(--warn-wash); color: var(--warn); }
+.badge--admin { background: var(--accent-wash); color: var(--accent-dark); }
+.badge--editor { background: #eae4f5; color: #59409b; }
+.badge--user { background: #e9e5df; color: var(--ink-soft); }
+
+/* ── Butonlar ─────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
+}
+
+.btn:hover:not(:disabled) { background: #f2ece2; border-color: var(--muted); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn--primary:hover:not(:disabled) { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+.btn--ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn--ghost:hover:not(:disabled) { background: #ece6dc; color: var(--ink); }
+
+.btn--danger { color: var(--accent); }
+.btn--danger:hover:not(:disabled) { background: var(--accent-wash); border-color: var(--accent); }
+
+.btn--sm { padding: 6px 11px; font-size: 12px; }
+.btn--block { width: 100%; }
+
+/* ── Formlar ──────────────────────────────────────────────────── */
+
+.field { display: block; margin-bottom: 18px; }
+
+.field__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+
+.input, .textarea, .select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.textarea { min-height: 220px; resize: vertical; font-family: var(--serif); font-size: 16px; line-height: 1.7; }
+.field__hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.checks { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  background: var(--card);
+}
+
+.check:has(input:checked) { border-color: var(--accent); background: var(--accent-wash); color: var(--accent-dark); }
+.check input { accent-color: var(--accent); }
+
+/* ── Kartlar & paneller ───────────────────────────────────────── */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 26px;
+  box-shadow: var(--shadow);
+}
+
+.card__title { font-family: var(--serif); font-size: 22px; margin: 0 0 4px; }
+.card__sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+
+.panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; align-items: start; }
+.auth-shell { max-width: 430px; margin: 64px auto; }
+
+/* ── Tablo ────────────────────────────────────────────────────── */
+
+.table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--rule); }
+.table th, .table td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--rule); }
+
+.table th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #f3efe8;
+}
+
+.table tr:last-child td { border-bottom: none; }
+.table td.right, .table th.right { text-align: right; }
+
+/* ── Uyarılar ─────────────────────────────────────────────────── */
+
+.alert { padding: 13px 16px; border-radius: 3px; border-left: 3px solid; margin-bottom: 20px; font-size: 14px; }
+.alert--error { background: var(--accent-wash); border-color: var(--accent); color: var(--accent-dark); }
+.alert--ok { background: var(--ok-wash); border-color: var(--ok); color: var(--ok); }
+.alert--info { background: #eef1f6; border-color: #5b6b8c; color: #3d4a63; }
+.alert__code { font-family: var(--mono); font-size: 11px; opacity: .75; display: block; margin-top: 4px; }
+.alert ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* ── Makale okuma ─────────────────────────────────────────────── */
+
+.reader { max-width: 720px; }
+.reader__title { font-family: var(--serif); font-size: 42px; line-height: 1.15; margin: 10px 0 14px; }
+.reader__summary { font-family: var(--serif); font-size: 20px; color: var(--ink-soft); font-style: italic; margin: 0 0 20px; }
+.reader__body { font-family: var(--serif); font-size: 18px; line-height: 1.75; white-space: pre-wrap; }
+.reader__rule { border: none; border-top: 1px solid var(--rule); margin: 22px 0; }
+.reader__image { width: 100%; border-radius: 4px; margin: 20px 0; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+.tag-chip { font-size: 12px; padding: 4px 11px; border: 1px solid var(--rule-strong); border-radius: 999px; color: var(--ink-soft); }
+
+/* ── Boş durum / yükleniyor ───────────────────────────────────── */
+
+.empty { text-align: center; padding: 64px 24px; color: var(--muted); border: 1px dashed var(--rule-strong); border-radius: 4px; background: var(--card); }
+.empty__title { font-family: var(--serif); font-size: 22px; color: var(--ink); margin: 0 0 6px; }
+
+.skeleton { height: 92px; background: linear-gradient(90deg, #efe9e0, #f7f3ec, #efe9e0); background-size: 200% 100%; animation: shimmer 1.2s infinite; border: 1px solid var(--rule); }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.stack { display: grid; gap: 2px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.row--between { justify-content: space-between; }
+.row--wrap { flex-wrap: wrap; }
+.spacer { flex: 1; }
+
+@media (max-width: 720px) {
+  .article-row { grid-template-columns: 1fr; }
+  .page__head { flex-direction: column; align-items: flex-start; }
+  .reader__title { font-size: 32px; }
+}

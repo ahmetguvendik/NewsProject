@@ -41,15 +41,24 @@ services:
     ports:
       - "8080:8080"
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
       KC_PROXY: edge
     volumes:
       - keycloak_data:/opt/keycloak/data
-    command: start-dev
+      # news-portal realm'i (admin/editor/user rolleri + news-portal-client) otomatik import edilir
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+    command: start-dev --import-realm
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     networks:
       - apisix
 
@@ -59,13 +68,21 @@ services:
     container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: ahmet
-      POSTGRES_PASSWORD: Ahmet.123
+      POSTGRES_USER: ${POSTGRES_USER:-ahmet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Ahmet.123}
       POSTGRES_DB: NewsIdentityServiceDb
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # NewsServiceDb + NotificationServiceDb'yi ilk açılışta oluşturur
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-ahmet} -d NewsIdentityServiceDb"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     networks:
       - apisix
 
@@ -77,6 +94,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - apisix
 
@@ -106,6 +128,12 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
     networks:
       - apisix
 
@@ -120,11 +148,14 @@ services:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
       - Smtp__Host=smtp.gmail.com
       - Smtp__Port=587
-      - Smtp__Username=${SMTP_USERNAME}
-      - Smtp__Password=${SMTP_PASSWORD}
+      - Smtp__Username=${SMTP_USERNAME:-}
+      - Smtp__Password=${SMTP_PASSWORD:-}
       - Smtp__FromName=News Portal
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      notification-service:
+        condition: service_started
     networks:
       - apisix
 
@@ -143,13 +174,15 @@ services:
       - Kafka__BootstrapServers=kafka:9092
       - Smtp__Host=smtp.gmail.com
       - Smtp__Port=587
-      - Smtp__Username=${SMTP_USERNAME}
-      - Smtp__Password=${SMTP_PASSWORD}
+      - Smtp__Username=${SMTP_USERNAME:-}
+      - Smtp__Password=${SMTP_PASSWORD:-}
       - Smtp__FromName=News Portal
-      - Notification__AdminEmail=${SMTP_USERNAME}
+      - Notification__AdminEmail=${SMTP_USERNAME:-}
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - apisix
 
@@ -221,9 +254,12 @@ services:
       - Keycloak__AdminPassword=admin
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
-      - postgres
-      - kafka
-      - keycloak
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
     networks:
       - apisix
 
@@ -238,8 +274,12 @@ services:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
     networks:
       - apisix
 
@@ -254,8 +294,12 @@ services:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      news-service:
+        condition: service_started
     networks:
       - apisix
 
@@ -277,9 +321,12 @@ services:
       - Keycloak__RequireHttpsMetadata=false
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
-      - postgres
-      - kafka
-      - keycloak
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
     networks:
       - apisix
 

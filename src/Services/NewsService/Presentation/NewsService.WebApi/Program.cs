@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using NewsService.Application;
 using NewsService.Persistance;
+using NewsService.Persistance.Contexts;
 using NewsService.WebApi.Infrastructure;
+using Shared.Extensions;
 using Shared.Models;
 using System.Text.Json;
 
@@ -64,6 +66,9 @@ builder.Services.AddApplicationServices();
 builder.Services.AddPersistanceServices(builder.Configuration);
 
 var app = builder.Build();
+
+// Şema, container açılışında migration'lardan oluşturulur (Postgres hazır olana kadar retry'lı).
+await app.MigrateDatabaseAsync<NewsServiceDbContext>();
 
 if (app.Environment.IsDevelopment())
 {

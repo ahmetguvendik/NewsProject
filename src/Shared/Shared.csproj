@@ -6,4 +6,10 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+        <!-- Açılışta migration uygulayan HostMigrationExtensions için -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.6" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.6" />
+    </ItemGroup>
+
 </Project>

@@ -1,6 +1,8 @@
 using IdentityService.Application;
 using IdentityService.Persistance;
+using IdentityService.Persistance.Contexts;
 using IdentityService.WebApi.Infrastructure;
+using Shared.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -66,6 +68,9 @@ builder.Services.AddApplicationServices();
 builder.Services.AddPersistanceServices(builder.Configuration);
 
 var app = builder.Build();
+
+// Şema, container açılışında migration'lardan oluşturulur (Postgres hazır olana kadar retry'lı).
+await app.MigrateDatabaseAsync<IdentityServiceDbContext>();
 
 if (app.Environment.IsDevelopment())
 {

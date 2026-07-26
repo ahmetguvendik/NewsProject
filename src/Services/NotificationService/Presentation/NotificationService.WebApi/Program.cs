@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using NotificationService.Persistance;
+using NotificationService.Persistance.Contexts;
 using NotificationService.WebApi.Infrastructure;
+using Shared.Extensions;
 using Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +40,9 @@ builder.Services.AddProblemDetails();
 builder.Services.AddPersistanceServices(builder.Configuration);
 
 var app = builder.Build();
+
+// Kafka consumer'ları InboxMessages'a yazdığı için şema Run()'dan önce hazır olmalı.
+await app.MigrateDatabaseAsync<NotificationServiceDbContext>();
 
 if (app.Environment.IsDevelopment())
 {

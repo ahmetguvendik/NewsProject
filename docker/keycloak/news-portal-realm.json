@@ -1,0 +1,40 @@
+{
+  "realm": "news-portal",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "accessTokenLifespan": 1800,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Tam yetki: kullanıcı yönetimi, kategori/etiket CRUD, makale yayınlama"
+      },
+      {
+        "name": "editor",
+        "description": "Makale oluşturma, güncelleme ve silme"
+      },
+      {
+        "name": "user",
+        "description": "Varsayılan rol: yayınlanmış içerikleri okuma"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "news-portal-client",
+      "name": "News Portal Client",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "fullScopeAllowed": true
+    }
+  ]
+}

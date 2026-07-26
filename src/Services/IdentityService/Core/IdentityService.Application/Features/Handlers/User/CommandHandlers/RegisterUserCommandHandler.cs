@@ -5,6 +5,7 @@ using IdentityService.Application.UnitOfWorks;
 using IdentityService.Domain.Constants;
 using IdentityService.Domain.Entities;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Shared.Messaging;
 using Shared.Messaging.Events;
 
@@ -17,24 +18,29 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, C
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEventPublisher _eventPublisher;
+    private readonly ILogger<RegisterUserCommandHandler> _logger;
 
     public RegisterUserCommandHandler(
         IKeycloakAdminClient keycloakAdminClient,
         IGenericRepository<Domain.Entities.User> userRepository,
         IUserRoleRepository userRoleRepository,
         IUnitOfWork unitOfWork,
-        IEventPublisher eventPublisher)
+        IEventPublisher eventPublisher,
+        ILogger<RegisterUserCommandHandler> logger)
     {
         _keycloakAdminClient = keycloakAdminClient;
         _userRepository = userRepository;
         _userRoleRepository = userRoleRepository;
         _unitOfWork = unitOfWork;
         _eventPublisher = eventPublisher;
+        _logger = logger;
     }
 
     public async Task<CreateUserResponse> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
-        // 1. Keycloak'ta user oluştur
+        // 1. Keycloak'ta user oluştur.
+        // Bu noktadan sonraki HER hata Keycloak'ta yetim bir kullanıcı bırakır,
+        // bu yüzden geri kalan tüm adımlar telafi bloğunun içinde çalışır.
         var keycloakId = await _keycloakAdminClient.CreateUserAsync(
             request.Email,
             request.Password,
@@ -42,11 +48,11 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, C
             request.LastName,
             cancellationToken);
 
-        // 2. Keycloak'ta default "user" rolü ata
-        await _keycloakAdminClient.AssignRoleAsync(keycloakId, RoleConstants.User, cancellationToken);
-
         try
         {
+            // 2. Keycloak'ta default "user" rolü ata
+            await _keycloakAdminClient.AssignRoleAsync(keycloakId, RoleConstants.User, cancellationToken);
+
             var user = new Domain.Entities.User
             {
                 KeycloakId = keycloakId,
@@ -89,9 +95,29 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, C
         }
         catch
         {
-            // DB kaydı başarısız → Keycloak'taki user'ı sil (compensating transaction)
-            await _keycloakAdminClient.DeleteUserAsync(keycloakId, cancellationToken);
+            // Rol ataması veya DB kaydı başarısız → Keycloak'taki user'ı sil (compensating transaction)
+            await CompensateAsync(keycloakId);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Kayıt yarıda kaldığında Keycloak'ta oluşturulmuş kullanıcıyı temizler.
+    /// Temizliğin kendisi başarısız olursa asıl hatayı gizlememek için yalnızca loglanır.
+    /// </summary>
+    private async Task CompensateAsync(string keycloakId)
+    {
+        try
+        {
+            // İstek iptal edilmiş olsa bile temizlik çalışmalı → CancellationToken.None
+            await _keycloakAdminClient.DeleteUserAsync(keycloakId, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Kayıt geri alınamadı: Keycloak kullanıcısı {KeycloakId} silinemedi. " +
+                "Keycloak'ta yetim kullanıcı kaldı, manuel temizlik gerekiyor.",
+                keycloakId);
         }
     }
 }
