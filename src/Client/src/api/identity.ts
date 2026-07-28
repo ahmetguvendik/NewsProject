@@ -17,6 +17,10 @@ export const identityApi = {
   assignRole: (userId: string, roleName: Role) =>
     api.post<void>('identity', '/api/user/roles', { userId, roleName }),
 
+  /** Rolü hem Keycloak'tan hem local DB'den kaldırır */
+  removeRole: (userId: string, roleName: Role) =>
+    api.del<void>('identity', `/api/user/${userId}/roles/${roleName}`),
+
   /**
    * NewsService yazar için yalnızca keycloakId tutuyor; görünen adı bu
    * [AllowAnonymous] uçtan çözüyoruz. Boş dizi çağrısı yapılmaz.

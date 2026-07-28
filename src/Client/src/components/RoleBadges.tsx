@@ -7,11 +7,15 @@ const LABELS: Record<Role, string> = {
 }
 
 export function RoleBadges({ roles }: { roles: Role[] }) {
-  if (roles.length === 0) return <span className="badge badge--user">rolsüz</span>
+  // "user" rolü kayıt olan herkese otomatik atanır; ayrıca göstermek gürültü
+  // yaratıyor — yalnızca editor/admin gibi ayırt edici roller rozet olarak çıkar.
+  const notable = roles.filter((role) => role !== 'user')
+
+  if (notable.length === 0) return null
 
   return (
     <span className="row" style={{ gap: 5 }}>
-      {roles.map((role) => (
+      {notable.map((role) => (
         <span key={role} className={`badge badge--${role}`}>
           {LABELS[role]}
         </span>

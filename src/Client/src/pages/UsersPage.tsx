@@ -40,6 +40,19 @@ export function UsersPage() {
     }
   }
 
+  const unassign = async (user: AppUser, role: Role) => {
+    setBusyId(user.id)
+    setError(null)
+    try {
+      await identityApi.removeRole(user.id, role)
+      await load()
+    } catch (err) {
+      setError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const remove = async (user: AppUser) => {
     if (!confirm(`${user.email} silinsin mi? DB'de soft-delete, Keycloak'ta devre dışı bırakılır.`)) return
 
@@ -67,8 +80,7 @@ export function UsersPage() {
       <ErrorAlert error={error} />
 
       <div className="alert alert--info">
-        Rol atama hem Keycloak'a hem local veritabanına yazılır. <strong>Rol geri alma</strong>{' '}
-        endpoint'i backend'de henüz yok — düşürmek için Keycloak konsolunu kullanın.
+        Rol atama ve geri alma hem Keycloak'a hem local veritabanına yazılır.
       </div>
 
       {loading ? (
@@ -98,6 +110,17 @@ export function UsersPage() {
                 </td>
                 <td className="right">
                   <div className="row row--wrap" style={{ justifyContent: 'flex-end' }}>
+                    {ASSIGNABLE.filter((role) => user.roles.includes(role)).map((role) => (
+                      <button
+                        key={role}
+                        className="btn btn--sm btn--ghost"
+                        disabled={busyId === user.id}
+                        onClick={() => unassign(user, role)}
+                        title={`${role} rolünü kaldır`}
+                      >
+                        − {role}
+                      </button>
+                    ))}
                     {ASSIGNABLE.filter((role) => !user.roles.includes(role)).map((role) => (
                       <button
                         key={role}

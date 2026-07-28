@@ -78,4 +78,11 @@ public class UserController : ControllerBase
         await _mediator.Send(command, cancellationToken);
         return NoContent();
     }
+
+    [HttpDelete("{userId:guid}/roles/{roleName}")]
+    public async Task<IActionResult> RemoveRole(Guid userId, string roleName, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new RemoveRoleCommand { UserId = userId, RoleName = roleName }, cancellationToken);
+        return NoContent();
+    }
 }
