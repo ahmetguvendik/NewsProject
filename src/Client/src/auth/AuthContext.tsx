@@ -1,10 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { login as keycloakLogin, toSession } from '../api/auth'
-import { configureHttp } from '../api/http'
+import { clearToken, onTokenChange, readToken, writeToken } from './tokenStore'
 import type { Role, Session } from '../types'
-
-const STORAGE_KEY = 'news-portal.token'
 
 interface AuthValue {
   session: Session | null
@@ -17,19 +15,19 @@ interface AuthValue {
 const AuthContext = createContext<AuthValue | null>(null)
 
 function readStoredSession(): Session | null {
-  const token = localStorage.getItem(STORAGE_KEY)
+  const token = readToken()
   if (!token) return null
 
   try {
     const session = toSession(token)
     // Süresi dolmuş token'ı hiç yükleme
     if (session.expiresAt <= Date.now()) {
-      localStorage.removeItem(STORAGE_KEY)
+      clearToken()
       return null
     }
     return session
   } catch {
-    localStorage.removeItem(STORAGE_KEY)
+    clearToken()
     return null
   }
 }
@@ -38,20 +36,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(readStoredSession)
 
   const signOut = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+    clearToken()
     setSession(null)
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {
     const next = await keycloakLogin(email, password)
-    localStorage.setItem(STORAGE_KEY, next.token)
+    writeToken(next.token)
     setSession(next)
   }, [])
 
-  // http katmanı token'ı ve 401 davranışını buradan alır
-  useEffect(() => {
-    configureHttp(() => session?.token ?? null, signOut)
-  }, [session, signOut])
+  // Token store dışarıdan değişirse (ör. http katmanı 401'de temizlerse)
+  // React state'ini senkronda tut.
+  useEffect(() => onTokenChange(() => setSession(readStoredSession())), [])
 
   // Token süresi dolduğunda oturumu kendiliğinden düşür
   useEffect(() => {

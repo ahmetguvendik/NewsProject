@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom'
 import { newsApi } from '../api/news'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
-import { formatDateTime, shortId } from '../lib/format'
+import { coverStyle } from '../lib/cover'
+import { formatDateTime } from '../lib/format'
+import { displayAuthor, useAuthorNames } from '../lib/useAuthorNames'
 import type { ArticleDetail } from '../types'
 
 export function ArticleDetailPage() {
@@ -17,21 +19,25 @@ export function ArticleDetailPage() {
     newsApi.getArticle(id).then(setArticle).catch(setError)
   }, [id])
 
+  const authorNames = useAuthorNames(article ? [article.authorKeycloakId] : [])
+
   if (error) {
     return (
       <>
         <ErrorAlert error={error} />
-        <Link className="btn" to="/">← Haberlere dön</Link>
+        <Link className="btn" to="/">← Akışa dön</Link>
       </>
     )
   }
 
-  if (!article) return <div className="skeleton" style={{ height: 320 }} />
+  if (!article) return <div className="skeleton" style={{ height: 420 }} />
 
   return (
     <article className="reader">
+      <div className="reader__cover" style={coverStyle(article.imageUrl, article.categoryName)} />
+
       <div className="row row--between">
-        <span className="kicker">{article.categoryName}</span>
+        <span className="chip">{article.categoryName}</span>
         <span className={`badge badge--${article.isPublished ? 'published' : 'draft'}`}>
           {article.isPublished ? 'Yayında' : 'Taslak'}
         </span>
@@ -47,12 +53,10 @@ export function ArticleDetailPage() {
             ? formatDateTime(article.publishedAt)
             : `Taslak · ${formatDateTime(article.createdAt)}`}
         </span>
-        <span>yazar: {shortId(article.authorKeycloakId)}…</span>
+        <span className="meta__dot">{displayAuthor(authorNames, article.authorKeycloakId)}</span>
       </div>
 
       <hr className="reader__rule" />
-
-      {article.imageUrl && <img className="reader__image" src={article.imageUrl} alt="" />}
 
       <div className="reader__body">{article.content}</div>
 
@@ -67,7 +71,7 @@ export function ArticleDetailPage() {
       <hr className="reader__rule" />
 
       <div className="row row--wrap">
-        <Link className="btn" to="/">← Haberlere dön</Link>
+        <Link className="btn" to="/">← Akışa dön</Link>
         {hasRole('editor', 'admin') && (
           <Link className="btn" to={`/haber/${article.id}/duzenle`}>Düzenle</Link>
         )}

@@ -82,6 +82,12 @@ export interface RegisterInput {
   lastName: string
 }
 
+/** GET /api/user/directory — ID bulunamazsa dizide hiç yer almaz. */
+export interface UserDirectoryEntry {
+  keycloakId: string
+  displayName: string
+}
+
 // ─── Keycloak ─────────────────────────────────────────────────────
 
 export interface TokenResponse {

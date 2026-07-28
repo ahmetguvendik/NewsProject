@@ -150,7 +150,7 @@ services:
       - Smtp__Port=587
       - Smtp__Username=${SMTP_USERNAME:-}
       - Smtp__Password=${SMTP_PASSWORD:-}
-      - Smtp__FromName=News Portal
+      - Smtp__FromName=Telgraf
     depends_on:
       postgres:
         condition: service_healthy
@@ -176,7 +176,7 @@ services:
       - Smtp__Port=587
       - Smtp__Username=${SMTP_USERNAME:-}
       - Smtp__Password=${SMTP_PASSWORD:-}
-      - Smtp__FromName=News Portal
+      - Smtp__FromName=Telgraf
       - Notification__AdminEmail=${SMTP_USERNAME:-}
     depends_on:
       postgres:

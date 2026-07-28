@@ -23,7 +23,7 @@ public class EmailService : IEmailService
         var port = _configuration.GetValue<int>("Smtp:Port", 587);
         var username = _configuration["Smtp:Username"] ?? string.Empty;
         var password = _configuration["Smtp:Password"] ?? string.Empty;
-        var fromName = _configuration["Smtp:FromName"] ?? "News Portal";
+        var fromName = _configuration["Smtp:FromName"] ?? "Telgraf";
 
         using var client = new SmtpClient(host, port)
         {

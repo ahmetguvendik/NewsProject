@@ -31,7 +31,25 @@ public class UserController : ControllerBase
         var result = await _mediator.Send(new GetUserByIdQuery { Id = id }, cancellationToken);
         return Ok(result);
     }
-    
+
+    /// <summary>
+    /// Diğer servislerin elindeki Keycloak ID'lerini görünen isme çevirir
+    /// (ör. NewsService'in makale yazarını göstermesi için).
+    /// Bilerek admin dışına açık — yalnızca ad-soyad döner, hassas alan yok.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("directory")]
+    public async Task<IActionResult> GetDirectory([FromQuery] string ids, CancellationToken cancellationToken)
+    {
+        var keycloakIds = (ids ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct()
+            .ToList();
+
+        var result = await _mediator.Send(new GetUserDirectoryQuery { KeycloakIds = keycloakIds }, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserCommand command, CancellationToken cancellationToken)
     {

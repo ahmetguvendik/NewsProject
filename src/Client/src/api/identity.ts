@@ -1,5 +1,5 @@
 import { api } from './http'
-import type { AppUser, RegisterInput, Role } from '../types'
+import type { AppUser, RegisterInput, Role, UserDirectoryEntry } from '../types'
 
 export const identityApi = {
   /** Anonim endpoint — Keycloak'ta kullanıcı açar, "user" rolü atar, event yayınlar */
@@ -16,4 +16,14 @@ export const identityApi = {
   /** Rolü hem Keycloak'a hem local DB'ye yazar */
   assignRole: (userId: string, roleName: Role) =>
     api.post<void>('identity', '/api/user/roles', { userId, roleName }),
+
+  /**
+   * NewsService yazar için yalnızca keycloakId tutuyor; görünen adı bu
+   * [AllowAnonymous] uçtan çözüyoruz. Boş dizi çağrısı yapılmaz.
+   */
+  getDirectory: (keycloakIds: string[]) => {
+    const unique = [...new Set(keycloakIds)]
+    if (unique.length === 0) return Promise.resolve<UserDirectoryEntry[]>([])
+    return api.get<UserDirectoryEntry[]>('identity', `/api/user/directory?ids=${unique.join(',')}`)
+  },
 }

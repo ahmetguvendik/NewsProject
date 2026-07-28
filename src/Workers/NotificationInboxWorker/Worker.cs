@@ -80,13 +80,13 @@ public class Worker : BackgroundService
             await SendAndSaveAsync(emailService, db,
                 type: "welcome",
                 recipient: evt.Email,
-                subject: "News Portal'a Hoşgeldiniz! 🎉",
+                subject: "Telgraf'a Hoşgeldiniz! 🎉",
                 body: $"""
                     <html><body style="font-family:Arial,sans-serif;padding:20px">
                         <h2>Merhaba {evt.FirstName} {evt.LastName},</h2>
-                        <p>News Portal'a hoşgeldiniz! Hesabınız başarıyla oluşturuldu.</p>
+                        <p>Telgraf'a hoşgeldiniz! Hesabınız başarıyla oluşturuldu.</p>
                         <p>Artık haberleri okuyabilir ve daha fazlasını keşfedebilirsiniz.</p>
-                        <br/><p>İyi okumalar,</p><p><strong>News Portal Ekibi</strong></p>
+                        <br/><p>İyi okumalar,</p><p><strong>Telgraf Ekibi</strong></p>
                     </body></html>
                     """,
                 cancellationToken);
@@ -103,7 +103,7 @@ public class Worker : BackgroundService
                         <h2>Yeni bir haber yayınlandı! 📰</h2>
                         <p><strong>Başlık:</strong> {evt.Title}</p>
                         <p><strong>Yayın Tarihi:</strong> {evt.PublishedAt:dd MMMM yyyy HH:mm}</p>
-                        <br/><p><strong>News Portal Ekibi</strong></p>
+                        <br/><p><strong>Telgraf Ekibi</strong></p>
                     </body></html>
                     """,
                 cancellationToken);

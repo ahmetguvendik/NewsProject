@@ -1,3 +1,4 @@
+import { clearToken, readToken } from '../auth/tokenStore'
 import type { ErrorResponse } from '../types'
 
 /**
@@ -46,21 +47,14 @@ export class ApiError extends Error {
 
 type Service = 'identity' | 'news'
 
-let tokenProvider: () => string | null = () => null
-let onUnauthorized: () => void = () => {}
-
-/** AuthProvider açılışta bağlar; her istek güncel token'ı buradan okur. */
-export function configureHttp(getToken: () => string | null, handleUnauthorized: () => void) {
-  tokenProvider = getToken
-  onUnauthorized = handleUnauthorized
-}
-
 async function request<T>(
   service: Service,
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const token = tokenProvider()
+  // Token doğrudan store'dan okunur — React efekt sırasına bağlı değil,
+  // böylece sayfa yenilemesindeki ilk istek de başlıklı gider.
+  const token = readToken()
 
   const response = await fetch(`/gw/${service}${path}`, {
     ...init,
@@ -71,9 +65,10 @@ async function request<T>(
     },
   })
 
-  // Token süresi dolmuş veya geçersiz → oturumu düşür
+  // Token süresi dolmuş veya geçersiz → oturumu düşür.
+  // AuthContext bu değişikliği tokenStore olayı üzerinden dinliyor.
   if (response.status === 401) {
-    onUnauthorized()
+    clearToken()
     throw await ApiError.fromResponse(response)
   }
 

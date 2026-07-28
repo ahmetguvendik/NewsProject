@@ -15,5 +15,3 @@ const dateTimeFormatter = new Intl.DateTimeFormat('tr-TR', {
 export const formatDate = (iso: string) => dateFormatter.format(new Date(iso))
 export const formatDateTime = (iso: string) => dateTimeFormatter.format(new Date(iso))
 
-/** Keycloak ID'leri arayüzde okunabilir olsun diye kısaltılır */
-export const shortId = (id: string) => id.slice(0, 8)
