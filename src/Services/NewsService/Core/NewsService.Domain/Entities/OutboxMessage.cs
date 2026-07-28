@@ -9,4 +9,10 @@ public class OutboxMessage
     public DateTime? ProcessedAt { get; set; }
     public bool IsProcessed { get; set; }
     public string? Error { get; set; }
+
+    /// <summary>Başarısız yayınlama denemesi sayısı.</summary>
+    public int RetryCount { get; set; }
+
+    /// <summary>RetryCount, worker'ın MaxRetryCount eşiğini aşınca true olur; bir daha denenmez.</summary>
+    public bool IsDeadLettered { get; set; }
 }

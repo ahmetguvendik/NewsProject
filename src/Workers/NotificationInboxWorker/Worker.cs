@@ -11,11 +11,13 @@ public class Worker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<Worker> _logger;
+    private readonly int _maxRetryCount;
 
-    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger)
+    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _maxRetryCount = configuration.GetValue("Inbox:MaxRetryCount", 5);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -44,7 +46,7 @@ public class Worker : BackgroundService
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
         var messages = await db.InboxMessages
-            .Where(m => !m.IsProcessed)
+            .Where(m => !m.IsProcessed && !m.IsDeadLettered)
             .OrderBy(m => m.ReceivedAt)
             .Take(50)
             .ToListAsync(cancellationToken);
@@ -64,8 +66,20 @@ public class Worker : BackgroundService
             }
             catch (Exception ex)
             {
+                message.RetryCount++;
                 message.Error = ex.Message;
-                _logger.LogError(ex, "Failed to process inbox message {Id} for topic '{Topic}'.", message.Id, message.Topic);
+
+                if (message.RetryCount >= _maxRetryCount)
+                {
+                    message.IsDeadLettered = true;
+                    _logger.LogError(ex, "Inbox message {Id} dead-lettered after {RetryCount} attempts on topic '{Topic}'.",
+                        message.Id, message.RetryCount, message.Topic);
+                }
+                else
+                {
+                    _logger.LogWarning(ex, "Failed to process inbox message {Id} for topic '{Topic}' (attempt {RetryCount}/{Max}).",
+                        message.Id, message.Topic, message.RetryCount, _maxRetryCount);
+                }
             }
         }
 

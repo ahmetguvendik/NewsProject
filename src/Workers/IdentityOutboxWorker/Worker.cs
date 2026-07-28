@@ -8,12 +8,14 @@ public class Worker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<Worker> _logger;
     private readonly IConfiguration _configuration;
+    private readonly int _maxRetryCount;
 
     public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _configuration = configuration;
+        _maxRetryCount = _configuration.GetValue("Outbox:MaxRetryCount", 5);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,7 +52,7 @@ public class Worker : BackgroundService
         var db = scope.ServiceProvider.GetRequiredService<OutboxWorkerDbContext>();
 
         var messages = await db.OutboxMessages
-            .Where(m => !m.IsProcessed)
+            .Where(m => !m.IsProcessed && !m.IsDeadLettered)
             .OrderBy(m => m.CreatedAt)
             .Take(50)
             .ToListAsync(cancellationToken);
@@ -81,8 +83,20 @@ public class Worker : BackgroundService
             }
             catch (Exception ex)
             {
+                message.RetryCount++;
                 message.Error = ex.Message;
-                _logger.LogError(ex, "Failed to publish outbox message {Id} to topic '{Topic}'.", message.Id, message.Topic);
+
+                if (message.RetryCount >= _maxRetryCount)
+                {
+                    message.IsDeadLettered = true;
+                    _logger.LogError(ex, "Outbox message {Id} dead-lettered after {RetryCount} attempts on topic '{Topic}'.",
+                        message.Id, message.RetryCount, message.Topic);
+                }
+                else
+                {
+                    _logger.LogWarning(ex, "Failed to publish outbox message {Id} to topic '{Topic}' (attempt {RetryCount}/{Max}).",
+                        message.Id, message.Topic, message.RetryCount, _maxRetryCount);
+                }
             }
         }
 
