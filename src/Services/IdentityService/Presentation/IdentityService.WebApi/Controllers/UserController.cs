@@ -12,10 +12,12 @@ namespace IdentityService.WebApi.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IMediator _mediator;
-    
-    public UserController(IMediator mediator)
+    private readonly IConfiguration _configuration;
+
+    public UserController(IMediator mediator, IConfiguration configuration)
     {
         _mediator = mediator;
+        _configuration = configuration;
     }
     
     [HttpGet]
@@ -48,6 +50,27 @@ public class UserController : ControllerBase
 
         var result = await _mediator.Send(new GetUserDirectoryQuery { KeycloakIds = keycloakIds }, cancellationToken);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Servisler arası dahili çağrı — e-posta gibi hassas veri döndürdüğü için JWT
+    /// yerine paylaşılan bir anahtarla (Internal:ApiKey) korunuyor. Şu an yalnızca
+    /// notification-inbox-worker'ın yayın bildirimi için yazarın gerçek e-postasını
+    /// çözmesinde kullanılıyor; bilerek /directory'den ayrı tutuldu.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("internal/contact")]
+    public async Task<IActionResult> GetContact(
+        [FromQuery] string keycloakId,
+        [FromHeader(Name = "X-Internal-Api-Key")] string? apiKey,
+        CancellationToken cancellationToken)
+    {
+        var expectedKey = _configuration["Internal:ApiKey"];
+        if (string.IsNullOrEmpty(expectedKey) || apiKey != expectedKey)
+            return Unauthorized();
+
+        var result = await _mediator.Send(new GetUserContactQuery { KeycloakId = keycloakId }, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
     }
 
     [HttpPost]

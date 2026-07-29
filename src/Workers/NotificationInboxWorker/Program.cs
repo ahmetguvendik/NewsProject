@@ -9,6 +9,12 @@ builder.Services.AddDbContext<InboxWorkerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddHttpClient<IIdentityContactClient, IdentityContactClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Identity:BaseUrl"] ?? "http://localhost:5001");
+});
+
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

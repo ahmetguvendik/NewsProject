@@ -151,6 +151,8 @@ services:
       - Smtp__Username=${SMTP_USERNAME:-}
       - Smtp__Password=${SMTP_PASSWORD:-}
       - Smtp__FromName=Telgraf
+      - Identity__BaseUrl=http://identity-service:8080
+      - Internal__ApiKey=${INTERNAL_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -253,6 +255,7 @@ services:
       - Keycloak__AdminUsername=admin
       - Keycloak__AdminPassword=admin
       - Kafka__BootstrapServers=kafka:9092
+      - Internal__ApiKey=${INTERNAL_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

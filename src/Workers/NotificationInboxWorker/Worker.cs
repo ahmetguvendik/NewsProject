@@ -44,6 +44,7 @@ public class Worker : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<InboxWorkerDbContext>();
         var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+        var identityContactClient = scope.ServiceProvider.GetRequiredService<IIdentityContactClient>();
 
         var messages = await db.InboxMessages
             .Where(m => !m.IsProcessed && !m.IsDeadLettered)
@@ -59,7 +60,7 @@ public class Worker : BackgroundService
         {
             try
             {
-                await HandleMessageAsync(message, emailService, db, cancellationToken);
+                await HandleMessageAsync(message, emailService, identityContactClient, db, cancellationToken);
                 message.IsProcessed = true;
                 message.ProcessedAt = DateTime.UtcNow;
                 message.Error = null;
@@ -86,7 +87,12 @@ public class Worker : BackgroundService
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task HandleMessageAsync(InboxMessage message, IEmailService emailService, InboxWorkerDbContext db, CancellationToken cancellationToken)
+    private async Task HandleMessageAsync(
+        InboxMessage message,
+        IEmailService emailService,
+        IIdentityContactClient identityContactClient,
+        InboxWorkerDbContext db,
+        CancellationToken cancellationToken)
     {
         if (message.Topic == Topics.User.Registered)
         {
@@ -108,15 +114,22 @@ public class Worker : BackgroundService
         else if (message.Topic == Topics.Article.Published)
         {
             var evt = JsonSerializer.Deserialize<ArticlePublishedEvent>(message.Payload)!;
+
+            // Event'te yalnızca AuthorKeycloakId var — gerçek e-posta IdentityService'ten
+            // canlı çözülüyor. Kullanıcı bulunamazsa (silinmiş vb.) exception fırlatılır,
+            // mesaj retry/dead-letter mekanizmasına düşer.
+            var contact = await identityContactClient.GetContactAsync(evt.AuthorKeycloakId, cancellationToken)
+                ?? throw new InvalidOperationException($"Yazarın iletişim bilgisi bulunamadı: {evt.AuthorKeycloakId}");
+
             await SendAndSaveAsync(emailService, db,
                 type: "article_published",
-                recipient: evt.AuthorKeycloakId, // ileride gerçek e-posta eklenecek
-                subject: $"Yeni Haber Yayınlandı: {evt.Title}",
+                recipient: contact.Email,
+                subject: $"Haberiniz Yayınlandı: {evt.Title}",
                 body: $"""
                     <html><body style="font-family:Arial,sans-serif;padding:20px">
-                        <h2>Yeni bir haber yayınlandı! 📰</h2>
-                        <p><strong>Başlık:</strong> {evt.Title}</p>
-                        <p><strong>Yayın Tarihi:</strong> {evt.PublishedAt:dd MMMM yyyy HH:mm}</p>
+                        <h2>Merhaba {contact.FirstName},</h2>
+                        <p>"<strong>{evt.Title}</strong>" başlıklı haberiniz yayına alındı! 📰</p>
+                        <p><strong>Yayın Tarihi:</strong> {ToTurkeyLocalTime(evt.PublishedAt):dd MMMM yyyy HH:mm}</p>
                         <br/><p><strong>Telgraf Ekibi</strong></p>
                     </body></html>
                     """,
@@ -127,6 +140,13 @@ public class Worker : BackgroundService
             _logger.LogWarning("Unknown topic '{Topic}', skipping.", message.Topic);
         }
     }
+
+    /// <summary>
+    /// DB ve event'lerde her zaman UTC tutulur; dönüştürme yalnızca insana gösterilecek
+    /// noktada (mail metni) yapılır. Türkiye 2016'dan beri yaz saati uygulamadığı için
+    /// sabit +3 offset yeterli — TimeZoneInfo/tzdata bağımlılığı gerektirmiyor.
+    /// </summary>
+    private static DateTime ToTurkeyLocalTime(DateTime utc) => utc.AddHours(3);
 
     private async Task SendAndSaveAsync(IEmailService emailService, InboxWorkerDbContext db,
         string type, string recipient, string subject, string body, CancellationToken cancellationToken)
