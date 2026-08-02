@@ -10,6 +10,10 @@ export const identityApi = {
   getUser: (id: string) => api.get<AppUser>(`/api/user/${id}`),
   deleteUser: (id: string) => api.del<void>(`/api/user/${id}`),
 
+  /** Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir. Reversible. */
+  deactivateUser: (id: string) => api.post<void>(`/api/user/${id}/deactivate`),
+  activateUser: (id: string) => api.post<void>(`/api/user/${id}/activate`),
+
   updateUser: (input: { id: string; firstName: string; lastName: string; avatarUrl?: string | null }) =>
     api.put<AppUser>('/api/user', input),
 

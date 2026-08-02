@@ -68,6 +68,24 @@ export function UsersPage() {
     }
   }
 
+  const toggleActive = async (user: AppUser) => {
+    // Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir
+    setBusyId(user.id)
+    setError(null)
+    try {
+      if (user.isActive) {
+        await identityApi.deactivateUser(user.id)
+      } else {
+        await identityApi.activateUser(user.id)
+      }
+      await load()
+    } catch (err) {
+      setError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <>
       <div className="page__head">
@@ -131,6 +149,14 @@ export function UsersPage() {
                         + {role}
                       </button>
                     ))}
+                    <button
+                      className="btn btn--sm"
+                      disabled={busyId === user.id}
+                      onClick={() => toggleActive(user)}
+                      title={user.isActive ? 'Kullanıcı login edemez hale gelir' : 'Kullanıcı tekrar login edebilir'}
+                    >
+                      {user.isActive ? 'Pasife al' : 'Aktif et'}
+                    </button>
                     <button
                       className="btn btn--sm btn--danger"
                       disabled={busyId === user.id}

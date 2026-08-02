@@ -7,4 +7,5 @@ public interface IKeycloakAdminClient
     Task AssignRoleAsync(string keycloakId, string roleName, CancellationToken cancellationToken = default);
     Task RemoveRoleAsync(string keycloakId, string roleName, CancellationToken cancellationToken = default);
     Task DisableUserAsync(string keycloakId, CancellationToken cancellationToken = default);
+    Task EnableUserAsync(string keycloakId, CancellationToken cancellationToken = default);
 }

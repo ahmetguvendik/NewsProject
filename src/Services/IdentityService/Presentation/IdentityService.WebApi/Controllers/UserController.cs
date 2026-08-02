@@ -108,4 +108,22 @@ public class UserController : ControllerBase
         await _mediator.Send(new RemoveRoleCommand { UserId = userId, RoleName = roleName }, cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir
+    /// (Keycloak enabled=false). Reversible — bkz. Activate.
+    /// </summary>
+    [HttpPost("{id:guid}/deactivate")]
+    public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeactivateUserCommand { UserId = id }, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/activate")]
+    public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new ActivateUserCommand { UserId = id }, cancellationToken);
+        return NoContent();
+    }
 }

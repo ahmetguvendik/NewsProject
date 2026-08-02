@@ -172,6 +172,31 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         }
     }
 
+    public async Task EnableUserAsync(string keycloakId, CancellationToken cancellationToken = default)
+    {
+        var token = await GetAdminTokenAsync(cancellationToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // Keycloak'ta kullanıcıyı enabled=true yaparak tekrar aktif et
+        var payload = JsonSerializer.Serialize(new { enabled = true });
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PutAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}", content, cancellationToken);
+
+        // Kullanıcı Keycloak'ta zaten yoksa aktif edilecek bir şey de yok
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return;
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.UserEnableFailed,
+                "kullanıcı aktif etme",
+                await ReadErrorAsync(response, cancellationToken));
+        }
+    }
+
     public async Task RemoveRoleAsync(string keycloakId, string roleName, CancellationToken cancellationToken = default)
     {
         var token = await GetAdminTokenAsync(cancellationToken);

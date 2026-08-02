@@ -24,11 +24,16 @@ export async function login(username: string, password: string): Promise<Session
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
-    throw new Error(
+    // Keycloak'ın döndürdüğü tam metin — "pasife alınmış kullanıcı giriş dener" ve
+    // "yanlış şifre" iki farklı invalid_grant senaryosu, error_description'la ayrılıyor.
+    const message =
       body.error_description === 'Invalid user credentials'
         ? 'E-posta veya parola hatalı.'
-        : (body.error_description ?? 'Giriş yapılamadı.'),
-    )
+        : body.error_description === 'Account disabled'
+          ? 'Kullanıcınız pasife alınmıştır.'
+          : (body.error_description ?? 'Giriş yapılamadı.')
+
+    throw new Error(message)
   }
 
   const token: TokenResponse = await response.json()

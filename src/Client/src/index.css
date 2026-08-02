@@ -64,14 +64,27 @@ button, input, textarea, select { font: inherit; }
   border-bottom: 1px solid var(--border-soft);
 }
 
-.topbar__inner {
+/* Satır 1: kenarlarda içerik, logo mutlak konumla tam ortada — sağ/sol içerik
+   genişliği eşit olmasa da (oturum açıkken vs. değilken farklı) logo kaymaz. */
+.topbar__row1 {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 28px;
+  justify-content: space-between;
   height: 64px;
 }
 
+.topbar__row1-side { display: flex; align-items: center; flex: 1; min-width: 0; }
+.topbar__row1-side--right { justify-content: flex-end; gap: 16px; }
+
 .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.brand--centered {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
 
 .brand__mark {
   width: 9px;
@@ -95,6 +108,16 @@ button, input, textarea, select { font: inherit; }
   margin: 0;
 }
 
+/* Satır 2: kategori linkleri, ince bir üst çizgiyle ayrılıyor */
+.topbar__row2 {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  height: 44px;
+  align-items: center;
+  border-top: 1px solid var(--border-soft);
+}
+
 .nav { display: flex; gap: 4px; overflow-x: auto; flex: 1; }
 
 .nav a {
@@ -110,8 +133,48 @@ button, input, textarea, select { font: inherit; }
 .nav a:hover { color: var(--text); background: var(--surface-2); }
 .nav a.is-active { color: var(--text); background: var(--surface-3); }
 
-.topbar__user { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.topbar__name { font-size: 13.5px; color: var(--text-dim); }
+.topbar__name { font-size: 13.5px; color: var(--text-dim); white-space: nowrap; }
+
+.weather-chip { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.search-box__input {
+  width: 140px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.search-box__input::placeholder { color: var(--text-faint); }
+.search-box__input::-webkit-search-cancel-button { filter: invert(60%); }
+
+.search-box__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background .14s, color .14s;
+}
+
+.search-box__btn:hover { background: var(--accent); color: #0b1220; }
 
 /* ── Sayfa başlığı ────────────────────────────────────────────── */
 
@@ -457,7 +520,19 @@ button, input, textarea, select { font: inherit; }
 }
 
 @media (max-width: 720px) {
-  .topbar__inner { height: auto; padding: 12px 0; flex-wrap: wrap; gap: 12px; }
+  /* Dar ekranda mutlak konumlu ortalama, sarılan (wrap) içerikle çakışabilir —
+     bu yüzden logo normal akışa alınıp en üste, satır sütuna çevriliyor. */
+  .topbar__row1 {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 0;
+  }
+  .brand--centered { position: static; transform: none; justify-content: center; order: -1; }
+  .topbar__row1-side { flex: none; }
+  .topbar__row1-side--right { flex-wrap: wrap; justify-content: center; }
+  .topbar__row2 { height: auto; flex-wrap: wrap; padding: 8px 0; }
   .page__head { flex-direction: column; align-items: flex-start; }
   .reader__title { font-size: 30px; }
 }

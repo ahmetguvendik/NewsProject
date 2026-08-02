@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { newsApi } from '../api/news'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
@@ -15,6 +15,8 @@ const ALL = '__all__'
 export function ArticlesPage() {
   const { hasRole } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const query = searchParams.get('q') ?? ''
 
   const [articles, setArticles] = useState<ArticleSummary[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -47,14 +49,23 @@ export function ArticlesPage() {
     void load()
   }, [load])
 
-  const visible = useMemo(
-    () =>
-      articles
-        // Okuyucuya taslak gösterilmez; backend hepsini döndürdüğü için burada eleniyor
-        .filter((article) => canEdit || article.isPublished)
-        .filter((article) => activeCategory === ALL || article.categoryName === activeCategory),
-    [articles, activeCategory, canEdit],
-  )
+  const visible = useMemo(() => {
+    const base = articles.filter((article) => canEdit || article.isPublished)
+
+    // Arama aktifken kategori filtresi devre dışı kalır — tüm kategorilerde arar.
+    // Backend'de arama endpoint'i yok; zaten yüklenmiş haberler üzerinde
+    // başlık/özet alt-dize eşleşmesi yapılıyor.
+    if (query.trim()) {
+      const needle = query.trim().toLowerCase()
+      return base.filter(
+        (article) =>
+          article.title.toLowerCase().includes(needle) ||
+          article.summary?.toLowerCase().includes(needle),
+      )
+    }
+
+    return base.filter((article) => activeCategory === ALL || article.categoryName === activeCategory)
+  }, [articles, activeCategory, canEdit, query])
 
   // Hiç yayınlanmış haberi olmayan kategoriler okuyucuya filtre olarak gösterilmez
   const visibleCategories = useMemo(() => {
@@ -142,31 +153,39 @@ export function ArticlesPage() {
           <div className="feed-head">
             <h2 className="page__title">Akış</h2>
 
-            {visibleCategories.length > 0 && (
-              <nav className="filters" aria-label="Kategori filtresi">
-                <button
-                  className={`filter${activeCategory === ALL ? ' is-active' : ''}`}
-                  onClick={() => setActiveCategory(ALL)}
-                >
-                  Tümü
-                </button>
-                {visibleCategories.map((category) => (
+            {query.trim() ? (
+              <button className="filter is-active" onClick={() => setSearchParams({})}>
+                "{query}" için arama · temizle ✕
+              </button>
+            ) : (
+              visibleCategories.length > 0 && (
+                <nav className="filters" aria-label="Kategori filtresi">
                   <button
-                    key={category.id}
-                    className={`filter${activeCategory === category.name ? ' is-active' : ''}`}
-                    onClick={() => setActiveCategory(category.name)}
+                    className={`filter${activeCategory === ALL ? ' is-active' : ''}`}
+                    onClick={() => setActiveCategory(ALL)}
                   >
-                    {category.name}
+                    Tümü
                   </button>
-                ))}
-              </nav>
+                  {visibleCategories.map((category) => (
+                    <button
+                      key={category.id}
+                      className={`filter${activeCategory === category.name ? ' is-active' : ''}`}
+                      onClick={() => setActiveCategory(category.name)}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </nav>
+              )
             )}
           </div>
 
           <p className="page__sub">
             {loading
               ? 'Yükleniyor…'
-              : `${visible.length} haber${activeCategory === ALL ? '' : ` · ${activeCategory}`}`}
+              : query.trim()
+                ? `${visible.length} sonuç`
+                : `${visible.length} haber${activeCategory === ALL ? '' : ` · ${activeCategory}`}`}
           </p>
         </div>
 
@@ -191,10 +210,14 @@ export function ArticlesPage() {
       ) : visible.length === 0 ? (
         <div className="empty">
           <p className="empty__title">
-            {activeCategory === ALL ? 'Akış boş' : `${activeCategory} kategorisinde haber yok`}
+            {query.trim()
+              ? `"${query}" için sonuç bulunamadı`
+              : activeCategory === ALL ? 'Akış boş' : `${activeCategory} kategorisinde haber yok`}
           </p>
           <p>
-            {activeCategory !== ALL
+            {query.trim() ? (
+              <button className="btn btn--sm" onClick={() => setSearchParams({})}>Aramayı temizle</button>
+            ) : activeCategory !== ALL
               ? 'Başka bir kategori seçebilir veya tümüne dönebilirsiniz.'
               : canEdit
                 ? 'İlk haberi yazmak için "Yeni haber" butonunu kullanın.'
