@@ -3,10 +3,11 @@ using IdentityService.Application.Features.Queries.User.Response;
 using IdentityService.Application.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Shared.Models;
 
 namespace IdentityService.Application.Features.Handlers.User.QueryHandlers;
 
-public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, List<GetAllUsersResponse>>
+public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, PagedResult<GetAllUsersResponse>>
 {
     private readonly IGenericRepository<Domain.Entities.User> _userRepository;
 
@@ -15,22 +16,37 @@ public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, List<Ge
         _userRepository = userRepository;
     }
 
-    public async Task<List<GetAllUsersResponse>> Handle(GetAllUsersQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<GetAllUsersResponse>> Handle(GetAllUsersQuery request, CancellationToken cancellationToken)
     {
-        var users = await _userRepository.GetQueryable()
+        // Skip/Take'in sayfalar arasında tutarlı sonuç vermesi için deterministik
+        // bir sıralama şart — yoksa Postgres aynı sorguyu farklı sırada dönebilir.
+        var query = _userRepository.GetQueryable()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
+            .OrderBy(u => u.Email);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var users = await query
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        return users.Select(user => new GetAllUsersResponse
+        return new PagedResult<GetAllUsersResponse>
         {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            AvatarUrl = user.AvatarUrl,
-            IsActive = user.IsActive,
-            Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList()
-        }).ToList();
+            Items = users.Select(user => new GetAllUsersResponse
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                AvatarUrl = user.AvatarUrl,
+                IsActive = user.IsActive,
+                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList()
+            }).ToList(),
+            TotalCount = totalCount,
+            Page = request.Page,
+            PageSize = request.PageSize
+        };
     }
 }

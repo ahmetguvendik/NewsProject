@@ -4,13 +4,28 @@ import type {
   ArticleSummary,
   Category,
   CreateArticleInput,
+  PagedResult,
   Tag,
   UpdateArticleInput,
 } from '../types'
 
+export interface ListArticlesParams {
+  category?: string
+  search?: string
+  page?: number
+  pageSize?: number
+}
+
 export const newsApi = {
   // ─── Article ────────────────────────────────────────────────────
-  listArticles: () => api.get<ArticleSummary[]>('/api/article'),
+  listArticles: (params: ListArticlesParams = {}) => {
+    const query = new URLSearchParams()
+    if (params.category) query.set('category', params.category)
+    if (params.search) query.set('search', params.search)
+    query.set('page', String(params.page ?? 1))
+    query.set('pageSize', String(params.pageSize ?? 20))
+    return api.get<PagedResult<ArticleSummary>>(`/api/article?${query}`)
+  },
   getArticle: (id: string) => api.get<ArticleDetail>(`/api/article/${id}`),
   createArticle: (input: CreateArticleInput) => api.post<{ id: string }>('/api/article', input),
   updateArticle: (input: UpdateArticleInput) => api.put<{ id: string }>('/api/article', input),

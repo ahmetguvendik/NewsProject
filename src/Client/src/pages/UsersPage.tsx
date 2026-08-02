@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { identityApi } from '../api/identity'
 import { ErrorAlert } from '../components/ErrorAlert'
+import { Pagination } from '../components/Pagination'
 import { RoleBadges } from '../components/RoleBadges'
 import type { AppUser, Role } from '../types'
 
 const ASSIGNABLE: Role[] = ['editor', 'admin']
+const PAGE_SIZE = 20
 
 export function UsersPage() {
   const [users, setUsers] = useState<AppUser[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [page, setPage] = useState(1)
   const [error, setError] = useState<unknown>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -15,13 +19,15 @@ export function UsersPage() {
   const load = useCallback(async () => {
     setError(null)
     try {
-      setUsers(await identityApi.listUsers())
+      const result = await identityApi.listUsers(page, PAGE_SIZE)
+      setUsers(result.items)
+      setTotalCount(result.totalCount)
     } catch (err) {
       setError(err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page])
 
   useEffect(() => {
     void load()
@@ -60,7 +66,9 @@ export function UsersPage() {
     setError(null)
     try {
       await identityApi.deleteUser(user.id)
-      await load()
+      // Sayfadaki son kullanıcı silindiyse ve bu ilk sayfa değilse bir önceki sayfaya dön
+      if (users.length === 1 && page > 1) setPage(page - 1)
+      else await load()
     } catch (err) {
       setError(err)
     } finally {
@@ -91,7 +99,7 @@ export function UsersPage() {
       <div className="page__head">
         <div>
           <h2 className="page__title">Kullanıcılar</h2>
-          <p className="page__sub">{users.length} kullanıcı</p>
+          <p className="page__sub">{totalCount} kullanıcı</p>
         </div>
       </div>
 
@@ -104,72 +112,76 @@ export function UsersPage() {
       {loading ? (
         <div className="skeleton" style={{ height: 240 }} />
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Kullanıcı</th>
-              <th>Roller</th>
-              <th>Durum</th>
-              <th className="right">İşlemler</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td>
-                  <strong>{user.firstName} {user.lastName}</strong>
-                  <div style={{ color: 'var(--muted)', fontSize: 13 }}>{user.email}</div>
-                </td>
-                <td><RoleBadges roles={user.roles} /></td>
-                <td>
-                  <span className={`badge badge--${user.isActive ? 'published' : 'draft'}`}>
-                    {user.isActive ? 'aktif' : 'pasif'}
-                  </span>
-                </td>
-                <td className="right">
-                  <div className="row row--wrap" style={{ justifyContent: 'flex-end' }}>
-                    {ASSIGNABLE.filter((role) => user.roles.includes(role)).map((role) => (
+        <>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Kullanıcı</th>
+                <th>Roller</th>
+                <th>Durum</th>
+                <th className="right">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    <strong>{user.firstName} {user.lastName}</strong>
+                    <div style={{ color: 'var(--muted)', fontSize: 13 }}>{user.email}</div>
+                  </td>
+                  <td><RoleBadges roles={user.roles} /></td>
+                  <td>
+                    <span className={`badge badge--${user.isActive ? 'published' : 'draft'}`}>
+                      {user.isActive ? 'aktif' : 'pasif'}
+                    </span>
+                  </td>
+                  <td className="right">
+                    <div className="row row--wrap" style={{ justifyContent: 'flex-end' }}>
+                      {ASSIGNABLE.filter((role) => user.roles.includes(role)).map((role) => (
+                        <button
+                          key={role}
+                          className="btn btn--sm btn--ghost"
+                          disabled={busyId === user.id}
+                          onClick={() => unassign(user, role)}
+                          title={`${role} rolünü kaldır`}
+                        >
+                          − {role}
+                        </button>
+                      ))}
+                      {ASSIGNABLE.filter((role) => !user.roles.includes(role)).map((role) => (
+                        <button
+                          key={role}
+                          className="btn btn--sm"
+                          disabled={busyId === user.id}
+                          onClick={() => assign(user, role)}
+                        >
+                          + {role}
+                        </button>
+                      ))}
                       <button
-                        key={role}
-                        className="btn btn--sm btn--ghost"
-                        disabled={busyId === user.id}
-                        onClick={() => unassign(user, role)}
-                        title={`${role} rolünü kaldır`}
-                      >
-                        − {role}
-                      </button>
-                    ))}
-                    {ASSIGNABLE.filter((role) => !user.roles.includes(role)).map((role) => (
-                      <button
-                        key={role}
                         className="btn btn--sm"
                         disabled={busyId === user.id}
-                        onClick={() => assign(user, role)}
+                        onClick={() => toggleActive(user)}
+                        title={user.isActive ? 'Kullanıcı login edemez hale gelir' : 'Kullanıcı tekrar login edebilir'}
                       >
-                        + {role}
+                        {user.isActive ? 'Pasife al' : 'Aktif et'}
                       </button>
-                    ))}
-                    <button
-                      className="btn btn--sm"
-                      disabled={busyId === user.id}
-                      onClick={() => toggleActive(user)}
-                      title={user.isActive ? 'Kullanıcı login edemez hale gelir' : 'Kullanıcı tekrar login edebilir'}
-                    >
-                      {user.isActive ? 'Pasife al' : 'Aktif et'}
-                    </button>
-                    <button
-                      className="btn btn--sm btn--danger"
-                      disabled={busyId === user.id}
-                      onClick={() => remove(user)}
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      <button
+                        className="btn btn--sm btn--danger"
+                        disabled={busyId === user.id}
+                        onClick={() => remove(user)}
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <Pagination page={page} pageSize={PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} />
+        </>
       )}
     </>
   )

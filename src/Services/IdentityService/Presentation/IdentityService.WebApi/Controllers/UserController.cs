@@ -21,9 +21,12 @@ public class UserController : ControllerBase
     }
     
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetAllUsersQuery(), cancellationToken);
+        var result = await _mediator.Send(new GetAllUsersQuery { Page = page, PageSize = pageSize }, cancellationToken);
         return Ok(result);
     }
     

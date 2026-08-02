@@ -457,6 +457,17 @@ button, input, textarea, select { font: inherit; }
 .table td.right, .table th.right { text-align: right; }
 .table tbody tr:hover td { background: rgba(255, 255, 255, .015); }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 4px;
+}
+
+.pagination__info, .pagination__page { font-size: 13px; color: var(--text-dim); }
+
 /* ── Uyarılar ─────────────────────────────────────────────────── */
 
 .alert {

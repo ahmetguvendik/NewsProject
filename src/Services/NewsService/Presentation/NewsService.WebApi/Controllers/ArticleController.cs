@@ -22,12 +22,24 @@ public class ArticleController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? category,
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
         // [AllowAnonymous] token'sız erişime izin verir ama geçerli bir token varsa
         // rol claim'leri yine de doluyor — taslakları yalnızca editor/admin görebilir.
         var includeUnpublished = User.IsInRole("editor") || User.IsInRole("admin");
-        var result = await _mediator.Send(new GetAllArticlesQuery { IncludeUnpublished = includeUnpublished }, cancellationToken);
+        var result = await _mediator.Send(new GetAllArticlesQuery
+        {
+            IncludeUnpublished = includeUnpublished,
+            Category = category,
+            Search = search,
+            Page = page,
+            PageSize = pageSize
+        }, cancellationToken);
         return Ok(result);
     }
 

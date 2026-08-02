@@ -1,12 +1,13 @@
 import { api } from './http'
-import type { AppUser, RegisterInput, Role, UserDirectoryEntry } from '../types'
+import type { AppUser, PagedResult, RegisterInput, Role, UserDirectoryEntry } from '../types'
 
 export const identityApi = {
   /** Anonim endpoint — Keycloak'ta kullanıcı açar, "user" rolü atar, event yayınlar */
   register: (input: RegisterInput) =>
     api.post<AppUser>('/api/auth/register', input),
 
-  listUsers: () => api.get<AppUser[]>('/api/user'),
+  listUsers: (page = 1, pageSize = 20) =>
+    api.get<PagedResult<AppUser>>(`/api/user?page=${page}&pageSize=${pageSize}`),
   getUser: (id: string) => api.get<AppUser>(`/api/user/${id}`),
   deleteUser: (id: string) => api.del<void>(`/api/user/${id}`),
 

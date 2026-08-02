@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { newsApi } from '../api/news'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
+import { Pagination } from '../components/Pagination'
 import { coverStyle } from '../lib/cover'
 import { formatDate } from '../lib/format'
 import type { ArticleSummary, Category } from '../types'
@@ -10,70 +11,67 @@ import type { ArticleSummary, Category } from '../types'
 /** Yayınlanmışlarda yayın tarihi, taslaklarda oluşturulma tarihi esas alınır. */
 const dateOf = (article: ArticleSummary) => article.publishedAt ?? article.createdAt
 
-const ALL = '__all__'
+const PAGE_SIZE = 20
 
 export function ArticlesPage() {
   const { hasRole } = useAuth()
   const navigate = useNavigate()
+
+  // Filtre ve sayfa durumu URL'de tutuluyor — sayfa yenilense de kaybolmuyor,
+  // adres paylaşılabiliyor. Filtrelemenin kendisi artık backend'de yapılıyor.
   const [searchParams, setSearchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
+  const activeCategory = searchParams.get('kategori') ?? ''
+  const page = Number(searchParams.get('sayfa') ?? '1')
 
   const [articles, setArticles] = useState<ArticleSummary[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [categories, setCategories] = useState<Category[]>([])
-  const [activeCategory, setActiveCategory] = useState<string>(ALL)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   // Editör ve admin taslakları görür; okuyucular yalnızca yayındakileri.
+  // (Asıl filtreleme backend'de, token'daki role bakılarak yapılıyor.)
   const canEdit = hasRole('editor', 'admin')
   const canPublish = hasRole('admin')
 
   const load = useCallback(async () => {
     setError(null)
     try {
-      const [list, cats] = await Promise.all([newsApi.listArticles(), newsApi.listCategories()])
-      // Backend GetAllArticles'ta OrderBy yok — en yeni haber öne çıksın diye
-      // sıralamayı burada yapıyoruz.
-      list.sort((a, b) => +new Date(dateOf(b)) - +new Date(dateOf(a)))
-      setArticles(list)
+      const [result, cats] = await Promise.all([
+        newsApi.listArticles({
+          category: activeCategory || undefined,
+          search: query.trim() || undefined,
+          page,
+          pageSize: PAGE_SIZE,
+        }),
+        newsApi.listCategories(),
+      ])
+      setArticles(result.items)
+      setTotalCount(result.totalCount)
       setCategories(cats)
     } catch (err) {
       setError(err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [activeCategory, query, page])
 
   useEffect(() => {
     void load()
   }, [load])
 
-  const visible = useMemo(() => {
-    const base = articles.filter((article) => canEdit || article.isPublished)
-
-    // Arama aktifken kategori filtresi devre dışı kalır — tüm kategorilerde arar.
-    // Backend'de arama endpoint'i yok; zaten yüklenmiş haberler üzerinde
-    // başlık/özet alt-dize eşleşmesi yapılıyor.
-    if (query.trim()) {
-      const needle = query.trim().toLowerCase()
-      return base.filter(
-        (article) =>
-          article.title.toLowerCase().includes(needle) ||
-          article.summary?.toLowerCase().includes(needle),
-      )
-    }
-
-    return base.filter((article) => activeCategory === ALL || article.categoryName === activeCategory)
-  }, [articles, activeCategory, canEdit, query])
-
-  // Hiç yayınlanmış haberi olmayan kategoriler okuyucuya filtre olarak gösterilmez
-  const visibleCategories = useMemo(() => {
-    const withContent = new Set(
-      articles.filter((article) => canEdit || article.isPublished).map((a) => a.categoryName),
-    )
-    return categories.filter((category) => withContent.has(category.name))
-  }, [categories, articles, canEdit])
+  /** Filtre değişince sayfa 1'e döner; yoksa 3. sayfadayken filtreleyip boş liste görülebilir. */
+  const applyFilter = (next: { q?: string; kategori?: string; sayfa?: number }) => {
+    const params: Record<string, string> = {}
+    const nextQuery = next.q ?? query
+    const nextCategory = next.kategori ?? activeCategory
+    if (nextQuery.trim()) params.q = nextQuery
+    if (nextCategory) params.kategori = nextCategory
+    if (next.sayfa && next.sayfa > 1) params.sayfa = String(next.sayfa)
+    setSearchParams(params)
+  }
 
   const act = async (id: string, action: () => Promise<unknown>) => {
     setBusyId(id)
@@ -144,7 +142,9 @@ export function ArticlesPage() {
     </article>
   )
 
-  const [lead, ...rest] = visible
+  // Öne çıkan haber yalnızca ilk sayfada, filtresiz görünümde anlamlı
+  const isLeadLayout = page === 1
+  const [lead, ...rest] = articles
 
   return (
     <>
@@ -158,19 +158,19 @@ export function ArticlesPage() {
                 "{query}" için arama · temizle ✕
               </button>
             ) : (
-              visibleCategories.length > 0 && (
+              categories.length > 0 && (
                 <nav className="filters" aria-label="Kategori filtresi">
                   <button
-                    className={`filter${activeCategory === ALL ? ' is-active' : ''}`}
-                    onClick={() => setActiveCategory(ALL)}
+                    className={`filter${activeCategory === '' ? ' is-active' : ''}`}
+                    onClick={() => applyFilter({ kategori: '', sayfa: 1 })}
                   >
                     Tümü
                   </button>
-                  {visibleCategories.map((category) => (
+                  {categories.map((category) => (
                     <button
                       key={category.id}
                       className={`filter${activeCategory === category.name ? ' is-active' : ''}`}
-                      onClick={() => setActiveCategory(category.name)}
+                      onClick={() => applyFilter({ kategori: category.name, sayfa: 1 })}
                     >
                       {category.name}
                     </button>
@@ -184,8 +184,8 @@ export function ArticlesPage() {
             {loading
               ? 'Yükleniyor…'
               : query.trim()
-                ? `${visible.length} sonuç`
-                : `${visible.length} haber${activeCategory === ALL ? '' : ` · ${activeCategory}`}`}
+                ? `${totalCount} sonuç`
+                : `${totalCount} haber${activeCategory ? ` · ${activeCategory}` : ''}`}
           </p>
         </div>
 
@@ -207,17 +207,17 @@ export function ArticlesPage() {
             <div className="skeleton" style={{ height: 300 }} />
           </div>
         </div>
-      ) : visible.length === 0 ? (
+      ) : articles.length === 0 ? (
         <div className="empty">
           <p className="empty__title">
             {query.trim()
               ? `"${query}" için sonuç bulunamadı`
-              : activeCategory === ALL ? 'Akış boş' : `${activeCategory} kategorisinde haber yok`}
+              : activeCategory ? `${activeCategory} kategorisinde haber yok` : 'Akış boş'}
           </p>
           <p>
             {query.trim() ? (
               <button className="btn btn--sm" onClick={() => setSearchParams({})}>Aramayı temizle</button>
-            ) : activeCategory !== ALL
+            ) : activeCategory
               ? 'Başka bir kategori seçebilir veya tümüne dönebilirsiniz.'
               : canEdit
                 ? 'İlk haberi yazmak için "Yeni haber" butonunu kullanın.'
@@ -225,10 +225,27 @@ export function ArticlesPage() {
           </p>
         </div>
       ) : (
-        <div className="feed">
-          {renderStory(lead, true)}
-          {rest.length > 0 && <div className="feed__grid">{rest.map((article) => renderStory(article))}</div>}
-        </div>
+        <>
+          <div className="feed">
+            {isLeadLayout ? (
+              <>
+                {renderStory(lead, true)}
+                {rest.length > 0 && (
+                  <div className="feed__grid">{rest.map((article) => renderStory(article))}</div>
+                )}
+              </>
+            ) : (
+              <div className="feed__grid">{articles.map((article) => renderStory(article))}</div>
+            )}
+          </div>
+
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalCount={totalCount}
+            onPageChange={(next) => applyFilter({ sayfa: next })}
+          />
+        </>
       )}
     </>
   )

@@ -13,6 +13,14 @@ export interface ErrorResponse {
   timestamp: string
 }
 
+/** Sayfalanmış liste yanıtları için ortak zarf (Shared.Models.PagedResult) */
+export interface PagedResult<T> {
+  items: T[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
 // ─── NewsService ──────────────────────────────────────────────────
 
 export interface ArticleSummary {
