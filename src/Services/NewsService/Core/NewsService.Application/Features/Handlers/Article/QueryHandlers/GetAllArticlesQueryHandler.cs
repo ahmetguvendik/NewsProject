@@ -19,7 +19,7 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, L
     {
         return await _articleRepository.GetQueryable()
             .Include(a => a.Category)
-            .Where(a => !a.IsDeleted)
+            .Where(a => !a.IsDeleted && (request.IncludeUnpublished || a.IsPublished))
             .Select(a => new GetAllArticlesResponse
             {
                 Id = a.Id,

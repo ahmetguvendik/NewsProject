@@ -24,7 +24,14 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
         => await _dbSet.Where(x => !x.IsDeleted).Where(predicate).ToListAsync(cancellationToken);
 
     public async Task<T?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
-        => await _dbSet.FirstOrDefaultAsync(x => x.Id == Guid.Parse(id) && !x.IsDeleted, cancellationToken);
+    {
+        // Guid.Parse geçersiz string'de FormatException fırlatır (→ 500). Geçersiz ID
+        // "bulunamadı" anlamına gelmeli, sunucu hatası değil — bu yüzden TryParse.
+        if (!Guid.TryParse(id, out var guid))
+            return null;
+
+        return await _dbSet.FirstOrDefaultAsync(x => x.Id == guid && !x.IsDeleted, cancellationToken);
+    }
 
     public async Task CreateAsync(T entity, CancellationToken cancellationToken = default)
         => await _dbSet.AddAsync(entity, cancellationToken);

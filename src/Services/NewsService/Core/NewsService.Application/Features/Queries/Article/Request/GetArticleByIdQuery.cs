@@ -6,4 +6,7 @@ namespace NewsService.Application.Features.Queries.Article.Request;
 public class GetArticleByIdQuery : IRequest<GetArticleByIdResponse>
 {
     public Guid Id { get; set; }
+
+    /// <summary>Yalnızca editor/admin için true — taslak makaleye erişime izin verir.</summary>
+    public bool IncludeUnpublished { get; set; }
 }

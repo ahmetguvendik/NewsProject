@@ -10,6 +10,9 @@
         <!-- Açılışta migration uygulayan HostMigrationExtensions için -->
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.6" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.6" />
+        <!-- ValidationBehavior için -->
+        <PackageReference Include="MediatR" Version="14.1.0" />
+        <PackageReference Include="FluentValidation" Version="12.0.0" />
     </ItemGroup>
 
 </Project>

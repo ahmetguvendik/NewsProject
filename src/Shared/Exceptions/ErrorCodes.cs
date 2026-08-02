@@ -11,6 +11,7 @@ public static class ErrorCodes
         public const string NotActive          = "USER_NOT_ACTIVE";
         public const string RoleAlreadyAssigned = "USER_ROLE_ALREADY_ASSIGNED";
         public const string RoleNotFound       = "USER_ROLE_NOT_FOUND";
+        public const string LastAdminCannotBeRemoved = "USER_LAST_ADMIN_CANNOT_BE_REMOVED";
     }
 
     // ─── Article ─────────────────────────────────────────────────

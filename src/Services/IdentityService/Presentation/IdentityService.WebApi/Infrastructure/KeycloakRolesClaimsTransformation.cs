@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 
 namespace IdentityService.WebApi.Infrastructure;
 
-public class KeycloakRolesClaimsTransformation : IClaimsTransformation
+public class KeycloakRolesClaimsTransformation : IClaimsTransformation //keycloakdan dönen rol bilgisini .net core için anlamlı hala getirme
 {
     public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {

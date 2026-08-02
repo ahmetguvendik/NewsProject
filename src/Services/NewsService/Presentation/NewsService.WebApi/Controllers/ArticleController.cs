@@ -24,7 +24,10 @@ public class ArticleController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new GetAllArticlesQuery(), cancellationToken);
+        // [AllowAnonymous] token'sız erişime izin verir ama geçerli bir token varsa
+        // rol claim'leri yine de doluyor — taslakları yalnızca editor/admin görebilir.
+        var includeUnpublished = User.IsInRole("editor") || User.IsInRole("admin");
+        var result = await _mediator.Send(new GetAllArticlesQuery { IncludeUnpublished = includeUnpublished }, cancellationToken);
         return Ok(result);
     }
 
@@ -32,7 +35,8 @@ public class ArticleController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new GetArticleByIdQuery { Id = id }, cancellationToken);
+        var includeUnpublished = User.IsInRole("editor") || User.IsInRole("admin");
+        var result = await _mediator.Send(new GetArticleByIdQuery { Id = id, IncludeUnpublished = includeUnpublished }, cancellationToken);
         return Ok(result);
     }
 

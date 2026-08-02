@@ -21,7 +21,7 @@ public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, G
         var article = await _articleRepository.GetQueryable()
             .Include(a => a.Category)
             .Include(a => a.ArticleTags).ThenInclude(at => at.Tag)
-            .Where(a => a.Id == request.Id && !a.IsDeleted)
+            .Where(a => a.Id == request.Id && !a.IsDeleted && (request.IncludeUnpublished || a.IsPublished))
             .Select(a => new GetArticleByIdResponse
             {
                 Id = a.Id,

@@ -3,6 +3,7 @@ using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
 using IdentityService.Domain.Constants;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Shared.Exceptions;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
@@ -39,6 +40,19 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
         // Kullanıcıda bu rol zaten yoksa kaldıracak bir şey yok → 404
         var existing = await _userRoleRepository.GetAsync(user.Id, roleId, cancellationToken)
             ?? throw NotFoundException.UserRole(request.UserId, request.RoleName);
+
+        // Sistemde admin rolü hiç kalmasın diye son admin'in rolü kaldırılamaz
+        if (roleId == RoleConstants.AdminId)
+        {
+            var adminCount = await _userRoleRepository.GetQueryable()
+                .CountAsync(ur => ur.RoleId == RoleConstants.AdminId, cancellationToken);
+
+            if (adminCount <= 1)
+                throw new BusinessException(
+                    ErrorCodes.User.LastAdminCannotBeRemoved,
+                    "Son admin rolü kaldırılamaz.",
+                    "Sistemde en az bir admin kalmalı. Önce başka bir kullanıcıya admin rolü atayın, sonra bunu kaldırın.");
+        }
 
         // Keycloak'ta kaldır
         await _keycloakAdminClient.RemoveRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);
