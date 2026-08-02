@@ -4,22 +4,22 @@ import type { AppUser, RegisterInput, Role, UserDirectoryEntry } from '../types'
 export const identityApi = {
   /** Anonim endpoint — Keycloak'ta kullanıcı açar, "user" rolü atar, event yayınlar */
   register: (input: RegisterInput) =>
-    api.post<AppUser>('identity', '/api/auth/register', input),
+    api.post<AppUser>('/api/auth/register', input),
 
-  listUsers: () => api.get<AppUser[]>('identity', '/api/user'),
-  getUser: (id: string) => api.get<AppUser>('identity', `/api/user/${id}`),
-  deleteUser: (id: string) => api.del<void>('identity', `/api/user/${id}`),
+  listUsers: () => api.get<AppUser[]>('/api/user'),
+  getUser: (id: string) => api.get<AppUser>(`/api/user/${id}`),
+  deleteUser: (id: string) => api.del<void>(`/api/user/${id}`),
 
   updateUser: (input: { id: string; firstName: string; lastName: string; avatarUrl?: string | null }) =>
-    api.put<AppUser>('identity', '/api/user', input),
+    api.put<AppUser>('/api/user', input),
 
   /** Rolü hem Keycloak'a hem local DB'ye yazar */
   assignRole: (userId: string, roleName: Role) =>
-    api.post<void>('identity', '/api/user/roles', { userId, roleName }),
+    api.post<void>('/api/user/roles', { userId, roleName }),
 
   /** Rolü hem Keycloak'tan hem local DB'den kaldırır */
   removeRole: (userId: string, roleName: Role) =>
-    api.del<void>('identity', `/api/user/${userId}/roles/${roleName}`),
+    api.del<void>(`/api/user/${userId}/roles/${roleName}`),
 
   /**
    * NewsService yazar için yalnızca keycloakId tutuyor; görünen adı bu
@@ -28,6 +28,6 @@ export const identityApi = {
   getDirectory: (keycloakIds: string[]) => {
     const unique = [...new Set(keycloakIds)]
     if (unique.length === 0) return Promise.resolve<UserDirectoryEntry[]>([])
-    return api.get<UserDirectoryEntry[]>('identity', `/api/user/directory?ids=${unique.join(',')}`)
+    return api.get<UserDirectoryEntry[]>(`/api/user/directory?ids=${unique.join(',')}`)
   },
 }

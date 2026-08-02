@@ -212,6 +212,10 @@ deployment:
     enable_admin_ui: true
     allow_admin:
     - 127.0.0.0/24
+    # docker-compose bridge network'ündeki diğer container'ların (apisix-routes
+    # setup script'i) admin API'ye erişebilmesi için — Admin API zaten admin_key
+    # ile de korunuyor, bu yalnızca ek bir ağ seviyesi kısıtlaması.
+    - 172.16.0.0/12
     admin_api_version: v3
     admin_key:
     - key: meTQLdxtgXepBojnMmjSwAMXlyuKsECj

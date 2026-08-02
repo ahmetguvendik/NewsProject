@@ -73,7 +73,7 @@ export function UsersPage() {
       <div className="page__head">
         <div>
           <h2 className="page__title">Kullanıcılar</h2>
-          <p className="page__sub">{users.length} kullanıcı · IdentityService (:5001)</p>
+          <p className="page__sub">{users.length} kullanıcı</p>
         </div>
       </div>
 

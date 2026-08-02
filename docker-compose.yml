@@ -17,6 +17,26 @@ services:
     networks:
       - apisix
 
+  # identity-service ve news-service'e giden route'ları APISIX Admin API'sine
+  # yazan tek seferlik (one-shot) servis. Idempotent — her `docker compose up`da
+  # tekrar çalışır, route'ları aynı ID ile üzerine yazar, sonra çıkar.
+  apisix-routes:
+    image: curlimages/curl:8.10.1
+    container_name: apisix-routes
+    volumes:
+      - ./docker/apisix/setup-routes.sh:/setup-routes.sh:ro
+    entrypoint: ["sh", "/setup-routes.sh"]
+    restart: "no"
+    depends_on:
+      apisix:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      news-service:
+        condition: service_started
+    networks:
+      - apisix
+
   etcd:
     image: gcr.io/etcd-development/etcd:v3.5.16
     restart: always
@@ -168,8 +188,8 @@ services:
     image: notification-service:latest
     container_name: notification-service
     restart: always
-    ports:
-      - "5003:8080"
+    # Public REST endpoint'i yok (yalnızca Kafka consumer'ları çalışır) — dışarıya
+    # port açmaya gerek yok, tüm trafik zaten APISIX üzerinden gelmiyor.
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
@@ -240,8 +260,7 @@ services:
     image: identity-service:latest
     container_name: identity-service
     restart: always
-    ports:
-      - "5001:8080"
+    # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
@@ -313,8 +332,7 @@ services:
     image: news-service:latest
     container_name: news-service
     restart: always
-    ports:
-      - "5002:8080"
+    # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123

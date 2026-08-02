@@ -45,10 +45,7 @@ export class ApiError extends Error {
   }
 }
 
-type Service = 'identity' | 'news'
-
 async function request<T>(
-  service: Service,
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
@@ -56,7 +53,11 @@ async function request<T>(
   // böylece sayfa yenilemesindeki ilk istek de başlıklı gider.
   const token = readToken()
 
-  const response = await fetch(`/gw/${service}${path}`, {
+  // /gw → Vite dev proxy → APISIX (:9080). path zaten "/api/..." ile başlıyor
+  // (gerçek backend route'u), bu yüzden ayrıca "api" önekine gerek yok.
+  // Path'ler servisler arasında çakışmadığı için hangi backend'e gideceğine
+  // APISIX'in kendisi karar veriyor — client bilmek zorunda değil.
+  const response = await fetch(`/gw${path}`, {
     ...init,
     headers: {
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
@@ -81,13 +82,13 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(service: Service, path: string) => request<T>(service, path),
+  get: <T>(path: string) => request<T>(path),
 
-  post: <T>(service: Service, path: string, body?: unknown) =>
-    request<T>(service, path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  post: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
 
-  put: <T>(service: Service, path: string, body: unknown) =>
-    request<T>(service, path, { method: 'PUT', body: JSON.stringify(body) }),
+  put: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
 
-  del: <T>(service: Service, path: string) => request<T>(service, path, { method: 'DELETE' }),
+  del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }
