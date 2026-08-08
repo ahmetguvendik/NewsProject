@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
 import { identityApi } from '../api/identity'
+import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
+import { RoleBadges } from '../components/RoleBadges'
+import { coverStyle } from '../lib/cover'
+import { formatDate } from '../lib/format'
 import type { MyProfile } from '../types'
 
 export function AccountPage() {
+  const { session } = useAuth()
+
   const [profile, setProfile] = useState<MyProfile | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
@@ -15,10 +21,10 @@ export function AccountPage() {
   const toggleSubscription = async () => {
     if (!profile) return
 
+    const next = !profile.isSubscribed
     setBusy(true)
     setError(null)
     try {
-      const next = !profile.isSubscribed
       await identityApi.updateMySubscription(next)
       setProfile({ ...profile, isSubscribed: next })
     } catch (err) {
@@ -33,37 +39,95 @@ export function AccountPage() {
       <div className="page__head">
         <div>
           <h2 className="page__title">Hesabım</h2>
-          {profile && <p className="page__sub">{profile.email}</p>}
+          <p className="page__sub">Profil bilgileriniz ve bildirim tercihleriniz</p>
         </div>
       </div>
 
       <ErrorAlert error={error} />
 
       {!profile ? (
-        <div className="skeleton" style={{ height: 180 }} />
+        <>
+          <div className="skeleton" style={{ height: 112, marginBottom: 20 }} />
+          <div className="account-grid">
+            <div className="skeleton" style={{ height: 260 }} />
+            <div className="skeleton" style={{ height: 200 }} />
+          </div>
+        </>
       ) : (
-        <div className="card" style={{ maxWidth: 640 }}>
-          <h3 className="card__title">Bülten aboneliği</h3>
-          <p className="card__sub">
-            Abone olursanız, editörlerin "abonelere bildir" olarak işaretlediği haberler
-            yayınlandığında e-posta alırsınız. İstediğiniz zaman kapatabilirsiniz.
-          </p>
-
-          <div className="row row--between" style={{ marginTop: 4 }}>
-            <span className={`badge badge--${profile.isSubscribed ? 'published' : 'user'}`}>
-              {profile.isSubscribed ? 'Abonelik açık' : 'Abonelik kapalı'}
+        <>
+          <section className="account-hero">
+            <span className="avatar" style={coverStyle(null, profile.email)} aria-hidden>
+              {initials(profile)}
             </span>
 
-            <button
-              className={`btn ${profile.isSubscribed ? '' : 'btn--primary'}`}
-              disabled={busy}
-              onClick={toggleSubscription}
-            >
-              {busy ? 'Kaydediliyor…' : profile.isSubscribed ? 'Abonelikten çık' : 'Bültene abone ol'}
-            </button>
+            <div style={{ minWidth: 0 }}>
+              <h3 className="account-hero__name">{profile.firstName} {profile.lastName}</h3>
+              <p className="account-hero__mail">{profile.email}</p>
+              <div className="row row--wrap" style={{ gap: 6 }}>
+                <span className={`badge badge--${profile.isActive ? 'published' : 'draft'}`}>
+                  {profile.isActive ? 'aktif' : 'pasif'}
+                </span>
+                <RoleBadges roles={session?.roles ?? []} />
+              </div>
+            </div>
+          </section>
+
+          <div className="account-grid">
+            <section className="card">
+              <h3 className="card__title">Hesap bilgileri</h3>
+              <p className="card__sub">Bu bilgiler Keycloak ve IdentityService'ten geliyor.</p>
+
+              <div className="info-row">
+                <span className="info-row__label">Ad Soyad</span>
+                <span className="info-row__value">{profile.firstName} {profile.lastName}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-row__label">E-posta</span>
+                <span className="info-row__value">{profile.email}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-row__label">Üyelik tarihi</span>
+                <span className="info-row__value">{formatDate(profile.createdAt)}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-row__label">Kullanıcı kimliği</span>
+                <span className="info-row__value info-row__value--mono">{profile.keycloakId}</span>
+              </div>
+            </section>
+
+            <section className="card">
+              <h3 className="card__title">Bülten aboneliği</h3>
+              <p className="card__sub">
+                Editörlerin "abonelere bildir" olarak işaretlediği haberler yayınlandığında
+                e-posta alırsınız. İstediğiniz zaman kapatabilirsiniz.
+              </p>
+
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={profile.isSubscribed}
+                  disabled={busy}
+                  onChange={toggleSubscription}
+                />
+                <span className="switch__track" />
+                <span className="switch__label">
+                  {busy ? 'Kaydediliyor…' : profile.isSubscribed ? 'Abonelik açık' : 'Abonelik kapalı'}
+                </span>
+              </label>
+            </section>
           </div>
-        </div>
+        </>
       )}
     </>
   )
+}
+
+/** Görsel olmadığı için avatar baş harflerden oluşuyor. */
+function initials(profile: MyProfile) {
+  const letters = [profile.firstName, profile.lastName]
+    .map((part) => part.trim()[0])
+    .filter(Boolean)
+    .join('')
+
+  return letters || profile.email[0]
 }

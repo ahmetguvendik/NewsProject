@@ -32,7 +32,9 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, MyPro
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            IsSubscribed = user.IsSubscribed
+            IsSubscribed = user.IsSubscribed,
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt
         };
     }
 }

@@ -106,6 +106,8 @@ export interface MyProfile {
   firstName: string
   lastName: string
   isSubscribed: boolean
+  isActive: boolean
+  createdAt: string
 }
 
 // ─── Keycloak ─────────────────────────────────────────────────────

@@ -9,4 +9,6 @@ public class MyProfileResponse
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public bool IsSubscribed { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
