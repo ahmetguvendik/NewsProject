@@ -37,7 +37,11 @@ export interface ArticleSummary {
 export interface ArticleDetail extends ArticleSummary {
   content: string
   imageUrl: string | null
+  categoryId: string
+  /** Okuma ekranında gösterilen etiket adları */
   tags: string[]
+  /** Düzenleme formunun mevcut etiketleri işaretlemesi için */
+  tagIds: string[]
 }
 
 export interface CreateArticleInput {
@@ -58,6 +62,8 @@ export interface UpdateArticleInput {
   summary?: string | null
   imageUrl?: string | null
   categoryId: string
+  /** Nihai etiket kümesi — gönderilmeyenler kaldırılır */
+  tagIds: string[]
 }
 
 export interface Category {

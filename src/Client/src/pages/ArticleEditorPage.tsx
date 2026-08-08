@@ -43,12 +43,8 @@ export function ArticleEditorPage() {
         setSummary(article.summary ?? '')
         setContent(article.content)
         setImageUrl(article.imageUrl ?? '')
-        // Detay yanıtı kategori adını döndürüyor, ID'yi değil — ada göre eşleştiriyoruz
-        setCategories((current) => {
-          const match = current.find((category) => category.name === article.categoryName)
-          if (match) setCategoryId(match.id)
-          return current
-        })
+        setCategoryId(article.categoryId)
+        setTagIds(article.tagIds)
       })
       .catch(setError)
   }, [id])
@@ -72,6 +68,7 @@ export function ArticleEditorPage() {
           summary: summary || null,
           imageUrl: imageUrl || null,
           categoryId,
+          tagIds,
         })
         navigate(`/haber/${id}`)
       } else {
@@ -151,31 +148,30 @@ export function ArticleEditorPage() {
           </select>
         </label>
 
-        {!isEdit && (
-          <div className="field">
-            <span className="field__label">Etiketler</span>
-            {tags.length === 0 ? (
-              <p className="field__hint">Henüz etiket tanımlanmamış.</p>
-            ) : (
-              <div className="checks">
-                {tags.map((tag) => (
-                  <label key={tag.id} className="check">
-                    <input
-                      type="checkbox"
-                      checked={tagIds.includes(tag.id)}
-                      onChange={() => toggleTag(tag.id)}
-                    />
-                    {tag.name}
-                  </label>
-                ))}
-              </div>
-            )}
+        <div className="field">
+          <span className="field__label">Etiketler</span>
+          {tags.length === 0 ? (
+            <p className="field__hint">Henüz etiket tanımlanmamış.</p>
+          ) : (
+            <div className="checks">
+              {tags.map((tag) => (
+                <label key={tag.id} className="check">
+                  <input
+                    type="checkbox"
+                    checked={tagIds.includes(tag.id)}
+                    onChange={() => toggleTag(tag.id)}
+                  />
+                  {tag.name}
+                </label>
+              ))}
+            </div>
+          )}
+          {isEdit && (
             <p className="field__hint">
-              Etiketler yalnızca oluşturma sırasında atanabiliyor — backend'in UpdateArticleCommand'ı
-              etiket alanı içermiyor.
+              İşareti kaldırılan etiketler makaleden çıkarılır.
             </p>
-          </div>
-        )}
+          )}
+        </div>
 
         {!isEdit && (
           <div className="field">

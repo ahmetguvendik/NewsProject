@@ -30,11 +30,13 @@ public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, G
                 Summary = a.Summary,
                 ImageUrl = a.ImageUrl,
                 AuthorKeycloakId = a.AuthorKeycloakId,
+                CategoryId = a.CategoryId,
                 CategoryName = a.Category.Name,
                 IsPublished = a.IsPublished,
                 PublishedAt = a.PublishedAt,
                 CreatedAt = a.CreatedAt,
-                Tags = a.ArticleTags.Select(at => at.Tag.Name).ToList()
+                Tags = a.ArticleTags.Select(at => at.Tag.Name).ToList(),
+                TagIds = a.ArticleTags.Select(at => at.TagId).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
