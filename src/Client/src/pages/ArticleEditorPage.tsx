@@ -18,6 +18,7 @@ export function ArticleEditorPage() {
   const [imageUrl, setImageUrl] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [tagIds, setTagIds] = useState<string[]>([])
+  const [notifySubscribers, setNotifySubscribers] = useState(false)
 
   const [error, setError] = useState<unknown>(null)
   const [saving, setSaving] = useState(false)
@@ -81,6 +82,7 @@ export function ArticleEditorPage() {
           imageUrl: imageUrl || null,
           categoryId,
           tagIds,
+          notifySubscribers,
         })
         navigate(`/haber/${created.id}`)
       }
@@ -171,6 +173,24 @@ export function ArticleEditorPage() {
             <p className="field__hint">
               Etiketler yalnızca oluşturma sırasında atanabiliyor — backend'in UpdateArticleCommand'ı
               etiket alanı içermiyor.
+            </p>
+          </div>
+        )}
+
+        {!isEdit && (
+          <div className="field">
+            <span className="field__label">Bildirim</span>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={notifySubscribers}
+                onChange={(event) => setNotifySubscribers(event.target.checked)}
+              />
+              Abonelere bildir
+            </label>
+            <p className="field__hint">
+              İşaretlenirse, bu haber <strong>yayınlandığında</strong> bülten abonelerine e-posta
+              gönderilir. Taslak kaydetmek tek başına bildirim göndermez.
             </p>
           </div>
         )}

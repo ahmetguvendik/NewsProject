@@ -1,7 +1,14 @@
 import { api } from './http'
-import type { AppUser, PagedResult, RegisterInput, Role, UserDirectoryEntry } from '../types'
+import type { AppUser, MyProfile, PagedResult, RegisterInput, Role, UserDirectoryEntry } from '../types'
 
 export const identityApi = {
+  /** Giriş yapmış kullanıcının kendi profili — rol şartı yok */
+  getMyProfile: () => api.get<MyProfile>('/api/user/me'),
+
+  /** Bülten aboneliğini açar/kapatır */
+  updateMySubscription: (isSubscribed: boolean) =>
+    api.put<void>('/api/user/me/subscription', { isSubscribed }),
+
   /** Anonim endpoint — Keycloak'ta kullanıcı açar, "user" rolü atar, event yayınlar */
   register: (input: RegisterInput) =>
     api.post<AppUser>('/api/auth/register', input),

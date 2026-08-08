@@ -133,11 +133,76 @@ public class Worker : BackgroundService
                         <br/><p><strong>Telgraf Ekibi</strong></p>
                     </body></html>
                     """,
-                cancellationToken);
+                cancellationToken,
+                referenceId: evt.ArticleId);
+
+            // Editör haberi oluştururken "abonelere bildir" işaretlediyse bültene
+            // abone olan kullanıcılara da duyuru gider.
+            if (evt.NotifySubscribers)
+                await NotifySubscribersAsync(evt, emailService, identityContactClient, db, cancellationToken);
         }
         else
         {
             _logger.LogWarning("Unknown topic '{Topic}', skipping.", message.Topic);
+        }
+    }
+
+    /// <summary>
+    /// Bülten abonelerine yayın duyurusu gönderir.
+    ///
+    /// Tek bir aboneye gönderim patlarsa exception yukarı taşınır ve tüm mesaj
+    /// yeniden denenir; bu durumda daha önce mail gitmiş abonelere TEKRAR
+    /// gönderilmemesi için her alıcı öncesinde Notifications tablosu kontrol
+    /// edilir (ReferenceId = ArticleId). Başarılı gönderimler, mesaj yarıda
+    /// kalsa bile döngü sonundaki SaveChanges ile kalıcı oluyor.
+    /// </summary>
+    private async Task NotifySubscribersAsync(
+        ArticlePublishedEvent evt,
+        IEmailService emailService,
+        IIdentityContactClient identityContactClient,
+        InboxWorkerDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var subscribers = await identityContactClient.GetSubscribersAsync(cancellationToken);
+        if (subscribers.Count == 0)
+        {
+            _logger.LogInformation("Article {ArticleId} has notify flag but there are no subscribers.", evt.ArticleId);
+            return;
+        }
+
+        var alreadyNotified = await db.Notifications
+            .Where(n => n.ReferenceId == evt.ArticleId && n.Type == "article_broadcast" && n.IsSent)
+            .Select(n => n.RecipientEmail)
+            .ToListAsync(cancellationToken);
+
+        var pending = subscribers.Where(s => !alreadyNotified.Contains(s.Email)).ToList();
+
+        _logger.LogInformation(
+            "Article {ArticleId}: notifying {Pending} of {Total} subscribers ({Skipped} already sent).",
+            evt.ArticleId, pending.Count, subscribers.Count, subscribers.Count - pending.Count);
+
+        foreach (var subscriber in pending)
+        {
+            await SendAndSaveAsync(emailService, db,
+                type: "article_broadcast",
+                recipient: subscriber.Email,
+                subject: $"Yeni haber: {evt.Title}",
+                body: $"""
+                    <html><body style="font-family:Arial,sans-serif;padding:20px">
+                        <h2>Merhaba {subscriber.FirstName},</h2>
+                        <p>Telgraf'ta yeni bir haber yayınlandı:</p>
+                        <p style="font-size:18px"><strong>{evt.Title}</strong></p>
+                        <p><strong>Yayın Tarihi:</strong> {ToTurkeyLocalTime(evt.PublishedAt):dd MMMM yyyy HH:mm}</p>
+                        <br/><p>İyi okumalar,</p><p><strong>Telgraf Ekibi</strong></p>
+                        <hr/>
+                        <p style="font-size:12px;color:#888">
+                            Bu e-postayı bülten aboneliğiniz olduğu için aldınız.
+                            Hesabım sayfasından aboneliğinizi kapatabilirsiniz.
+                        </p>
+                    </body></html>
+                    """,
+                cancellationToken,
+                referenceId: evt.ArticleId);
         }
     }
 
@@ -149,14 +214,16 @@ public class Worker : BackgroundService
     private static DateTime ToTurkeyLocalTime(DateTime utc) => utc.AddHours(3);
 
     private async Task SendAndSaveAsync(IEmailService emailService, InboxWorkerDbContext db,
-        string type, string recipient, string subject, string body, CancellationToken cancellationToken)
+        string type, string recipient, string subject, string body, CancellationToken cancellationToken,
+        Guid? referenceId = null)
     {
         var notification = new Notification
         {
             Type = type,
             RecipientEmail = recipient,
             Subject = subject,
-            Body = body
+            Body = body,
+            ReferenceId = referenceId
         };
 
         await emailService.SendAsync(recipient, subject, body, cancellationToken);

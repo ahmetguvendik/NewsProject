@@ -43,6 +43,7 @@ public class PublishArticleCommandHandler : IRequestHandler<PublishArticleComman
             ArticleId = article.Id,
             Title = article.Title,
             AuthorKeycloakId = article.AuthorKeycloakId,
+            NotifySubscribers = article.NotifySubscribers,
             PublishedAt = article.PublishedAt!.Value
         }, cancellationToken);
 

@@ -11,5 +11,11 @@ public class User : BaseEntity
     public string? AvatarUrl { get; set; }
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Bülten aboneliği. Opt-in: kayıt sırasında false, kullanıcı kendisi açar.
+    /// Haber yayınlanırken "abonelere bildir" işaretliyse bu kullanıcılara mail gider.
+    /// </summary>
+    public bool IsSubscribed { get; set; }
+
     public ICollection<UserRole> UserRoles { get; set; } = [];
 }

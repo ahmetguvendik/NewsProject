@@ -5,8 +5,6 @@ using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
 using NewsService.Domain.Entities;
 using Shared.Exceptions;
-using Shared.Messaging;
-using Shared.Messaging.Events;
 
 namespace NewsService.Application.Features.Handlers.Article.CommandHandlers;
 
@@ -17,22 +15,19 @@ public class CreateArticleCommandHandler : IRequestHandler<CreateArticleCommand,
     private readonly IGenericRepository<Domain.Entities.Tag> _tagRepository;
     private readonly IArticleTagRepository _articleTagRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IEventPublisher _eventPublisher;
 
     public CreateArticleCommandHandler(
         IGenericRepository<Domain.Entities.Article> articleRepository,
         IGenericRepository<Domain.Entities.Category> categoryRepository,
         IGenericRepository<Domain.Entities.Tag> tagRepository,
         IArticleTagRepository articleTagRepository,
-        IUnitOfWork unitOfWork,
-        IEventPublisher eventPublisher)
+        IUnitOfWork unitOfWork)
     {
         _articleRepository = articleRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
         _articleTagRepository = articleTagRepository;
         _unitOfWork = unitOfWork;
-        _eventPublisher = eventPublisher;
     }
 
     public async Task<CreateArticleResponse> Handle(CreateArticleCommand request, CancellationToken cancellationToken)
@@ -55,6 +50,7 @@ public class CreateArticleCommandHandler : IRequestHandler<CreateArticleCommand,
             Summary = request.Summary,
             ImageUrl = request.ImageUrl,
             AuthorKeycloakId = request.AuthorKeycloakId,
+            NotifySubscribers = request.NotifySubscribers,
             CategoryId = request.CategoryId
         };
 
@@ -69,15 +65,8 @@ public class CreateArticleCommandHandler : IRequestHandler<CreateArticleCommand,
             }, cancellationToken);
         }
 
-        // Outbox mesajı context'e eklenir — SaveChanges ile article + tags + outbox tek transaction'da kaydedilir
-        await _eventPublisher.PublishAsync(Topics.Article.Created, new ArticleCreatedEvent
-        {
-            ArticleId = article.Id,
-            Title = article.Title,
-            AuthorKeycloakId = article.AuthorKeycloakId,
-            CreatedAt = article.CreatedAt
-        }, cancellationToken);
-
+        // Taslak oluşturmak event yayınlamıyor: abonelere/yazara bildirim yalnızca
+        // haber YAYINLANDIĞINDA (article.published) gönderiliyor.
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CreateArticleResponse

@@ -7,6 +7,7 @@ import { Guard } from './components/Guard'
 import { Layout } from './components/Layout'
 import { ArticleDetailPage } from './pages/ArticleDetailPage'
 import { ArticleEditorPage } from './pages/ArticleEditorPage'
+import { AccountPage } from './pages/AccountPage'
 import { ArticlesPage } from './pages/ArticlesPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -26,6 +27,9 @@ createRoot(document.getElementById('root')!).render(
             <Route path="haber/:id" element={<ArticleDetailPage />} />
             <Route path="giris" element={<LoginPage />} />
             <Route path="kayit" element={<RegisterPage />} />
+
+            {/* giriş yapmış her kullanıcı */}
+            <Route path="hesabim" element={<Guard><AccountPage /></Guard>} />
 
             {/* editor + admin */}
             <Route

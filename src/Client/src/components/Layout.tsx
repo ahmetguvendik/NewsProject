@@ -52,6 +52,7 @@ export function Layout() {
         <div className="container">
           <nav className="nav topbar__row2">
             <NavLink to="/" end className={navClass}>Akış</NavLink>
+            {session && <NavLink to="/hesabim" className={navClass}>Hesabım</NavLink>}
             {hasRole('editor', 'admin') && <NavLink to="/haber/yeni" className={navClass}>Yeni haber</NavLink>}
             {hasRole('admin') && <NavLink to="/taksonomi" className={navClass}>Kategori & Etiket</NavLink>}
             {hasRole('admin') && <NavLink to="/kullanicilar" className={navClass}>Kullanıcılar</NavLink>}

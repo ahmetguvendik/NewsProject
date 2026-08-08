@@ -47,6 +47,8 @@ export interface CreateArticleInput {
   imageUrl?: string | null
   categoryId: string
   tagIds: string[]
+  /** Yayınlandığında bülten abonelerine bildirim gönderilsin mi? */
+  notifySubscribers: boolean
 }
 
 export interface UpdateArticleInput {
@@ -94,6 +96,16 @@ export interface RegisterInput {
 export interface UserDirectoryEntry {
   keycloakId: string
   displayName: string
+}
+
+/** GET /api/user/me — giriş yapmış kullanıcının kendi profili */
+export interface MyProfile {
+  id: string
+  keycloakId: string
+  email: string
+  firstName: string
+  lastName: string
+  isSubscribed: boolean
 }
 
 // ─── Keycloak ─────────────────────────────────────────────────────

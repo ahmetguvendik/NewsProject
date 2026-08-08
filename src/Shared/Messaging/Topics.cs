@@ -11,7 +11,6 @@ public static class Topics
 
     public static class Article
     {
-        public const string Created = "article.created";
         public const string Updated = "article.updated";
         public const string Deleted = "article.deleted";
         public const string Published = "article.published";
