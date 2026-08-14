@@ -24,6 +24,16 @@ public static class ErrorCodes
         public const string ContentRequired  = "ARTICLE_CONTENT_REQUIRED";
     }
 
+    // ─── Media ───────────────────────────────────────────────────
+    public static class Media
+    {
+        public const string TypeNotAllowed = "MEDIA_TYPE_NOT_ALLOWED";
+        public const string TooLarge       = "MEDIA_TOO_LARGE";
+        public const string NotFound       = "MEDIA_NOT_FOUND";
+        public const string CorruptContent = "MEDIA_CORRUPT_CONTENT";
+        public const string InvalidKey     = "MEDIA_INVALID_KEY";
+    }
+
     // ─── Category ────────────────────────────────────────────────
     public static class Category
     {

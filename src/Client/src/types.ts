@@ -27,6 +27,8 @@ export interface ArticleSummary {
   id: string
   title: string
   summary: string | null
+  /** Kapak görseli — listede de dönüyor; yoksa kategoriden gradyan üretilir */
+  imageUrl: string | null
   authorKeycloakId: string
   categoryName: string
   isPublished: boolean
@@ -36,7 +38,12 @@ export interface ArticleSummary {
 
 export interface ArticleDetail extends ArticleSummary {
   content: string
-  imageUrl: string | null
+  /**
+   * Veritabanındaki ham değer (depo anahtarı veya dış URL). Düzenleme formu
+   * `imageUrl` yerine bunu geri gönderir; aksi halde her kayıtta anahtar
+   * çözümlenmiş tam URL'e dönüşürdü.
+   */
+  imageKey: string | null
   categoryId: string
   /** Okuma ekranında gösterilen etiket adları */
   tags: string[]
@@ -77,6 +84,28 @@ export interface Tag {
   id: string
   name: string
   articleCount: number
+}
+
+// ─── Medya ────────────────────────────────────────────────────────
+
+export interface MediaPolicy {
+  maxSizeBytes: number
+  allowedContentTypes: string[]
+}
+
+export interface PresignedUpload {
+  uploadUrl: string
+  key: string
+  /** İmzaya dahil — PUT sırasında birebir bu değer gönderilmeli */
+  contentType: string
+  expiresInSeconds: number
+}
+
+export interface CommitUpload {
+  /** Makaleye yazılacak kalıcı depo anahtarı */
+  key: string
+  /** Önizleme için çözümlenmiş adres */
+  url: string | null
 }
 
 // ─── IdentityService ──────────────────────────────────────────────

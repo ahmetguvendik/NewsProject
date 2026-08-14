@@ -10,10 +10,14 @@ namespace NewsService.Application.Features.Handlers.Article.QueryHandlers;
 public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, GetArticleByIdResponse>
 {
     private readonly IGenericRepository<Domain.Entities.Article> _articleRepository;
+    private readonly IStorageService _storage;
 
-    public GetArticleByIdQueryHandler(IGenericRepository<Domain.Entities.Article> articleRepository)
+    public GetArticleByIdQueryHandler(
+        IGenericRepository<Domain.Entities.Article> articleRepository,
+        IStorageService storage)
     {
         _articleRepository = articleRepository;
+        _storage = storage;
     }
 
     public async Task<GetArticleByIdResponse> Handle(GetArticleByIdQuery request, CancellationToken cancellationToken)
@@ -29,6 +33,7 @@ public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, G
                 Content = a.Content,
                 Summary = a.Summary,
                 ImageUrl = a.ImageUrl,
+                ImageKey = a.ImageUrl,
                 AuthorKeycloakId = a.AuthorKeycloakId,
                 CategoryId = a.CategoryId,
                 CategoryName = a.Category.Name,
@@ -40,6 +45,13 @@ public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, G
             })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return article ?? throw NotFoundException.Article(request.Id);
+        if (article is null)
+            throw NotFoundException.Article(request.Id);
+
+        // ImageUrl görüntülemek için çözümlenir; ImageKey ham haliyle kalır ki
+        // düzenleme formu geri gönderdiğinde anahtar tam URL'e dönüşmesin.
+        article.ImageUrl = _storage.ResolvePublicUrl(article.ImageUrl);
+
+        return article;
     }
 }

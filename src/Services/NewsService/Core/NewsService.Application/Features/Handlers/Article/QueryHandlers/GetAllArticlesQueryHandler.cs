@@ -10,10 +10,14 @@ namespace NewsService.Application.Features.Handlers.Article.QueryHandlers;
 public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, PagedResult<GetAllArticlesResponse>>
 {
     private readonly IGenericRepository<Domain.Entities.Article> _articleRepository;
+    private readonly IStorageService _storage;
 
-    public GetAllArticlesQueryHandler(IGenericRepository<Domain.Entities.Article> articleRepository)
+    public GetAllArticlesQueryHandler(
+        IGenericRepository<Domain.Entities.Article> articleRepository,
+        IStorageService storage)
     {
         _articleRepository = articleRepository;
+        _storage = storage;
     }
 
     public async Task<PagedResult<GetAllArticlesResponse>> Handle(GetAllArticlesQuery request, CancellationToken cancellationToken)
@@ -52,6 +56,7 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
                 Id = a.Id,
                 Title = a.Title,
                 Summary = a.Summary,
+                ImageUrl = a.ImageUrl,
                 AuthorKeycloakId = a.AuthorKeycloakId,
                 CategoryName = a.Category.Name,
                 IsPublished = a.IsPublished,
@@ -59,6 +64,11 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
                 CreatedAt = a.CreatedAt
             })
             .ToListAsync(cancellationToken);
+
+        // Veritabanında depo anahtarı tutulur (bucket/CDN değişince satırlar
+        // migrate edilmesin diye); dışarıya her zaman tam adres çıkar.
+        foreach (var article in articles)
+            article.ImageUrl = _storage.ResolvePublicUrl(article.ImageUrl);
 
         return new PagedResult<GetAllArticlesResponse>
         {

@@ -91,7 +91,7 @@ export function ArticlesPage() {
       <Link
         to={`/haber/${article.id}`}
         className="story__cover"
-        style={coverStyle(null, article.categoryName)}
+        style={coverStyle(article.imageUrl, article.categoryName)}
       >
         <span className="chip">{article.categoryName}</span>
       </Link>

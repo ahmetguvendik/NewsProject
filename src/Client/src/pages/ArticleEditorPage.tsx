@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { mediaApi } from '../api/media'
 import { newsApi } from '../api/news'
 import { ErrorAlert } from '../components/ErrorAlert'
-import type { Category, Tag } from '../types'
+import type { Category, MediaPolicy, Tag } from '../types'
 
 export function ArticleEditorPage() {
   const { id } = useParams()
@@ -15,10 +16,17 @@ export function ArticleEditorPage() {
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
   const [content, setContent] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
+  // imageValue formun kaydedeceği ham değer: yüklenen dosyanın depo anahtarı
+  // veya elle yapıştırılmış dış adres. imagePreview yalnızca gösterim içindir.
+  const [imageValue, setImageValue] = useState('')
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [categoryId, setCategoryId] = useState('')
   const [tagIds, setTagIds] = useState<string[]>([])
   const [notifySubscribers, setNotifySubscribers] = useState(false)
+
+  const [policy, setPolicy] = useState<MediaPolicy | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [error, setError] = useState<unknown>(null)
   const [saving, setSaving] = useState(false)
@@ -31,6 +39,9 @@ export function ArticleEditorPage() {
         setCategoryId((current) => current || nextCategories[0]?.id || '')
       })
       .catch(setError)
+
+    // Kurallar sunucudan gelir; limit iki yerde ayrı ayrı yazılmasın.
+    mediaApi.getPolicy().then(setPolicy).catch(() => setPolicy(null))
   }, [])
 
   useEffect(() => {
@@ -42,12 +53,48 @@ export function ArticleEditorPage() {
         setTitle(article.title)
         setSummary(article.summary ?? '')
         setContent(article.content)
-        setImageUrl(article.imageUrl ?? '')
+        // Kaydedilecek değer ham anahtar, gösterilecek olan çözümlenmiş adres.
+        setImageValue(article.imageKey ?? '')
+        setImagePreview(article.imageUrl)
         setCategoryId(article.categoryId)
         setTagIds(article.tagIds)
       })
       .catch(setError)
   }, [id])
+
+  const pickFile = async (file: File) => {
+    setError(null)
+
+    // Sunucu bu kuralları imzalı URL üretirken de uyguluyor; buradaki kontrol
+    // kullanıcıyı boşuna yükleme yapmaktan kurtarmak için.
+    if (policy && !policy.allowedContentTypes.includes(file.type)) {
+      setError(new Error(`Bu dosya türü desteklenmiyor: ${file.type || 'bilinmiyor'}`))
+      return
+    }
+    if (policy && file.size > policy.maxSizeBytes) {
+      const mb = Math.round(policy.maxSizeBytes / (1024 * 1024))
+      setError(new Error(`Dosya çok büyük. En fazla ${mb} MB yükleyebilirsiniz.`))
+      return
+    }
+
+    setUploading(true)
+    try {
+      const result = await mediaApi.upload(file)
+      setImageValue(result.key)
+      setImagePreview(result.url)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const clearImage = () => {
+    setImageValue('')
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   const toggleTag = (tagId: string) =>
     setTagIds((current) =>
@@ -66,7 +113,7 @@ export function ArticleEditorPage() {
           title,
           content,
           summary: summary || null,
-          imageUrl: imageUrl || null,
+          imageUrl: imageValue || null,
           categoryId,
           tagIds,
         })
@@ -76,7 +123,7 @@ export function ArticleEditorPage() {
           title,
           content,
           summary: summary || null,
-          imageUrl: imageUrl || null,
+          imageUrl: imageValue || null,
           categoryId,
           tagIds,
           notifySubscribers,
@@ -191,15 +238,61 @@ export function ArticleEditorPage() {
           </div>
         )}
 
-        <label className="field">
-          <span className="field__label">Görsel URL</span>
+        <div className="field">
+          <span className="field__label">Kapak görseli</span>
+
+          {imagePreview && (
+            <div className="cover-preview">
+              <img src={imagePreview} alt="Kapak önizlemesi" />
+            </div>
+          )}
+
+          <div className="row">
+            <button
+              type="button"
+              className="btn btn--sm"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? 'Yükleniyor…' : imagePreview ? 'Görseli değiştir' : 'Görsel yükle'}
+            </button>
+
+            {imageValue && (
+              <button type="button" className="btn btn--sm btn--ghost" onClick={clearImage}>
+                Kaldır
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            hidden
+            accept={policy?.allowedContentTypes.join(',')}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) void pickFile(file)
+            }}
+          />
+
           <input
             className="input"
-            value={imageUrl}
-            onChange={(event) => setImageUrl(event.target.value)}
-            placeholder="https://…"
+            value={imageValue}
+            onChange={(event) => {
+              setImageValue(event.target.value)
+              setImagePreview(event.target.value || null)
+            }}
+            placeholder="veya bir adres yapıştırın: https://…"
           />
-        </label>
+
+          <p className="field__hint">
+            {policy
+              ? `${policy.allowedContentTypes
+                  .map((type) => type.replace('image/', '').toUpperCase())
+                  .join(', ')} · en fazla ${Math.round(policy.maxSizeBytes / (1024 * 1024))} MB`
+              : 'Dosya doğrudan depoya yüklenir.'}
+          </p>
+        </div>
 
         <label className="field">
           <span className="field__label">İçerik</span>

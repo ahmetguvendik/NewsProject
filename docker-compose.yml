@@ -18,8 +18,7 @@ services:
       - apisix
 
   # identity-service ve news-service'e giden route'ları APISIX Admin API'sine
-  # yazan tek seferlik (one-shot) servis. Idempotent — her `docker compose up`da
-  # tekrar çalışır, route'ları aynı ID ile üzerine yazar, sonra çıkar.
+  # yazan tek seferlik (one-shot) servis. Idempotent — aynı ID'lerin üzerine yazar.
   apisix-routes:
     image: curlimages/curl:8.10.1
     container_name: apisix-routes
@@ -103,6 +102,50 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+    networks:
+      - apisix
+
+  # ─── OBJECT STORAGE ─────────────────────────────────────────
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-telgraf}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-Telgraf.123}
+    ports:
+      # 9000 API, 9001 web konsolu. API portu host'a açık olmak zorunda:
+      # tarayıcı imzalı URL ile dosyayı doğrudan buraya yüklüyor.
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    networks:
+      - apisix
+
+  # Bucket'ı oluşturur, görselleri herkese açık okunur yapar ve staging
+  # klasörüne 1 günlük ömür kuralı koyar. Idempotent.
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-telgraf}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-Telgraf.123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-telgraf-media}
+    entrypoint: ["/bin/sh", "/setup.sh"]
+    volumes:
+      - ./docker/minio/setup.sh:/setup.sh:ro
+    restart: "no"
     networks:
       - apisix
 
@@ -341,12 +384,21 @@ services:
       - Keycloak__Audience=account
       - Keycloak__RequireHttpsMetadata=false
       - Kafka__BootstrapServers=kafka:9092
+      # Endpoint konteyner ağı içindir; PublicEndpoint tarayıcının eriştiği adres.
+      # İmza host'u kapsadığı için imzalı URL'ler PublicEndpoint ile üretilmeli.
+      - Storage__Endpoint=http://minio:9000
+      - Storage__PublicEndpoint=http://localhost:9000
+      - Storage__Bucket=${MINIO_BUCKET:-telgraf-media}
+      - Storage__AccessKey=${MINIO_ROOT_USER:-telgraf}
+      - Storage__SecretKey=${MINIO_ROOT_PASSWORD:-Telgraf.123}
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - apisix
@@ -357,6 +409,7 @@ networks:
 
 volumes:
   etcd_data:
+  minio_data:
   postgres_data:
   redis_data:
   esdata:

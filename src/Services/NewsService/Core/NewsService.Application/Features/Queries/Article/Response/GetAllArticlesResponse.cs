@@ -5,6 +5,10 @@ public class GetAllArticlesResponse
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Summary { get; set; }
+
+    /// <summary>Liste kartlarının kapak görseli. Yoksa client kategoriden gradyan üretir.</summary>
+    public string? ImageUrl { get; set; }
+
     public string AuthorKeycloakId { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     public bool IsPublished { get; set; }

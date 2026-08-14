@@ -6,7 +6,14 @@ public class GetArticleByIdResponse
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public string? Summary { get; set; }
+    /// <summary>Görüntüleme için çözümlenmiş tam adres.</summary>
     public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// Veritabanındaki ham değer (depo anahtarı veya dış URL). Düzenleme formu
+    /// bunu geri gönderir; aksi halde her kayıtta anahtar tam URL'e dönüşürdü.
+    /// </summary>
+    public string? ImageKey { get; set; }
     public string AuthorKeycloakId { get; set; } = string.Empty;
     public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;

@@ -20,6 +20,9 @@ public class UpdateArticleCommandValidator : AbstractValidator<UpdateArticleComm
         RuleFor(x => x.Summary)
             .MaximumLength(500);
 
+        RuleFor(x => x.ImageUrl)
+            .ValidImageReference();
+
         RuleFor(x => x.CategoryId)
             .NotEmpty().WithMessage("Kategori seçilmelidir.");
     }

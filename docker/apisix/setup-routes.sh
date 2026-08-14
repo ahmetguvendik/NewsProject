@@ -46,5 +46,6 @@ put_route 2 "/api/user"     "identity-service:8080"
 put_route 3 "/api/article"  "news-service:8080"
 put_route 4 "/api/category" "news-service:8080"
 put_route 5 "/api/tag"      "news-service:8080"
+put_route 6 "/api/media"    "news-service:8080"
 
 echo "APISIX route'ları hazır."
