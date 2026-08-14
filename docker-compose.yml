@@ -19,7 +19,16 @@ services:
 
   # identity-service ve news-service'e giden route'ları APISIX Admin API'sine
   # yazan tek seferlik (one-shot) servis. Idempotent — aynı ID'lerin üzerine yazar.
+  #
+  # `setup` profilinde olduğu için normal `docker compose up` ile ÇALIŞMAZ:
+  # route'lar etcd'de (etcd_data volume) kalıcı olduğundan her açılışta yeniden
+  # yazılmalarına gerek yok. Şu durumlarda bir kez çalıştırın:
+  #   docker compose --profile setup up apisix-routes
+  # - ilk kurulumda
+  # - `docker compose down -v` sonrası (volume'lar silindiği için)
+  # - setup-routes.sh'e yeni route eklendiğinde
   apisix-routes:
+    profiles: ["setup"]
     image: curlimages/curl:8.10.1
     container_name: apisix-routes
     volumes:
@@ -132,7 +141,12 @@ services:
 
   # Bucket'ı oluşturur, görselleri herkese açık okunur yapar ve staging
   # klasörüne 1 günlük ömür kuralı koyar. Idempotent.
+  #
+  # apisix-routes gibi `setup` profilinde: bucket ve ayarları minio_data
+  # volume'unda kalıcı, her açılışta yeniden kurulmasına gerek yok.
+  #   docker compose --profile setup up minio-init
   minio-init:
+    profiles: ["setup"]
     image: minio/mc:RELEASE.2025-04-16T18-13-26Z
     container_name: minio-init
     depends_on:
