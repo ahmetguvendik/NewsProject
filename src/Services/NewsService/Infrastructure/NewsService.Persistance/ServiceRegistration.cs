@@ -5,6 +5,7 @@ using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
 using NewsService.Persistance.Caching;
 using StackExchange.Redis;
+using NewsService.Persistance.External;
 using NewsService.Persistance.Contexts;
 using NewsService.Persistance.Messaging;
 using NewsService.Persistance.Repositories;
@@ -44,6 +45,11 @@ public static class ServiceRegistration
             return ConnectionMultiplexer.Connect(options);
         });
         services.AddSingleton<ICacheService, RedisCacheService>();
+
+        // Dış servis: yanıt önbelleklendiği için nadiren çağrılıyor; yine de
+        // kısa timeout ile bekletilmiyor.
+        services.AddHttpClient<IWeatherClient, OpenMeteoWeatherClient>(client =>
+            client.Timeout = TimeSpan.FromSeconds(5));
 
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
         // S3 client'ları pahalı ve thread-safe — istek başına yeniden kurulmamalı.

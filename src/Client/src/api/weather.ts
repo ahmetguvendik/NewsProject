@@ -1,42 +1,20 @@
-// Open-Meteo — API key gerekmiyor, CORS açık, doğrudan tarayıcıdan çağrılabiliyor.
-// Şehir sabit: Ankara. Kullanıcı konumu istemiyoruz.
+import { api } from './http'
 
-const ANKARA = { latitude: 39.9334, longitude: 32.8597 }
-
+/**
+ * Hava durumu artık doğrudan Open-Meteo'dan değil, kendi backend'imizden geliyor.
+ *
+ * Önceden her ziyaretçinin tarayıcısı dış servise ayrı bir istek atıyordu; trafik
+ * arttığında rate limit yenip widget'ın herkeste birden kırılması riski vardı.
+ * Sunucu tarafında 10 dakika önbelleklendiği için ziyaretçi sayısından bağımsız
+ * olarak dış servise 10 dakikada bir istek gidiyor.
+ *
+ * Gündüz/gece ayrımı da sunucuda yapılıyor — ikon hazır geliyor.
+ */
 export interface WeatherNow {
+  city: string
   temperatureC: number
   icon: string
+  description: string
 }
 
-export async function fetchAnkaraWeather(): Promise<WeatherNow> {
-  const url = new URL('https://api.open-meteo.com/v1/forecast')
-  url.searchParams.set('latitude', String(ANKARA.latitude))
-  url.searchParams.set('longitude', String(ANKARA.longitude))
-  url.searchParams.set('current', 'temperature_2m,weather_code')
-  url.searchParams.set('timezone', 'Europe/Istanbul')
-
-  const response = await fetch(url)
-  if (!response.ok) throw new Error('Hava durumu alınamadı.')
-
-  const body = await response.json()
-
-  return {
-    temperatureC: Math.round(body.current.temperature_2m),
-    icon: weatherIcon(body.current.weather_code),
-  }
-}
-
-/** WMO hava durumu kodunu (Open-Meteo'nun döndürdüğü standart) basit bir emojiye çevirir. */
-function weatherIcon(code: number): string {
-  if (code === 0) return '☀️'
-  if (code <= 2) return '🌤️'
-  if (code === 3) return '☁️'
-  if (code === 45 || code === 48) return '🌫️'
-  if (code >= 51 && code <= 57) return '🌦️'
-  if (code >= 61 && code <= 67) return '🌧️'
-  if (code >= 71 && code <= 77) return '❄️'
-  if (code >= 80 && code <= 82) return '🌦️'
-  if (code >= 85 && code <= 86) return '🌨️'
-  if (code >= 95) return '⛈️'
-  return '🌡️'
-}
+export const fetchWeather = () => api.get<WeatherNow>('/api/weather')

@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import { fetchAnkaraWeather, type WeatherNow } from '../api/weather'
+import { fetchWeather, type WeatherNow } from '../api/weather'
 
-/** Dekoratif bir widget — Open-Meteo erişilemezse sessizce gizlenir, sayfayı bozmaz. */
+/** Dekoratif bir widget — hava durumu alınamazsa sessizce gizlenir, sayfayı bozmaz. */
 export function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherNow | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    fetchAnkaraWeather()
+    fetchWeather()
       .then((result) => {
         if (!cancelled) setWeather(result)
       })
@@ -24,8 +24,8 @@ export function WeatherWidget() {
   if (!weather) return null
 
   return (
-    <span className="weather-chip">
-      {weather.icon} Ankara {weather.temperatureC}°
+    <span className="weather-chip" title={weather.description}>
+      {weather.icon} {weather.city} {weather.temperatureC}°
     </span>
   )
 }
