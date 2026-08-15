@@ -1,4 +1,5 @@
 using MediatR;
+using NewsService.Application.Caching;
 using NewsService.Application.Features.Commands.Article.Request;
 using NewsService.Application.Features.Commands.Article.Response;
 using NewsService.Application.Interfaces;
@@ -15,19 +16,21 @@ public class CreateArticleCommandHandler : IRequestHandler<CreateArticleCommand,
     private readonly IGenericRepository<Domain.Entities.Tag> _tagRepository;
     private readonly IArticleTagRepository _articleTagRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
     public CreateArticleCommandHandler(
         IGenericRepository<Domain.Entities.Article> articleRepository,
         IGenericRepository<Domain.Entities.Category> categoryRepository,
         IGenericRepository<Domain.Entities.Tag> tagRepository,
         IArticleTagRepository articleTagRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork, ICacheService cache)
     {
         _articleRepository = articleRepository;
         _categoryRepository = categoryRepository;
         _tagRepository = tagRepository;
         _articleTagRepository = articleTagRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<CreateArticleResponse> Handle(CreateArticleCommand request, CancellationToken cancellationToken)
@@ -68,6 +71,10 @@ public class CreateArticleCommandHandler : IRequestHandler<CreateArticleCommand,
         // Taslak oluşturmak event yayınlamıyor: abonelere/yazara bildirim yalnızca
         // haber YAYINLANDIĞINDA (article.published) gönderiliyor.
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Listenin tüm varyantları (sayfa, kategori, rol) tek anahtarda;
+        // biri değiştiğinde hepsi bayatladığı için tamamı düşürülüyor.
+        await _cache.RemoveAsync(CacheKeys.ArticleLists, cancellationToken);
 
         return new CreateArticleResponse
         {

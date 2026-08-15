@@ -1,4 +1,5 @@
 using MediatR;
+using NewsService.Application.Caching;
 using NewsService.Application.Features.Commands.Article.Request;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
@@ -13,15 +14,17 @@ public class PublishArticleCommandHandler : IRequestHandler<PublishArticleComman
     private readonly IGenericRepository<Domain.Entities.Article> _articleRepository;
     private readonly IEventPublisher _eventPublisher;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
     public PublishArticleCommandHandler(
         IGenericRepository<Domain.Entities.Article> articleRepository,
         IEventPublisher eventPublisher,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork, ICacheService cache)
     {
         _articleRepository = articleRepository;
         _eventPublisher = eventPublisher;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(PublishArticleCommand request, CancellationToken cancellationToken)
@@ -48,5 +51,9 @@ public class PublishArticleCommandHandler : IRequestHandler<PublishArticleComman
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Listenin tüm varyantları (sayfa, kategori, rol) tek anahtarda;
+        // biri değiştiğinde hepsi bayatladığı için tamamı düşürülüyor.
+        await _cache.RemoveAsync(CacheKeys.ArticleLists, cancellationToken);
     }
 }

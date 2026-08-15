@@ -29,19 +29,51 @@ public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        if (request is not ICacheableQuery cacheable)
-            return await next();
+        return request switch
+        {
+            ICacheableQuery query => await HandleStringAsync(query, next, cancellationToken),
+            IHashCacheableQuery query => await HandleHashAsync(query, next, cancellationToken),
+            _ => await next()
+        };
+    }
 
-        var cached = await _cache.GetAsync<TResponse>(cacheable.CacheKey, cancellationToken);
+    private async Task<TResponse> HandleStringAsync(
+        ICacheableQuery query,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        var cached = await _cache.GetAsync<TResponse>(query.CacheKey, cancellationToken);
         if (cached is not null)
         {
-            _logger.LogDebug("Önbellekten döndü: {Key}", cacheable.CacheKey);
+            _logger.LogDebug("Önbellekten döndü: {Key}", query.CacheKey);
             return cached;
         }
 
         var response = await next();
+        await _cache.SetAsync(query.CacheKey, response, query.Duration, cancellationToken);
 
-        await _cache.SetAsync(cacheable.CacheKey, response, cacheable.Duration, cancellationToken);
+        return response;
+    }
+
+    private async Task<TResponse> HandleHashAsync(
+        IHashCacheableQuery query,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        // Sorgu kendisi "bunu önbellekleme" diyebilir (ör. arama sonuçları:
+        // anahtar uzayı sınırsız, isabet oranı düşük).
+        if (string.IsNullOrEmpty(query.Field))
+            return await next();
+
+        var cached = await _cache.GetHashFieldAsync<TResponse>(query.HashKey, query.Field, cancellationToken);
+        if (cached is not null)
+        {
+            _logger.LogDebug("Önbellekten döndü: {Key} / {Field}", query.HashKey, query.Field);
+            return cached;
+        }
+
+        var response = await next();
+        await _cache.SetHashFieldAsync(query.HashKey, query.Field, response, query.Duration, cancellationToken);
 
         return response;
     }

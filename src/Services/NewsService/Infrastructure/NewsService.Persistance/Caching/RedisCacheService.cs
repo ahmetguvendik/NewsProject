@@ -86,6 +86,55 @@ public sealed class RedisCacheService : ICacheService
         }
     }
 
+    public async Task<T?> GetHashFieldAsync<T>(string key, string field, CancellationToken cancellationToken = default)
+        where T : class
+    {
+        if (IsCircuitOpen)
+            return null;
+
+        try
+        {
+            var value = await _redis.GetDatabase().HashGetAsync(key, field);
+            if (value.IsNullOrEmpty)
+                return null;
+
+            return JsonSerializer.Deserialize<T>((string)value!, SerializerOptions);
+        }
+        catch (Exception ex) when (ex is RedisException or JsonException)
+        {
+            if (ex is RedisException) OpenCircuit(ex, "hash okuma", $"{key}/{field}");
+            else _logger.LogWarning(ex, "Önbellekteki kayıt çözümlenemedi: {Key}/{Field}", key, field);
+            return null;
+        }
+    }
+
+    public async Task SetHashFieldAsync<T>(
+        string key,
+        string field,
+        T value,
+        TimeSpan duration,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        if (IsCircuitOpen)
+            return;
+
+        try
+        {
+            var database = _redis.GetDatabase();
+            await database.HashSetAsync(key, field, JsonSerializer.Serialize(value, SerializerOptions));
+
+            // Redis'te alan bazlı TTL yok; süre tüm hash'e uygulanır. HasNoExpiry
+            // sayesinde süre yalnızca hash ilk oluşturulduğunda kurulur — her yeni
+            // alanda tazelenseydi, sürekli trafik altında hash hiç sona ermezdi.
+            await database.KeyExpireAsync(key, duration, ExpireWhen.HasNoExpiry);
+        }
+        catch (Exception ex) when (ex is RedisException or JsonException)
+        {
+            if (ex is RedisException) OpenCircuit(ex, "hash yazma", $"{key}/{field}");
+            else _logger.LogWarning(ex, "Önbelleğe yazılamadı: {Key}/{Field}", key, field);
+        }
+    }
+
     public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
         if (IsCircuitOpen)
