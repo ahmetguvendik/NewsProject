@@ -58,6 +58,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ],
             ValidateAudience = false
         };
+
+        // 401/403 yanıtları da diğer hatalarla aynı ErrorResponse gövdesini taşısın.
+        options.Events = JwtErrorResponses.Create();
     });
 
 builder.Services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
