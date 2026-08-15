@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using NewsService.Application.Caching;
 using Shared.Behaviors;
 
 namespace NewsService.Application;
@@ -13,6 +14,9 @@ public static class ServiceRegistration
 
         services.AddValidatorsFromAssembly(typeof(ServiceRegistration).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+        // Sıra önemli: doğrulama önce çalışsın ki geçersiz istekler önbelleğe ulaşmasın.
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
 
         return services;
     }

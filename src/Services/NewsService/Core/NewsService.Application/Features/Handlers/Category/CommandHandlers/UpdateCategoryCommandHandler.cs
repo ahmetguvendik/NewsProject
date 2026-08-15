@@ -1,4 +1,5 @@
 using MediatR;
+using NewsService.Application.Caching;
 using NewsService.Application.Features.Commands.Category.Request;
 using NewsService.Application.Features.Commands.Category.Response;
 using NewsService.Application.Interfaces;
@@ -11,11 +12,13 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
 {
     private readonly IGenericRepository<Domain.Entities.Category> _categoryRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public UpdateCategoryCommandHandler(IGenericRepository<Domain.Entities.Category> categoryRepository, IUnitOfWork unitOfWork)
+    public UpdateCategoryCommandHandler(IGenericRepository<Domain.Entities.Category> categoryRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _categoryRepository = categoryRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<UpdateCategoryResponse> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
@@ -29,6 +32,9 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
 
         await _categoryRepository.UpdateAsync(category, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Liste önbelleği bayat kalmasın; okuyan sorgu aynı anahtarı kullanıyor.
+        await _cache.RemoveAsync(CacheKeys.Categories, cancellationToken);
 
         return new UpdateCategoryResponse
         {

@@ -1,4 +1,5 @@
 using MediatR;
+using NewsService.Application.Caching;
 using NewsService.Application.Features.Commands.Category.Request;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
@@ -10,11 +11,13 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
 {
     private readonly IGenericRepository<Domain.Entities.Category> _categoryRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public DeleteCategoryCommandHandler(IGenericRepository<Domain.Entities.Category> categoryRepository, IUnitOfWork unitOfWork)
+    public DeleteCategoryCommandHandler(IGenericRepository<Domain.Entities.Category> categoryRepository, IUnitOfWork unitOfWork, ICacheService cache)
     {
         _categoryRepository = categoryRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
@@ -24,5 +27,8 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
 
         await _categoryRepository.DeleteAsync(category, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Liste önbelleği bayat kalmasın; okuyan sorgu aynı anahtarı kullanıyor.
+        await _cache.RemoveAsync(CacheKeys.Categories, cancellationToken);
     }
 }

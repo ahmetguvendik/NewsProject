@@ -400,6 +400,7 @@ services:
       - Kafka__BootstrapServers=kafka:9092
       # Endpoint konteyner ağı içindir; PublicEndpoint tarayıcının eriştiği adres.
       # İmza host'u kapsadığı için imzalı URL'ler PublicEndpoint ile üretilmeli.
+      - Redis__Connection=redis:6379
       - Storage__Endpoint=http://minio:9000
       - Storage__PublicEndpoint=http://localhost:9000
       - Storage__Bucket=${MINIO_BUCKET:-telgraf-media}
