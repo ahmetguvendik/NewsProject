@@ -78,7 +78,16 @@ services:
       KC_PROXY: edge
     volumes:
       - keycloak_data:/opt/keycloak/data
-      # news-portal realm'i (admin/editor/user rolleri + news-portal-client) otomatik import edilir
+      # news-portal realm'i (admin/editor/user rolleri + news-portal-client) otomatik import edilir.
+      #
+      # Realm dosyasında brute-force koruması açık (bruteForceProtected). Giriş
+      # istekleri APISIX'ten geçmediği (client token'ı doğrudan Keycloak'tan alır)
+      # için rate limit gateway'de değil burada yapılır — üstelik IP değil hesap
+      # bazlı çalıştığından saldırgan IP değiştirse de koruma sürer.
+      # permanentLockout=false: kilit süre dolunca kendiliğinden açılır.
+      #
+      # UYARI: realm JSON'ı yorum kabul etmez ve tanımadığı alanda import
+      # tamamen başarısız olur (Keycloak açılmaz). Açıklamalar bu yüzden burada.
       - ./docker/keycloak:/opt/keycloak/data/import:ro
     command: start-dev --import-realm
     healthcheck:

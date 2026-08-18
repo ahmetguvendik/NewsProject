@@ -8,7 +8,6 @@
   "accessTokenLifespan": 3600,
   "ssoSessionIdleTimeout": 3600,
 
-  "_comment_bruteForce": "Giriş APISIX'ten geçmediği için brute-force koruması burada yapılır. IP değil hesap bazlı çalışır: saldırgan IP değiştirse de korumaya devam eder. permanentLockout=false — kilit kalıcı değil, süre dolunca kendiliğinden açılır.",
   "bruteForceProtected": true,
   "permanentLockout": false,
   "failureFactor": 10,
