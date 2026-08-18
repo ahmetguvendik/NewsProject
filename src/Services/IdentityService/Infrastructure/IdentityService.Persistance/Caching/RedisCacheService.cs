@@ -1,18 +1,18 @@
 using System.Text.Json;
+using IdentityService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
-using NewsService.Application.Interfaces;
 using StackExchange.Redis;
 
-namespace NewsService.Persistance.Caching;
+namespace IdentityService.Persistance.Caching;
 
 /// <summary>
 /// Redis tabanlı önbellek.
 ///
-/// Tüm işlemler hataya karşı yutucudur: Redis erişilemezse okuma <c>null</c>
-/// döner ve çağıran taraf veritabanına düşer, yazma sessizce atlanır. Önbellek
-/// bir hızlandırıcı olduğu için erişilemez olması siteyi düşürmemeli.
+/// Tüm işlemler hataya karşı yutucudur: Redis erişilemezse okuma boş döner ve
+/// çağıran taraf veritabanına düşer, yazma sessizce atlanır. Önbellek bir
+/// hızlandırıcı olduğu için erişilemez olması siteyi düşürmemeli.
 ///
-/// <b>IdentityService.Persistance/Caching/RedisCacheService.cs bunun ikizidir.</b>
+/// <b>NewsService.Persistance/Caching/RedisCacheService.cs bunun ikizidir.</b>
 /// Metot listeleri farklı (her servis yalnızca kullandığını tanımlıyor) ama
 /// hata karşısındaki davranış — istisna yutma, devre kesici, hash TTL'inin
 /// yalnızca ilk oluşturmada kurulması — aynı olmak zorunda. Bu davranışı
@@ -94,55 +94,6 @@ public sealed class RedisCacheService : ICacheService
         }
     }
 
-    public async Task<T?> GetHashFieldAsync<T>(string key, string field, CancellationToken cancellationToken = default)
-        where T : class
-    {
-        if (IsCircuitOpen)
-            return null;
-
-        try
-        {
-            var value = await _redis.GetDatabase().HashGetAsync(key, field);
-            if (value.IsNullOrEmpty)
-                return null;
-
-            return JsonSerializer.Deserialize<T>((string)value!, SerializerOptions);
-        }
-        catch (Exception ex) when (ex is RedisException or JsonException)
-        {
-            if (ex is RedisException) OpenCircuit(ex, "hash okuma", $"{key}/{field}");
-            else _logger.LogWarning(ex, "Önbellekteki kayıt çözümlenemedi: {Key}/{Field}", key, field);
-            return null;
-        }
-    }
-
-    public async Task SetHashFieldAsync<T>(
-        string key,
-        string field,
-        T value,
-        TimeSpan duration,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        if (IsCircuitOpen)
-            return;
-
-        try
-        {
-            var database = _redis.GetDatabase();
-            await database.HashSetAsync(key, field, JsonSerializer.Serialize(value, SerializerOptions));
-
-            // Redis'te alan bazlı TTL yok; süre tüm hash'e uygulanır. HasNoExpiry
-            // sayesinde süre yalnızca hash ilk oluşturulduğunda kurulur — her yeni
-            // alanda tazelenseydi, sürekli trafik altında hash hiç sona ermezdi.
-            await database.KeyExpireAsync(key, duration, ExpireWhen.HasNoExpiry);
-        }
-        catch (Exception ex) when (ex is RedisException or JsonException)
-        {
-            if (ex is RedisException) OpenCircuit(ex, "hash yazma", $"{key}/{field}");
-            else _logger.LogWarning(ex, "Önbelleğe yazılamadı: {Key}/{Field}", key, field);
-        }
-    }
-
     public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
     {
         if (IsCircuitOpen)
@@ -157,6 +108,90 @@ public sealed class RedisCacheService : ICacheService
             // Silinemeyen anahtar bayat veri demek; TTL sınırı olduğu için
             // kalıcı değil, ama görünür olması gerekiyor.
             OpenCircuit(ex, "silme", key);
+        }
+    }
+
+    public async Task<IReadOnlyDictionary<string, T>> GetHashFieldsAsync<T>(
+        string key,
+        IReadOnlyCollection<string> fields,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var found = new Dictionary<string, T>(fields.Count);
+
+        if (IsCircuitOpen || fields.Count == 0)
+            return found;
+
+        var names = fields.Select(field => (RedisValue)field).ToArray();
+
+        try
+        {
+            var values = await _redis.GetDatabase().HashGetAsync(key, names);
+
+            // HashGetAsync sırayı korur ve bulunamayan alanlar için boş değer
+            // döner; indeks eşlemesi bu yüzden güvenli.
+            for (var i = 0; i < names.Length; i++)
+            {
+                if (values[i].IsNullOrEmpty)
+                    continue;
+
+                var item = JsonSerializer.Deserialize<T>((string)values[i]!, SerializerOptions);
+                if (item is not null)
+                    found[(string)names[i]!] = item;
+            }
+        }
+        catch (Exception ex) when (ex is RedisException or JsonException)
+        {
+            // Kısmi sonuç dönmek yerine elde ne varsa onunla devam edilir:
+            // eksik alanlar ıska sayılıp veritabanından tamamlanacak.
+            if (ex is RedisException) OpenCircuit(ex, "hash okuma", key);
+            else _logger.LogWarning(ex, "Önbellekteki kayıt çözümlenemedi: {Key}", key);
+        }
+
+        return found;
+    }
+
+    public async Task SetHashFieldsAsync<T>(
+        string key,
+        IReadOnlyDictionary<string, T> values,
+        TimeSpan duration,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        if (IsCircuitOpen || values.Count == 0)
+            return;
+
+        try
+        {
+            var entries = values
+                .Select(pair => new HashEntry(pair.Key, JsonSerializer.Serialize(pair.Value, SerializerOptions)))
+                .ToArray();
+
+            var database = _redis.GetDatabase();
+            await database.HashSetAsync(key, entries);
+
+            // Redis'te alan bazlı TTL yok; süre tüm hash'e uygulanır. HasNoExpiry
+            // sayesinde süre yalnızca hash ilk oluşturulduğunda kurulur — her yeni
+            // alanda tazelenseydi, sürekli trafik altında hash hiç sona ermezdi.
+            await database.KeyExpireAsync(key, duration, ExpireWhen.HasNoExpiry);
+        }
+        catch (Exception ex) when (ex is RedisException or JsonException)
+        {
+            if (ex is RedisException) OpenCircuit(ex, "hash yazma", key);
+            else _logger.LogWarning(ex, "Önbelleğe yazılamadı: {Key}", key);
+        }
+    }
+
+    public async Task RemoveHashFieldAsync(string key, string field, CancellationToken cancellationToken = default)
+    {
+        if (IsCircuitOpen)
+            return;
+
+        try
+        {
+            await _redis.GetDatabase().HashDeleteAsync(key, field);
+        }
+        catch (RedisException ex)
+        {
+            OpenCircuit(ex, "hash silme", $"{key}/{field}");
         }
     }
 }

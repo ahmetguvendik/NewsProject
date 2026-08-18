@@ -340,6 +340,7 @@ services:
       - Keycloak__AdminUsername=admin
       - Keycloak__AdminPassword=admin
       - Kafka__BootstrapServers=kafka:9092
+      - Redis__Connection=redis:6379
       - Internal__ApiKey=${INTERNAL_API_KEY:-}
     depends_on:
       postgres:
@@ -347,6 +348,8 @@ services:
       kafka:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - apisix

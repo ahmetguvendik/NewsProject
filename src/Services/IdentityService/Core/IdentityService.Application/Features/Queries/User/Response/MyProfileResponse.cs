@@ -1,6 +1,15 @@
 namespace IdentityService.Application.Features.Queries.User.Response;
 
-/// <summary>Kullanıcının kendi profili — /api/me üzerinden döner.</summary>
+/// <summary>
+/// Kullanıcının kendi profili — /api/me üzerinden döner.
+///
+/// Bu yanıt önbelleklenir (bkz. <c>GetMyProfileQuery</c>). Buraya <b>yeni bir
+/// alan eklerken</b>, o alanı değiştiren komutun da profili düşürdüğünden emin
+/// olun. Örneğin roller şu an burada dönmüyor; bu yüzden rol atama/kaldırma
+/// komutları önbelleğe dokunmuyor. Roller eklenirse o iki handler'a da
+/// geçersizleştirme girmeli, aksi halde kullanıcı rol değişikliğini TTL
+/// dolana kadar görmez.
+/// </summary>
 public class MyProfileResponse
 {
     public Guid Id { get; set; }

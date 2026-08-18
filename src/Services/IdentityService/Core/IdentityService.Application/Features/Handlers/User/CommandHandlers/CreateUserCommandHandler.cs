@@ -1,3 +1,4 @@
+using IdentityService.Application.Caching;
 using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Features.Commands.User.Response;
 using IdentityService.Application.Interfaces;
@@ -13,15 +14,18 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
     private readonly IGenericRepository<Domain.Entities.User> _userRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEventPublisher _eventPublisher;
+    private readonly ICacheService _cache;
 
     public CreateUserCommandHandler(
         IGenericRepository<Domain.Entities.User> userRepository,
         IUnitOfWork unitOfWork,
-        IEventPublisher eventPublisher)
+        IEventPublisher eventPublisher,
+        ICacheService cache)
     {
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
         _eventPublisher = eventPublisher;
+        _cache = cache;
     }
 
     public async Task<CreateUserResponse> Handle(CreateUserCommand request, CancellationToken cancellationToken)
@@ -48,6 +52,11 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
         }, cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // KeycloakId'yi burada çağıran belirliyor (RegisterUser'daki gibi Keycloak
+        // üretmiyor). Aynı ID daha önce silinmiş bir kullanıcıya aitse dizinde
+        // eski adı kalmış olabilir; yeni kaydın üstüne binmemesi için düşürülür.
+        await _cache.RemoveHashFieldAsync(CacheKeys.Directory, user.KeycloakId, cancellationToken);
 
         return new CreateUserResponse
         {

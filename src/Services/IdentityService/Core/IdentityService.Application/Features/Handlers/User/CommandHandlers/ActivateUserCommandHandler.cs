@@ -1,3 +1,4 @@
+using IdentityService.Application.Caching;
 using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
@@ -11,15 +12,18 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
     private readonly IGenericRepository<Domain.Entities.User> _userRepository;
     private readonly IKeycloakAdminClient _keycloakAdminClient;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
     public ActivateUserCommandHandler(
         IGenericRepository<Domain.Entities.User> userRepository,
         IKeycloakAdminClient keycloakAdminClient,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICacheService cache)
     {
         _userRepository = userRepository;
         _keycloakAdminClient = keycloakAdminClient;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(ActivateUserCommand request, CancellationToken cancellationToken)
@@ -37,6 +41,10 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
             user.IsActive = true;
             await _userRepository.UpdateAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // IsActive profilde dönüyor. Telafi bloğunun içinde: DB yazması
+            // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
+            await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
         }
         catch
         {

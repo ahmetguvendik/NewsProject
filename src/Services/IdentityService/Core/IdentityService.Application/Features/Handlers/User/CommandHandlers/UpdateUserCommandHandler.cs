@@ -1,3 +1,4 @@
+using IdentityService.Application.Caching;
 using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Features.Commands.User.Response;
 using IdentityService.Application.Interfaces;
@@ -11,11 +12,16 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, Updat
 {
     private readonly IGenericRepository<Domain.Entities.User> _userRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
-    public UpdateUserCommandHandler(IGenericRepository<Domain.Entities.User> userRepository, IUnitOfWork unitOfWork)
+    public UpdateUserCommandHandler(
+        IGenericRepository<Domain.Entities.User> userRepository,
+        IUnitOfWork unitOfWork,
+        ICacheService cache)
     {
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<UpdateUserResponse> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
@@ -30,6 +36,12 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, Updat
 
         await _userRepository.UpdateAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Ad-soyad hem dizinde hem profilde görünüyor. Dizinde tüm hash yerine
+        // yalnızca bu kullanıcının alanı düşürülür — tamamını silmek, tek bir
+        // isim değişikliği için bütün isabeti çöpe atmak olurdu.
+        await _cache.RemoveHashFieldAsync(CacheKeys.Directory, user.KeycloakId, cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
 
         return new UpdateUserResponse
         {

@@ -1,7 +1,8 @@
 using FluentValidation;
+using IdentityService.Application.Behaviors;
+using IdentityService.Application.Caching;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Behaviors;
 
 namespace IdentityService.Application;
 
@@ -13,6 +14,9 @@ public static class ServiceRegistration
 
         services.AddValidatorsFromAssembly(typeof(ServiceRegistration).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+        // Sıra önemli: doğrulama önce çalışsın ki geçersiz istekler önbelleğe ulaşmasın.
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
 
         return services;
     }
