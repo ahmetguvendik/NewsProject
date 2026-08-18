@@ -9,5 +9,5 @@ public class GetAllTagsQuery : IRequest<List<GetAllTagsResponse>>, ICacheableQue
 {
     public string CacheKey => CacheKeys.Tags;
 
-    public TimeSpan Duration => TimeSpan.FromHours(1);
+    public TimeSpan Duration => TimeSpan.FromHours(24);
 }

@@ -5,8 +5,8 @@ import { api } from './http'
  *
  * Önceden her ziyaretçinin tarayıcısı dış servise ayrı bir istek atıyordu; trafik
  * arttığında rate limit yenip widget'ın herkeste birden kırılması riski vardı.
- * Sunucu tarafında 10 dakika önbelleklendiği için ziyaretçi sayısından bağımsız
- * olarak dış servise 10 dakikada bir istek gidiyor.
+ * Sunucu tarafında 30 dakika önbelleklendiği için ziyaretçi sayısından bağımsız
+ * olarak dış servise 30 dakikada bir istek gidiyor.
  *
  * Gündüz/gece ayrımı da sunucuda yapılıyor — ikon hazır geliyor.
  */

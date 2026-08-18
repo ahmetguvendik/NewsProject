@@ -13,6 +13,6 @@ public class GetAllCategoriesQuery : IRequest<List<GetAllCategoriesResponse>>, I
     public string CacheKey => CacheKeys.Categories;
 
     // TTL bir güvenlik ağı: asıl tazeleme kategori değiştiğinde yapılan
-    // invalidation ile olur. Bir sebeple o kaçarsa veri en fazla bir saat bayat kalır.
-    public TimeSpan Duration => TimeSpan.FromHours(1);
+    // invalidation ile olur. Bir sebeple o kaçarsa veri en fazla bir gün bayat kalır.
+    public TimeSpan Duration => TimeSpan.FromHours(24);
 }

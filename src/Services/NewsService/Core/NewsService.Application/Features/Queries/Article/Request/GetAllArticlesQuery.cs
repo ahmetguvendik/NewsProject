@@ -44,5 +44,5 @@ public class GetAllArticlesQuery : IRequest<PagedResult<GetAllArticlesResponse>>
         ? $"{(IncludeUnpublished ? "tumu" : "yayin")}:kategori={Category ?? "-"}:sayfa={Page}:boyut={PageSize}"
         : null;
 
-    public TimeSpan Duration => TimeSpan.FromMinutes(5);
+    public TimeSpan Duration => TimeSpan.FromMinutes(15);
 }
