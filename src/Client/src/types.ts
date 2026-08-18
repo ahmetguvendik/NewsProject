@@ -29,6 +29,12 @@ export interface ArticleSummary {
   summary: string | null
   /** Kapak görseli — listede de dönüyor; yoksa kategoriden gradyan üretilir */
   imageUrl: string | null
+  /**
+   * Aynı görselin farklı genişlikteki kopyaları (`srcset` biçiminde). Dış
+   * adreslerde ve varyant öncesi yüklenmiş kayıtlarda null gelir; o zaman
+   * `imageUrl` tek başına kullanılır.
+   */
+  imageSrcset: string | null
   authorKeycloakId: string
   categoryName: string
   isPublished: boolean

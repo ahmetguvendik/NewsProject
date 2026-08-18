@@ -4,6 +4,8 @@ using Amazon.S3.Model;
 using Microsoft.Extensions.Options;
 using NewsService.Application.Interfaces;
 using NewsService.Application.Media;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using Shared.Exceptions;
 
 namespace NewsService.Persistance.Storage;
@@ -138,19 +140,13 @@ public sealed class S3StorageService : IStorageService, IDisposable
                 "Dosya bozuk olabilir veya uzantısı gerçek içeriğini yansıtmıyor.");
         }
 
-        var finalKey = $"{ArticlesPrefix}{DateTime.UtcNow:yyyy/MM}/{Path.GetFileName(stagingKey)}";
+        // Temel anahtar uzantısız: gerçek dosyalar "-400.webp" gibi eklerle duruyor.
+        var baseKey = $"{ArticlesPrefix}{DateTime.UtcNow:yyyy/MM}/{Path.GetFileNameWithoutExtension(stagingKey)}";
 
-        await _internalClient.CopyObjectAsync(new CopyObjectRequest
-        {
-            SourceBucket = _options.Bucket,
-            SourceKey = stagingKey,
-            DestinationBucket = _options.Bucket,
-            DestinationKey = finalKey,
-        }, cancellationToken);
-
+        await WriteVariantsAsync(stagingKey, baseKey, cancellationToken);
         await DiscardAsync(stagingKey, cancellationToken);
 
-        return finalKey;
+        return baseKey;
     }
 
     public string? ResolvePublicUrl(string? storedValue)
@@ -165,8 +161,37 @@ public sealed class S3StorageService : IStorageService, IDisposable
             return storedValue;
         }
 
-        return $"{_options.PublicEndpoint.TrimEnd('/')}/{_options.Bucket}/{storedValue.TrimStart('/')}";
+        var key = storedValue.TrimStart('/');
+
+        // Varyantlı kayıtlarda tek adres istendiğinde orta boy verilir.
+        if (MediaVariants.HasVariants(key))
+            key = MediaVariants.FileKey(key, MediaVariants.DefaultWidth);
+
+        return $"{PublicBase}/{key}";
     }
+
+    public string? ResolveSrcset(string? storedValue)
+    {
+        if (string.IsNullOrWhiteSpace(storedValue))
+            return null;
+
+        // Dış adreslerin ve varyant öncesi yüklenen tek dosyalı kayıtların
+        // farklı boyları yok; srcset üretmek 404'e yol açardı.
+        if (storedValue.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || storedValue.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var key = storedValue.TrimStart('/');
+        if (!MediaVariants.HasVariants(key))
+            return null;
+
+        return string.Join(", ", MediaVariants.Widths.Select(width =>
+            $"{PublicBase}/{MediaVariants.FileKey(key, width)} {width}w"));
+    }
+
+    private string PublicBase => $"{_options.PublicEndpoint.TrimEnd('/')}/{_options.Bucket}";
 
     /// <summary>
     /// SDK, ServiceURL http olsa bile imzalı adresi https olarak üretebiliyor;
@@ -183,6 +208,51 @@ public sealed class S3StorageService : IStorageService, IDisposable
             return string.Concat("http://", url.AsSpan("https://".Length));
 
         return url;
+    }
+
+    /// <summary>
+    /// Yüklenen görseli her hedef genişlikte WebP olarak yeniden üretip depoya yazar.
+    ///
+    /// Kaynak hedeften darsa büyütülmez — büyütmek dosyayı şişirir, kaliteyi
+    /// artırmaz. Bu durumda dosya istenen adla ama kaynak boyutunda kaydedilir;
+    /// tarayıcı geniş ekranda onu seçerse bugünkü davranışın aynısı olur, yani
+    /// bir gerileme yaratmaz.
+    /// </summary>
+    private async Task WriteVariantsAsync(string sourceKey, string baseKey, CancellationToken cancellationToken)
+    {
+        using var source = await _internalClient.GetObjectAsync(_options.Bucket, sourceKey, cancellationToken);
+        using var buffer = new MemoryStream();
+        await source.ResponseStream.CopyToAsync(buffer, cancellationToken);
+
+        buffer.Position = 0;
+        using var original = await Image.LoadAsync(buffer, cancellationToken);
+
+        foreach (var width in MediaVariants.Widths)
+        {
+            // Clone: her boy aynı kaynaktan türesin. Mutate ile küçültseydik
+            // sonraki tur zaten küçülmüş görüntüyü tekrar küçültürdü.
+            using var resized = original.Width > width
+                ? original.Clone(context => context.Resize(new ResizeOptions
+                {
+                    Size = new Size(width, 0),
+                    Mode = ResizeMode.Max
+                }))
+                : null;
+
+            var image = resized ?? original;
+
+            using var encoded = new MemoryStream();
+            await image.SaveAsWebpAsync(encoded, cancellationToken);
+            encoded.Position = 0;
+
+            await _internalClient.PutObjectAsync(new PutObjectRequest
+            {
+                BucketName = _options.Bucket,
+                Key = MediaVariants.FileKey(baseKey, width),
+                InputStream = encoded,
+                ContentType = "image/webp"
+            }, cancellationToken);
+        }
     }
 
     /// <summary>İlk baytları okuyup dosyanın gerçekten iddia edilen türde olduğunu doğrular.</summary>

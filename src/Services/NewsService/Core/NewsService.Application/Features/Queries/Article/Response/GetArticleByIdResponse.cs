@@ -14,6 +14,9 @@ public class GetArticleByIdResponse
     /// bunu geri gönderir; aksi halde her kayıtta anahtar tam URL'e dönüşürdü.
     /// </summary>
     public string? ImageKey { get; set; }
+    /// <summary>Tarayıcının ekran boyutuna göre seçmesi için boy listesi; dış adreslerde null.</summary>
+    public string? ImageSrcset { get; set; }
+
     public string AuthorKeycloakId { get; set; } = string.Empty;
     public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;

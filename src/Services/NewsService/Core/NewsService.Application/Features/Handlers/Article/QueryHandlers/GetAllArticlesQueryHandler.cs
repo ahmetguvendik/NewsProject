@@ -68,7 +68,10 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
         // Veritabanında depo anahtarı tutulur (bucket/CDN değişince satırlar
         // migrate edilmesin diye); dışarıya her zaman tam adres çıkar.
         foreach (var article in articles)
+        {
+            article.ImageSrcset = _storage.ResolveSrcset(article.ImageUrl);
             article.ImageUrl = _storage.ResolvePublicUrl(article.ImageUrl);
+        }
 
         return new PagedResult<GetAllArticlesResponse>
         {

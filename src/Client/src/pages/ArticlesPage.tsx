@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { newsApi } from '../api/news'
 import { useAuth } from '../auth/AuthContext'
+import { CoverImage } from '../components/CoverImage'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { Pagination } from '../components/Pagination'
 import { coverStyle } from '../lib/cover'
@@ -12,6 +13,16 @@ import type { ArticleSummary, Category } from '../types'
 const dateOf = (article: ArticleSummary) => article.publishedAt ?? article.createdAt
 
 const PAGE_SIZE = 20
+
+// Kapağın ekranda kapladığı genişlik — tarayıcı indireceği boyu buna bakarak
+// seçiyor. Eşikler .feed__grid'in `minmax(300px, 1fr)` düzeninden geliyor:
+// 3 sütun 984px'de, 2 sütun 666px'de sığmayı bırakıyor. Grid CSS'i değişirse
+// bu değerler de güncellenmeli.
+const CARD_COVER_SIZES = '(max-width: 666px) 100vw, (max-width: 984px) 50vw, 380px'
+
+// Manşet kapağı 860px altında tam genişlik, üstünde 1.15fr/1fr bölünmeden payına
+// düşen ~605 piksel.
+const LEAD_COVER_SIZES = '(max-width: 860px) 100vw, 610px'
 
 export function ArticlesPage() {
   const { hasRole } = useAuth()
@@ -93,6 +104,12 @@ export function ArticlesPage() {
         className="story__cover"
         style={coverStyle(article.imageUrl, article.categoryName)}
       >
+        <CoverImage
+          url={article.imageUrl}
+          srcset={article.imageSrcset}
+          sizes={lead ? LEAD_COVER_SIZES : CARD_COVER_SIZES}
+          lazy={!lead}
+        />
         <span className="chip">{article.categoryName}</span>
       </Link>
 

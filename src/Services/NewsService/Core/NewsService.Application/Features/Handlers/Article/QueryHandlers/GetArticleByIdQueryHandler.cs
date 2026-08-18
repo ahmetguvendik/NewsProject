@@ -50,6 +50,7 @@ public class GetArticleByIdQueryHandler : IRequestHandler<GetArticleByIdQuery, G
 
         // ImageUrl görüntülemek için çözümlenir; ImageKey ham haliyle kalır ki
         // düzenleme formu geri gönderdiğinde anahtar tam URL'e dönüşmesin.
+        article.ImageSrcset = _storage.ResolveSrcset(article.ImageUrl);
         article.ImageUrl = _storage.ResolvePublicUrl(article.ImageUrl);
 
         return article;

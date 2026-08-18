@@ -2,9 +2,15 @@
  * Haberlerin çoğunun görseli olmadığı için kapak alanı boş kalmasın diye
  * kategori adından deterministik bir gradyan üretilir: aynı kategori her
  * zaman aynı rengi alır, böylece akış rastgele değil düzenli görünür.
+ *
+ * Görseli olan haberlerde gradyan üretilmez; kapağı <CoverImage> çizer.
+ * Görsel artık CSS `background-image` ile değil `<img srcset>` ile
+ * konuyor: background-image tek adres alır, `image-set()` ise yalnızca
+ * çözünürlük çarpanını bilir — görselin ekranda kaç piksel kapladığını
+ * bilmediği için doğru boyu seçemez.
  */
 export function coverStyle(imageUrl: string | null, seed: string) {
-  if (imageUrl) return { backgroundImage: `url(${imageUrl})` }
+  if (imageUrl) return undefined
 
   const hue = hashHue(seed)
 

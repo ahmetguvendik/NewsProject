@@ -27,6 +27,13 @@ public interface IStorageService
     /// depo adresiyle birleştirilir.
     /// </summary>
     string? ResolvePublicUrl(string? storedValue);
+
+    /// <summary>
+    /// <c>srcset</c> değeri üretir; tarayıcı ekranda kapladığı yere göre doğru
+    /// boyu seçebilsin diye. Dış adreslerde ve varyantı olmayan eski kayıtlarda
+    /// <c>null</c> döner — o durumda tek adres kullanılır.
+    /// </summary>
+    string? ResolveSrcset(string? storedValue);
 }
 
 /// <param name="UploadUrl">Client'ın PUT isteği atacağı imzalı adres.</param>

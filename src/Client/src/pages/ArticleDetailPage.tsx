@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { newsApi } from '../api/news'
 import { useAuth } from '../auth/AuthContext'
+import { CoverImage } from '../components/CoverImage'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { coverStyle } from '../lib/cover'
 import { formatDateTime } from '../lib/format'
@@ -34,7 +35,15 @@ export function ArticleDetailPage() {
 
   return (
     <article className="reader">
-      <div className="reader__cover" style={coverStyle(article.imageUrl, article.categoryName)} />
+      <div className="reader__cover" style={coverStyle(article.imageUrl, article.categoryName)}>
+        {/* Okuma sütunu 740px'de sabitleniyor; altındaki genişlikte tam ekran. */}
+        <CoverImage
+          url={article.imageUrl}
+          srcset={article.imageSrcset}
+          sizes="(max-width: 788px) 100vw, 740px"
+          lazy={false}
+        />
+      </div>
 
       <div className="row row--between">
         <span className="chip">{article.categoryName}</span>
