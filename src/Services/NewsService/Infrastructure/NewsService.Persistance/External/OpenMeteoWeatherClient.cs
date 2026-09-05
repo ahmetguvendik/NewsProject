@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using NewsService.Application.Features.Queries.Weather.Response;
 using NewsService.Application.Interfaces;
 using Shared.Exceptions;
@@ -6,27 +8,29 @@ using Shared.Exceptions;
 namespace NewsService.Persistance.External;
 
 /// <summary>
-/// Open-Meteo istemcisi — API anahtarı gerektirmiyor. Şehir sabit: Ankara.
+/// Open-Meteo istemcisi — API anahtarı gerektirmiyor. Şehir ve koordinatlar
+/// "Weather" ayar bölümünden gelir.
 /// </summary>
 public sealed class OpenMeteoWeatherClient : IWeatherClient
 {
-    private const string City = "Ankara";
-    private const double Latitude = 39.9334;
-    private const double Longitude = 32.8597;
-
     private readonly HttpClient _httpClient;
+    private readonly WeatherOptions _options;
 
-    public OpenMeteoWeatherClient(HttpClient httpClient) => _httpClient = httpClient;
+    public OpenMeteoWeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options)
+    {
+        _httpClient = httpClient;
+        _options = options.Value;
+    }
 
     public async Task<GetWeatherResponse> GetCurrentAsync(CancellationToken cancellationToken = default)
     {
         // is_day olmadan gece ile gündüz ayırt edilemiyor; açık gökyüzü gece de
         // güneş ikonuyla gösteriliyordu. Alan bu yüzden açıkça isteniyor.
-        var url = $"https://api.open-meteo.com/v1/forecast" +
-                  $"?latitude={Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
-                  $"&longitude={Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+        var url = $"{_options.BaseUrl}" +
+                  $"?latitude={_options.Latitude.ToString(CultureInfo.InvariantCulture)}" +
+                  $"&longitude={_options.Longitude.ToString(CultureInfo.InvariantCulture)}" +
                   $"&current=temperature_2m,weather_code,is_day" +
-                  $"&timezone=Europe%2FIstanbul";
+                  $"&timezone={Uri.EscapeDataString(_options.Timezone)}";
 
         HttpResponseMessage response;
         try
@@ -54,7 +58,7 @@ public sealed class OpenMeteoWeatherClient : IWeatherClient
 
         return new GetWeatherResponse
         {
-            City = City,
+            City = _options.City,
             TemperatureC = (int)Math.Round(current.GetProperty("temperature_2m").GetDouble()),
             Icon = Icon(code, isDay),
             Description = Describe(code)

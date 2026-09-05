@@ -48,8 +48,13 @@ public static class ServiceRegistration
 
         // Dış servis: yanıt önbelleklendiği için nadiren çağrılıyor; yine de
         // kısa timeout ile bekletilmiyor.
+        services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
+
+        var weatherTimeout = TimeSpan.FromSeconds(
+            configuration.GetValue($"{WeatherOptions.SectionName}:TimeoutSeconds", 5));
+
         services.AddHttpClient<IWeatherClient, OpenMeteoWeatherClient>(client =>
-            client.Timeout = TimeSpan.FromSeconds(5));
+            client.Timeout = weatherTimeout);
 
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
         // S3 client'ları pahalı ve thread-safe — istek başına yeniden kurulmamalı.

@@ -28,7 +28,7 @@ public class UserRegisteredConsumer : BackgroundService
         var config = new ConsumerConfig
         {
             BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9092",
-            GroupId = "notification-service-user",
+            GroupId = _configuration["Kafka:ConsumerGroups:User"] ?? "notification-service-user",
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false
         };
@@ -38,11 +38,16 @@ public class UserRegisteredConsumer : BackgroundService
 
         _logger.LogInformation("UserRegisteredConsumer started, listening to '{Topic}'.", Topics.User.Registered);
 
+        // Consume timeout'u ayarlanabilir değil: kapanma sinyalinin en geç ne kadar sürede
+        // fark edileceğini belirliyor, tuning değeri değil.
+        var pollTimeout = TimeSpan.FromSeconds(1);
+        var errorBackoff = TimeSpan.FromSeconds(_configuration.GetValue("Kafka:ErrorBackoffSeconds", 3));
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var result = consumer.Consume(TimeSpan.FromSeconds(1));
+                var result = consumer.Consume(pollTimeout);
                 if (result is null) continue;
 
                 using var scope = _scopeFactory.CreateScope();
@@ -78,7 +83,7 @@ public class UserRegisteredConsumer : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in UserRegisteredConsumer.");
-                await Task.Delay(3000, stoppingToken);
+                await Task.Delay(errorBackoff, stoppingToken);
             }
         }
 

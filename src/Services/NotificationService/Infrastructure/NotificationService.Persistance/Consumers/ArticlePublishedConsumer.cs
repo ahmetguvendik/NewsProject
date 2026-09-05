@@ -28,7 +28,7 @@ public class ArticlePublishedConsumer : BackgroundService
         var config = new ConsumerConfig
         {
             BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9092",
-            GroupId = "notification-service-article",
+            GroupId = _configuration["Kafka:ConsumerGroups:Article"] ?? "notification-service-article",
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false
         };
@@ -38,11 +38,16 @@ public class ArticlePublishedConsumer : BackgroundService
 
         _logger.LogInformation("ArticlePublishedConsumer started, listening to '{Topic}'.", Topics.Article.Published);
 
+        // Consume timeout'u ayarlanabilir değil: kapanma sinyalinin en geç ne kadar sürede
+        // fark edileceğini belirliyor, tuning değeri değil.
+        var pollTimeout = TimeSpan.FromSeconds(1);
+        var errorBackoff = TimeSpan.FromSeconds(_configuration.GetValue("Kafka:ErrorBackoffSeconds", 3));
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var result = consumer.Consume(TimeSpan.FromSeconds(1));
+                var result = consumer.Consume(pollTimeout);
                 if (result is null) continue;
 
                 using var scope = _scopeFactory.CreateScope();
@@ -77,7 +82,7 @@ public class ArticlePublishedConsumer : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in ArticlePublishedConsumer.");
-                await Task.Delay(3000, stoppingToken);
+                await Task.Delay(errorBackoff, stoppingToken);
             }
         }
 

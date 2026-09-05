@@ -12,12 +12,24 @@ public class Worker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<Worker> _logger;
     private readonly int _maxRetryCount;
+    private readonly int _retentionDays;
+    private readonly int _batchSize;
+    private readonly TimeSpan _pollInterval;
+
+    /// <summary>Temizlik her turda değil, bu aralıkta bir çalışır.</summary>
+    private readonly TimeSpan _cleanupInterval;
+
+    private DateTime _lastCleanupAt = DateTime.MinValue;
 
     public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _maxRetryCount = configuration.GetValue("Inbox:MaxRetryCount", 5);
+        _retentionDays = configuration.GetValue("Inbox:RetentionDays", 30);
+        _batchSize = configuration.GetValue("Inbox:BatchSize", 50);
+        _pollInterval = TimeSpan.FromSeconds(configuration.GetValue("Inbox:PollIntervalSeconds", 5));
+        _cleanupInterval = TimeSpan.FromHours(configuration.GetValue("Inbox:CleanupIntervalHours", 1));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -29,13 +41,14 @@ public class Worker : BackgroundService
             try
             {
                 await ProcessInboxMessagesAsync(stoppingToken);
+                await CleanupProcessedMessagesAsync(stoppingToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in NotificationInboxWorker.");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            await Task.Delay(_pollInterval, stoppingToken);
         }
     }
 
@@ -49,7 +62,7 @@ public class Worker : BackgroundService
         var messages = await db.InboxMessages
             .Where(m => !m.IsProcessed && !m.IsDeadLettered)
             .OrderBy(m => m.ReceivedAt)
-            .Take(50)
+            .Take(_batchSize)
             .ToListAsync(cancellationToken);
 
         if (messages.Count == 0) return;
@@ -161,6 +174,43 @@ public class Worker : BackgroundService
         {
             _logger.LogWarning("Unknown topic '{Topic}', skipping.", message.Topic);
         }
+    }
+
+    /// <summary>
+    /// İşlenmiş inbox satırları birikirse her turdaki "işlenmemişleri getir" sorgusu
+    /// giderek daha fazla ölü satırın üzerinden geçer.
+    ///
+    /// Yalnızca InboxMessages temizlenir. Notifications tablosuna DOKUNULMAZ: gönderilen
+    /// maillerin kalıcı kaydı olmasının yanı sıra, yazar ve abone mailleri için mükerrer
+    /// gönderim kontrolü de o tabloya bakıyor.
+    ///
+    /// Dead-letter satırları da korunur — incelenmeleri gerekiyor.
+    ///
+    /// RetentionDays, Kafka'nın topic saklama süresinden (varsayılan 7 gün) BÜYÜK
+    /// olmalı. Consumer'ın mükerrer kontrolü bu tablodaki MessageId'ye bakıyor; satır
+    /// Kafka'daki mesajdan önce silinirse, mesaj yeniden teslim edildiğinde kontrol
+    /// boşa düşer ve aynı mail ikinci kez gider. Yeniden teslim uzak bir ihtimal değil:
+    /// grup 7 gün boyunca (offsets.retention.minutes) tamamen kapalı kalırsa offset'ler
+    /// düşer ve AutoOffsetReset.Earliest ile topic baştan okunur.
+    /// </summary>
+    private async Task CleanupProcessedMessagesAsync(CancellationToken cancellationToken)
+    {
+        if (DateTime.UtcNow - _lastCleanupAt < _cleanupInterval)
+            return;
+
+        _lastCleanupAt = DateTime.UtcNow;
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<InboxWorkerDbContext>();
+
+        var cutoff = DateTime.UtcNow.AddDays(-_retentionDays);
+
+        var deleted = await db.InboxMessages
+            .Where(m => m.IsProcessed && m.ProcessedAt < cutoff)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        if (deleted > 0)
+            _logger.LogInformation("Cleaned up {Count} processed inbox messages older than {Cutoff:u}.", deleted, cutoff);
     }
 
     /// <summary>

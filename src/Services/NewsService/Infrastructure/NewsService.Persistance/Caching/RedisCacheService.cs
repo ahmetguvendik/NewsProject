@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NewsService.Application.Interfaces;
 using StackExchange.Redis;
@@ -33,7 +34,7 @@ public sealed class RedisCacheService : ICacheService
     /// Bir hata alındıktan sonra bu süre boyunca Redis'e hiç dokunulmaz; istekler
     /// doğrudan veritabanına gider.
     /// </summary>
-    private static readonly TimeSpan CircuitOpenDuration = TimeSpan.FromSeconds(10);
+    private readonly TimeSpan _circuitOpenDuration;
 
     private static long _skipUntilTicks;
 
@@ -41,15 +42,16 @@ public sealed class RedisCacheService : ICacheService
 
     private void OpenCircuit(Exception ex, string operation, string key)
     {
-        Interlocked.Exchange(ref _skipUntilTicks, DateTime.UtcNow.Add(CircuitOpenDuration).Ticks);
+        Interlocked.Exchange(ref _skipUntilTicks, DateTime.UtcNow.Add(_circuitOpenDuration).Ticks);
         _logger.LogWarning(ex, "Önbellek erişilemiyor ({Operation}: {Key}); {Seconds} sn atlanacak.",
-            operation, key, CircuitOpenDuration.TotalSeconds);
+            operation, key, _circuitOpenDuration.TotalSeconds);
     }
 
-    public RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheService> logger)
+    public RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheService> logger, IConfiguration configuration)
     {
         _redis = redis;
         _logger = logger;
+        _circuitOpenDuration = TimeSpan.FromSeconds(configuration.GetValue("Redis:CircuitOpenSeconds", 10));
     }
 
     public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default) where T : class
