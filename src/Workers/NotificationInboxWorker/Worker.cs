@@ -115,26 +115,42 @@ public class Worker : BackgroundService
         {
             var evt = JsonSerializer.Deserialize<ArticlePublishedEvent>(message.Payload)!;
 
-            // Event'te yalnızca AuthorKeycloakId var — gerçek e-posta IdentityService'ten
-            // canlı çözülüyor. Kullanıcı bulunamazsa (silinmiş vb.) exception fırlatılır,
-            // mesaj retry/dead-letter mekanizmasına düşer.
-            var contact = await identityContactClient.GetContactAsync(evt.AuthorKeycloakId, cancellationToken)
-                ?? throw new InvalidOperationException($"Yazarın iletişim bilgisi bulunamadı: {evt.AuthorKeycloakId}");
+            // Abone gönderimi yarıda kalırsa TÜM mesaj yeniden denenir ve bu blok baştan
+            // çalışır; yazara ikinci kez mail gitmemesi için abone döngüsündeki kontrolün
+            // aynısı burada da yapılıyor. Kontrol IdentityService çağrısından önce, çünkü
+            // mail zaten gitmişse yazarın iletişim bilgisini çözmeye de gerek yok.
+            var authorAlreadyNotified = await db.Notifications.AnyAsync(
+                n => n.ReferenceId == evt.ArticleId && n.Type == "article_published" && n.IsSent,
+                cancellationToken);
 
-            await SendAndSaveAsync(emailService, db,
-                type: "article_published",
-                recipient: contact.Email,
-                subject: $"Haberiniz Yayınlandı: {evt.Title}",
-                body: $"""
-                    <html><body style="font-family:Arial,sans-serif;padding:20px">
-                        <h2>Merhaba {contact.FirstName},</h2>
-                        <p>"<strong>{evt.Title}</strong>" başlıklı haberiniz yayına alındı! 📰</p>
-                        <p><strong>Yayın Tarihi:</strong> {ToTurkeyLocalTime(evt.PublishedAt):dd MMMM yyyy HH:mm}</p>
-                        <br/><p><strong>Telgraf Ekibi</strong></p>
-                    </body></html>
-                    """,
-                cancellationToken,
-                referenceId: evt.ArticleId);
+            if (authorAlreadyNotified)
+            {
+                _logger.LogInformation(
+                    "Article {ArticleId}: author already notified in an earlier attempt, skipping.", evt.ArticleId);
+            }
+            else
+            {
+                // Event'te yalnızca AuthorKeycloakId var — gerçek e-posta IdentityService'ten
+                // canlı çözülüyor. Kullanıcı bulunamazsa (silinmiş vb.) exception fırlatılır,
+                // mesaj retry/dead-letter mekanizmasına düşer.
+                var contact = await identityContactClient.GetContactAsync(evt.AuthorKeycloakId, cancellationToken)
+                    ?? throw new InvalidOperationException($"Yazarın iletişim bilgisi bulunamadı: {evt.AuthorKeycloakId}");
+
+                await SendAndSaveAsync(emailService, db,
+                    type: "article_published",
+                    recipient: contact.Email,
+                    subject: $"Haberiniz Yayınlandı: {evt.Title}",
+                    body: $"""
+                        <html><body style="font-family:Arial,sans-serif;padding:20px">
+                            <h2>Merhaba {contact.FirstName},</h2>
+                            <p>"<strong>{evt.Title}</strong>" başlıklı haberiniz yayına alındı! 📰</p>
+                            <p><strong>Yayın Tarihi:</strong> {ToTurkeyLocalTime(evt.PublishedAt):dd MMMM yyyy HH:mm}</p>
+                            <br/><p><strong>Telgraf Ekibi</strong></p>
+                        </body></html>
+                        """,
+                    cancellationToken,
+                    referenceId: evt.ArticleId);
+            }
 
             // Editör haberi oluştururken "abonelere bildir" işaretlediyse bültene
             // abone olan kullanıcılara da duyuru gider.
