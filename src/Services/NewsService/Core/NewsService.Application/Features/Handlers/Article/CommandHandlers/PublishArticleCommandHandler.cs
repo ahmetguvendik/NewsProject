@@ -52,6 +52,7 @@ public class PublishArticleCommandHandler : IRequestHandler<PublishArticleComman
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+
         // Listenin tüm varyantları (sayfa, kategori, rol) tek anahtarda;
         // biri değiştiğinde hepsi bayatladığı için tamamı düşürülüyor.
         await _cache.RemoveAsync(CacheKeys.ArticleLists, cancellationToken);

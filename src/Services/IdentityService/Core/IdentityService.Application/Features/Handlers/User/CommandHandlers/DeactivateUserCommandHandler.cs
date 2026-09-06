@@ -50,6 +50,7 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
             await _userRepository.UpdateAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+
             // IsActive profilde dönüyor. Telafi bloğunun içinde: DB yazması
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);

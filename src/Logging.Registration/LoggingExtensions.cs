@@ -1,5 +1,7 @@
 using Elastic.CommonSchema.Serilog;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -22,15 +24,18 @@ public static class LoggingExtensions
     /// </summary>
     public static IHostBuilder UseAppLogging(this IHostBuilder host, string serviceName) =>
         host.UseSerilog((context, services, configuration) =>
-            Configure(configuration, context.Configuration, context.HostingEnvironment, serviceName));
+            Configure(configuration, context.Configuration, context.HostingEnvironment, serviceName, services));
 
     /// <summary>
     /// Minimal host (WebApplicationBuilder) için aynı kurulum.
     /// </summary>
     public static void UseAppLogging(this IHostApplicationBuilder builder, string serviceName)
     {
+        // Enricher'ın ihtiyaç duyduğu HttpContextAccessor kaydediliyor.
+        builder.Services.AddHttpContextAccessor();
+
         var configuration = new LoggerConfiguration();
-        Configure(configuration, builder.Configuration, builder.Environment, serviceName);
+        Configure(configuration, builder.Configuration, builder.Environment, serviceName, null);
 
         Log.Logger = configuration.CreateLogger();
 
@@ -42,12 +47,18 @@ public static class LoggingExtensions
         LoggerConfiguration logger,
         IConfiguration configuration,
         IHostEnvironment environment,
-        string serviceName)
+        string serviceName,
+        IServiceProvider? services)
     {
         logger
             .ReadFrom.Configuration(configuration)
             .Enrich.FromLogContext()
             .Enrich.With<TraceEnricher>()
+
+            // Eylemi yapan kullanıcı. HttpContext gerektirdiği için servis
+            // sağlayıcıdan çözülüyor; worker'larda istek olmadığından sessiz kalır.
+            .Enrich.With(new UserEnricher(
+                services?.GetService<IHttpContextAccessor>() ?? new HttpContextAccessor()))
 
             // ECS'in beklediği adlar. Elastic APM aynı alanlarla çalıştığı için
             // servis adı burada ne ise APM tarafında da o olmalı.

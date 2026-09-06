@@ -3,6 +3,7 @@ using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Shared.Exceptions;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
