@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Application.Interfaces;
 using NotificationService.Domain.Entities;
@@ -80,6 +81,15 @@ public class Worker : BackgroundService
 
         foreach (var message in messages)
         {
+            // Satırla birlikte kaydedilen trace bağlamı geri kuruluyor: mail gönderimi
+            // sırasındaki loglar, haberi yayınlayan isteğin trace'i altında görünsün.
+            // Zincirin son halkası burası — yayın isteğinden mailin gitmesine kadar
+            // hepsi tek bir trace.id ile aranabilir hale geliyor.
+            var activity = new Activity("inbox.process");
+            if (!string.IsNullOrEmpty(message.TraceParent))
+                activity.SetParentId(message.TraceParent);
+            using var startedActivity = activity.Start();
+
             try
             {
                 await HandleMessageAsync(message, emailService, identityContactClient, db, cancellationToken);

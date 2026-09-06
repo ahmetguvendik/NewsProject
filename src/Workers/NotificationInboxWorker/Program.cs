@@ -1,3 +1,4 @@
+using Logging.Registration;
 using Microsoft.EntityFrameworkCore;
 using NotificationInboxWorker;
 using NotificationService.Application.Interfaces;
@@ -5,6 +6,8 @@ using NotificationService.Persistance.Email;
 using HealthCheck.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.UseAppLogging("notification-inbox-worker");
 
 builder.Services.AddDbContext<InboxWorkerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

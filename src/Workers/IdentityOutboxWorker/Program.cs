@@ -1,8 +1,11 @@
+using Logging.Registration;
 using IdentityOutboxWorker;
 using Microsoft.EntityFrameworkCore;
 using HealthCheck.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.UseAppLogging("identity-outbox-worker");
 
 builder.Services.AddDbContext<OutboxWorkerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using HealthCheck.Registration;
@@ -86,16 +87,35 @@ public class Worker : BackgroundService
 
         foreach (var message in messages)
         {
+            // Olayı üreten isteğin trace bağlamı geri kuruluyor: bundan sonraki loglar
+            // isteği başlatan trace ile aynı kimliği taşıyor. Kafka bağlamı kendisi
+            // taşımadığı için traceparent ayrıca mesaj başlığına da konuyor.
+            // Sade Activity API'si: dinleyici gerektirmiyor, her koşulda trace.id üretir.
+            // NOT: OpenTelemetry eklendiğinde bunun ActivitySource'a çevrilmesi gerekiyor —
+            // new Activity() ile üretilenler bir kaynağa bağlı olmadığı için OTel onları
+            // görmez ve span'e dönüşmezler.
+            var activity = new Activity("outbox.publish");
+            if (!string.IsNullOrEmpty(message.TraceParent))
+                activity.SetParentId(message.TraceParent);
+            using var startedActivity = activity.Start();
+
             try
             {
-                await producer.ProduceAsync(
-                    message.Topic,
-                    new Message<string, string>
+                var kafkaMessage = new Message<string, string>
+                {
+                    Key = message.Id.ToString(),
+                    Value = message.Payload
+                };
+
+                if (message.TraceParent is { Length: > 0 } traceParent)
+                {
+                    kafkaMessage.Headers = new Headers
                     {
-                        Key = message.Id.ToString(),
-                        Value = message.Payload
-                    },
-                    cancellationToken);
+                        { "traceparent", System.Text.Encoding.UTF8.GetBytes(traceParent) }
+                    };
+                }
+
+                await producer.ProduceAsync(message.Topic, kafkaMessage, cancellationToken);
 
                 message.IsProcessed = true;
                 message.ProcessedAt = DateTime.UtcNow;

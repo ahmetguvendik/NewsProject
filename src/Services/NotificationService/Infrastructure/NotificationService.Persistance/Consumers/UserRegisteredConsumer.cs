@@ -1,4 +1,5 @@
 using Confluent.Kafka;
+using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -50,6 +51,17 @@ public class UserRegisteredConsumer : BackgroundService
                 var result = consumer.Consume(pollTimeout);
                 if (result is null) continue;
 
+                // Outbox worker'ın mesaja koyduğu traceparent okunuyor ve Activity
+                // geri kuruluyor; bu bloktaki loglar isteği başlatan trace ile aynı
+                // kimliği taşısın diye. Değer ayrıca InboxMessage'a yazılıyor, çünkü
+                // asıl işi yapan worker ayrı bir process ve saniyeler sonra çalışıyor.
+                var traceParent = ReadTraceParent(result.Message.Headers);
+
+                var activity = new Activity("inbox.receive");
+                if (!string.IsNullOrEmpty(traceParent))
+                    activity.SetParentId(traceParent);
+                using var startedActivity = activity.Start();
+
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<NotificationServiceDbContext>();
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
@@ -62,7 +74,8 @@ public class UserRegisteredConsumer : BackgroundService
                     {
                         MessageId = result.Message.Key,
                         Topic = result.Topic,
-                        Payload = result.Message.Value
+                        Payload = result.Message.Value,
+                        TraceParent = traceParent
                     });
 
                     await unitOfWork.SaveChangesAsync(stoppingToken);
@@ -88,5 +101,17 @@ public class UserRegisteredConsumer : BackgroundService
         }
 
         consumer.Close();
+    }
+
+    /// <summary>
+    /// Kafka başlığındaki traceparent. Yoksa null döner — outbox'ta TraceParent
+    /// boş olan eski satırlar için normal.
+    /// </summary>
+    private static string? ReadTraceParent(Headers? headers)
+    {
+        if (headers is null || !headers.TryGetLastBytes("traceparent", out var bytes))
+            return null;
+
+        return System.Text.Encoding.UTF8.GetString(bytes);
     }
 }

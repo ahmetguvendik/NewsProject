@@ -14,6 +14,7 @@ COPY ["src/Workers/IdentityOutboxWorker/IdentityOutboxWorker.csproj", "src/Worke
 COPY ["src/Services/IdentityService/Core/IdentityService.Domain/IdentityService.Domain.csproj", "src/Services/IdentityService/Core/IdentityService.Domain/"]
 
 COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
+COPY ["src/Logging.Registration/Logging.Registration.csproj", "src/Logging.Registration/"]
 
 RUN dotnet restore "src/Workers/IdentityOutboxWorker/IdentityOutboxWorker.csproj"
 

@@ -1,8 +1,11 @@
+using Logging.Registration;
 using Microsoft.EntityFrameworkCore;
 using NewsOutboxWorker;
 using HealthCheck.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.UseAppLogging("news-outbox-worker");
 
 builder.Services.AddDbContext<OutboxWorkerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

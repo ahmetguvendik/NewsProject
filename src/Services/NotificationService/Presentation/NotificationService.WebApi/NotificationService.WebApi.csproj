@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Infrastructure\NotificationService.Persistance\NotificationService.Persistance.csproj" />
     <ProjectReference Include="..\..\..\..\HealthCheck.Registration\HealthCheck.Registration.csproj" />
+    <ProjectReference Include="..\..\..\..\Logging.Registration\Logging.Registration.csproj" />
   </ItemGroup>
 
 </Project>

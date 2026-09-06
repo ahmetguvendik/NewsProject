@@ -1,3 +1,4 @@
+using Logging.Registration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,8 @@ using Shared.Models;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.UseAppLogging("news-service");
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>

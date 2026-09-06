@@ -17,6 +17,7 @@ COPY ["src/Services/NotificationService/Infrastructure/NotificationService.Persi
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
 
 COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
+COPY ["src/Logging.Registration/Logging.Registration.csproj", "src/Logging.Registration/"]
 
 RUN dotnet restore "src/Workers/NotificationInboxWorker/NotificationInboxWorker.csproj"
 

@@ -19,6 +19,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Infrastructure\IdentityService.Persistance\IdentityService.Persistance.csproj" />
         <ProjectReference Include="..\..\..\..\HealthCheck.Registration\HealthCheck.Registration.csproj" />
+        <ProjectReference Include="..\..\..\..\Logging.Registration\Logging.Registration.csproj" />
     </ItemGroup>
 
 </Project>

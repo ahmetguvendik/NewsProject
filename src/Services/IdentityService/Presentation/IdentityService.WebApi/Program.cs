@@ -1,3 +1,4 @@
+using Logging.Registration;
 using IdentityService.Application;
 using IdentityService.Persistance;
 using IdentityService.Persistance.Contexts;
@@ -11,6 +12,8 @@ using Shared.Models;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.UseAppLogging("identity-service");
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>

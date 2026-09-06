@@ -17,5 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Services\NewsService\Core\NewsService.Domain\NewsService.Domain.csproj" />
     <ProjectReference Include="..\..\HealthCheck.Registration\HealthCheck.Registration.csproj" />
+    <ProjectReference Include="..\..\Logging.Registration\Logging.Registration.csproj" />
   </ItemGroup>
 </Project>

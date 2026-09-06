@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <!--
+      HealthCheck.Registration ile aynı kural: web tipleri gerektiği için ASP.NET
+      Core'a bağlı, YALNIZCA çalıştırılabilir projeler (üç WebApi, üç worker,
+      HealthCheck.Api) referanslamalı. Shared'a sızdırılmamalı.
+    -->
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+        <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="5.0.0" />
+
+        <!-- ECS: alan adları Elastic APM'in beklediği şemada olsun (trace.id, service.name…) -->
+        <PackageReference Include="Elastic.CommonSchema.Serilog" Version="9.0.0" />
+
+        <!-- Kafka sink'i elle yazıldı: Serilog.Sinks.Kafka 2016'dan beri prerelease. -->
+        <PackageReference Include="Confluent.Kafka" Version="2.14.0" />
+    </ItemGroup>
+
+</Project>

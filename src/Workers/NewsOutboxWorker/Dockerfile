@@ -14,6 +14,7 @@ COPY ["src/Workers/NewsOutboxWorker/NewsOutboxWorker.csproj", "src/Workers/NewsO
 COPY ["src/Services/NewsService/Core/NewsService.Domain/NewsService.Domain.csproj", "src/Services/NewsService/Core/NewsService.Domain/"]
 
 COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
+COPY ["src/Logging.Registration/Logging.Registration.csproj", "src/Logging.Registration/"]
 
 RUN dotnet restore "src/Workers/NewsOutboxWorker/NewsOutboxWorker.csproj"
 

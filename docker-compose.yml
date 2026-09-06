@@ -239,6 +239,7 @@ services:
       retries: 4
       start_period: 40s
     environment:
+      - Logging__Kafka__BootstrapServers=kafka:9092
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
       - Smtp__Host=smtp.gmail.com
       - Smtp__Port=587
@@ -274,6 +275,7 @@ services:
     # Public REST endpoint'i yok (yalnızca Kafka consumer'ları çalışır) — dışarıya
     # port açmaya gerek yok, tüm trafik zaten APISIX üzerinden gelmiyor.
     environment:
+      - Logging__Kafka__BootstrapServers=kafka:9092
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
@@ -292,6 +294,26 @@ services:
       - apisix
 
   # ─── SEARCH ─────────────────────────────────────────────────
+  # Kafka'daki logları Elasticsearch'e taşır. Kendi aracımızı yazmak yerine bu
+  # seçildi: toplu yazma, backpressure, retry ve reddedilen belge yönetimi hazır
+  # geliyor — hepsi log hacminde (saniyede binlerce kayıt) elle çözülmesi zor işler.
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.0
+    container_name: logstash
+    restart: always
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+    volumes:
+      - ./docker/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./docker/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+    networks:
+      - apisix
+
   elasticsearch:
     image: elasticsearch:8.13.0
     container_name: elasticsearch
@@ -354,6 +376,7 @@ services:
       start_period: 45s
     # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
+      - Logging__Kafka__BootstrapServers=kafka:9092
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
       - Keycloak__Authority=http://keycloak:8080/realms/news-portal
@@ -396,6 +419,7 @@ services:
       retries: 4
       start_period: 40s
     environment:
+      - Logging__Kafka__BootstrapServers=kafka:9092
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
@@ -424,6 +448,7 @@ services:
       retries: 4
       start_period: 40s
     environment:
+      - Logging__Kafka__BootstrapServers=kafka:9092
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
@@ -494,6 +519,7 @@ services:
       start_period: 45s
     # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
+      - Logging__Kafka__BootstrapServers=kafka:9092
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123
       - Keycloak__Authority=http://keycloak:8080/realms/news-portal

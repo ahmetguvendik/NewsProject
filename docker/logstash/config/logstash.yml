@@ -1,0 +1,8 @@
+http.host: "0.0.0.0"
+
+# Tek düğümlü geliştirme kurulumunda kendi kendini izlemesine gerek yok;
+# kapatmak hem RAM hem gereksiz index tasarrufu sağlıyor.
+xpack.monitoring.enabled: false
+
+# Reddedilen belgeler kaybolmasın diye ölü mektup kuyruğu.
+dead_letter_queue.enable: true

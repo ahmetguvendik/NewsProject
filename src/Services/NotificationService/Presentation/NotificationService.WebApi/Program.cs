@@ -1,3 +1,4 @@
+using Logging.Registration;
 using Microsoft.AspNetCore.Mvc;
 using NotificationService.Persistance;
 using NotificationService.Persistance.Contexts;
@@ -7,6 +8,8 @@ using HealthCheck.Registration;
 using Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.UseAppLogging("notification-service");
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
