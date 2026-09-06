@@ -3,7 +3,7 @@ using IdentityService.Persistance;
 using IdentityService.Persistance.Contexts;
 using IdentityService.WebApi.Infrastructure;
 using Shared.Extensions;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;

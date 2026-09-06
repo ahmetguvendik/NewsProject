@@ -15,7 +15,7 @@ COPY ["src/Services/NewsService/Core/NewsService.Application/NewsService.Applica
 COPY ["src/Services/NewsService/Core/NewsService.Domain/NewsService.Domain.csproj", "src/Services/NewsService/Core/NewsService.Domain/"]
 COPY ["src/Services/NewsService/Infrastructure/NewsService.Persistance/NewsService.Persistance.csproj", "src/Services/NewsService/Infrastructure/NewsService.Persistance/"]
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
-COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
+COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
 
 RUN dotnet restore "src/Services/NewsService/Presentation/NewsService.WebApi/NewsService.WebApi.csproj"
 

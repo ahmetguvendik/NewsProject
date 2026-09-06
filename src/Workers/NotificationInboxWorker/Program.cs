@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NotificationInboxWorker;
 using NotificationService.Application.Interfaces;
 using NotificationService.Persistance.Email;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
 

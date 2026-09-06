@@ -6,7 +6,7 @@ using NewsService.Persistance;
 using NewsService.Persistance.Contexts;
 using NewsService.WebApi.Infrastructure;
 using Shared.Extensions;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 using Shared.Models;
 using System.Text.Json;
 

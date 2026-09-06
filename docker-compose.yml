@@ -439,12 +439,12 @@ services:
   # Üç servisin sağlığını tek sayfada toplayan panel. İzlediği servislerden
   # bağımsız bir container: birinin içinde koşsaydı o servis çöktüğünde panel de
   # erişilemez olurdu.
-  health-dashboard:
+  healthcheck-api:
     build:
       context: .
-      dockerfile: src/HealthDashboard/Dockerfile
-    image: health-dashboard:latest
-    container_name: health-dashboard
+      dockerfile: src/HealthCheck.Api/Dockerfile
+    image: healthcheck-api:latest
+    container_name: healthcheck-api
     restart: always
     ports:
       - "9095:8080"

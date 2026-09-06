@@ -16,7 +16,7 @@ COPY ["src/Services/NotificationService/Core/NotificationService.Application/Not
 COPY ["src/Services/NotificationService/Infrastructure/NotificationService.Persistance/NotificationService.Persistance.csproj", "src/Services/NotificationService/Infrastructure/NotificationService.Persistance/"]
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
 
-COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
+COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
 
 RUN dotnet restore "src/Workers/NotificationInboxWorker/NotificationInboxWorker.csproj"
 

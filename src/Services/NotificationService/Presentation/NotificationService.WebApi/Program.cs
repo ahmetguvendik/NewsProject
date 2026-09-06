@@ -3,7 +3,7 @@ using NotificationService.Persistance;
 using NotificationService.Persistance.Contexts;
 using NotificationService.WebApi.Infrastructure;
 using Shared.Extensions;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 using Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);

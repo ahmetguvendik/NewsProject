@@ -1,4 +1,4 @@
-namespace Shared.HealthChecks;
+namespace HealthCheck.Registration;
 
 public static class HealthCheckTags
 {

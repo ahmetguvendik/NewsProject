@@ -18,7 +18,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Infrastructure\IdentityService.Persistance\IdentityService.Persistance.csproj" />
-        <ProjectReference Include="..\..\..\..\Shared.HealthChecks\Shared.HealthChecks.csproj" />
+        <ProjectReference Include="..\..\..\..\HealthCheck.Registration\HealthCheck.Registration.csproj" />
     </ItemGroup>
 
 </Project>

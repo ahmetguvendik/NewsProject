@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NewsOutboxWorker;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,6 +1,6 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 
 namespace NewsOutboxWorker;
 

@@ -13,7 +13,7 @@ WORKDIR /src
 COPY ["src/Workers/IdentityOutboxWorker/IdentityOutboxWorker.csproj", "src/Workers/IdentityOutboxWorker/"]
 COPY ["src/Services/IdentityService/Core/IdentityService.Domain/IdentityService.Domain.csproj", "src/Services/IdentityService/Core/IdentityService.Domain/"]
 
-COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
+COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
 
 RUN dotnet restore "src/Workers/IdentityOutboxWorker/IdentityOutboxWorker.csproj"
 

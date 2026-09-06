@@ -1,6 +1,6 @@
 using IdentityOutboxWorker;
 using Microsoft.EntityFrameworkCore;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
 

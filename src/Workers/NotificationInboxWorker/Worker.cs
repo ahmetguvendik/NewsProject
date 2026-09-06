@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Application.Interfaces;
 using NotificationService.Domain.Entities;
-using Shared.HealthChecks;
+using HealthCheck.Registration;
 using Shared.Messaging.Events;
 using Shared.Messaging;
 using System.Text.Json;

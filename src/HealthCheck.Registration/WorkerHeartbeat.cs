@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Shared.HealthChecks;
+namespace HealthCheck.Registration;
 
 /// <summary>
 /// Worker döngüsünün her turda dokunduğu zaman damgası.

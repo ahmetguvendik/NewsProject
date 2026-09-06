@@ -15,7 +15,7 @@ COPY ["src/Services/NotificationService/Infrastructure/NotificationService.Persi
 COPY ["src/Services/NotificationService/Core/NotificationService.Application/NotificationService.Application.csproj", "src/Services/NotificationService/Core/NotificationService.Application/"]
 COPY ["src/Services/NotificationService/Core/NotificationService.Domain/NotificationService.Domain.csproj", "src/Services/NotificationService/Core/NotificationService.Domain/"]
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
-COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
+COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
 
 RUN dotnet restore "src/Services/NotificationService/Presentation/NotificationService.WebApi/NotificationService.WebApi.csproj"
 

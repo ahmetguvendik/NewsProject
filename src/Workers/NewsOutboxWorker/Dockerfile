@@ -13,7 +13,7 @@ WORKDIR /src
 COPY ["src/Workers/NewsOutboxWorker/NewsOutboxWorker.csproj", "src/Workers/NewsOutboxWorker/"]
 COPY ["src/Services/NewsService/Core/NewsService.Domain/NewsService.Domain.csproj", "src/Services/NewsService/Core/NewsService.Domain/"]
 
-COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
+COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
 
 RUN dotnet restore "src/Workers/NewsOutboxWorker/NewsOutboxWorker.csproj"
 

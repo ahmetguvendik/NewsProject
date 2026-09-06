@@ -15,7 +15,7 @@ COPY ["src/Services/IdentityService/Core/IdentityService.Application/IdentitySer
 COPY ["src/Services/IdentityService/Core/IdentityService.Domain/IdentityService.Domain.csproj", "src/Services/IdentityService/Core/IdentityService.Domain/"]
 COPY ["src/Services/IdentityService/Infrastructure/IdentityService.Persistance/IdentityService.Persistance.csproj", "src/Services/IdentityService/Infrastructure/IdentityService.Persistance/"]
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
-COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
+COPY ["src/HealthCheck.Registration/HealthCheck.Registration.csproj", "src/HealthCheck.Registration/"]
 
 RUN dotnet restore "src/Services/IdentityService/Presentation/IdentityService.WebApi/IdentityService.WebApi.csproj"
 
