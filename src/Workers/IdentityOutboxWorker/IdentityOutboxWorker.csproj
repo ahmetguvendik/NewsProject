@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -16,5 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Services\IdentityService\Core\IdentityService.Domain\IdentityService.Domain.csproj" />
+    <ProjectReference Include="..\..\Shared.HealthChecks\Shared.HealthChecks.csproj" />
   </ItemGroup>
 </Project>

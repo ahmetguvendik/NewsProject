@@ -2,6 +2,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
+# Compose healthcheck'i /health/ready'e istek atıyor; aspnet imajında HTTP istemcisi yok.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
@@ -10,6 +15,7 @@ COPY ["src/Services/NewsService/Core/NewsService.Application/NewsService.Applica
 COPY ["src/Services/NewsService/Core/NewsService.Domain/NewsService.Domain.csproj", "src/Services/NewsService/Core/NewsService.Domain/"]
 COPY ["src/Services/NewsService/Infrastructure/NewsService.Persistance/NewsService.Persistance.csproj", "src/Services/NewsService/Infrastructure/NewsService.Persistance/"]
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
+COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
 
 RUN dotnet restore "src/Services/NewsService/Presentation/NewsService.WebApi/NewsService.WebApi.csproj"
 

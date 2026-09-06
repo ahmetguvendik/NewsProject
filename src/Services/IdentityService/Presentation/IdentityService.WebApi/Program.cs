@@ -3,6 +3,7 @@ using IdentityService.Persistance;
 using IdentityService.Persistance.Contexts;
 using IdentityService.WebApi.Infrastructure;
 using Shared.Extensions;
+using Shared.HealthChecks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -70,6 +71,12 @@ builder.Services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformat
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistanceServices(builder.Configuration);
 
+// Kafka eklenmedi: WebApi Kafka'ya hiç bağlanmıyor, olayları outbox tablosuna yazıyor.
+builder.Services.AddAppHealthChecks(builder.Configuration)
+    .AddPostgres()
+    .AddRedis()
+    .AddKeycloak();
+
 var app = builder.Build();
 
 // Şema, container açılışında migration'lardan oluşturulur (Postgres hazır olana kadar retry'lı).
@@ -86,5 +93,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapAppHealthChecks();
 
 app.Run();

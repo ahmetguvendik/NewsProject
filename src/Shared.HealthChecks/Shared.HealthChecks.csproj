@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <!--
+      Web tipleri (IEndpointRouteBuilder, HealthCheckOptions) gerektiğinden bu proje
+      ASP.NET Core'a bağlı. Referanslayanlar: üç WebApi ve üç worker — worker'lar da
+      sağlık ucu açabilmek için minimal web host'a geçti. Shared'a SIZDIRILMAMALI:
+      orayı referanslayan Core katmanlarına ve panele ASP.NET Core taşırdı.
+    -->
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+        <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+        <PackageReference Include="AspNetCore.HealthChecks.Kafka" Version="9.0.0" />
+        <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+        <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
+    </ItemGroup>
+
+</Project>

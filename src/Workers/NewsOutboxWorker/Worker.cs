@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
+using Shared.HealthChecks;
 
 namespace NewsOutboxWorker;
 
@@ -16,12 +17,16 @@ public class Worker : BackgroundService
     /// <summary>Temizlik her turda değil, bu aralıkta bir çalışır.</summary>
     private readonly TimeSpan _cleanupInterval;
 
+    private readonly WorkerHeartbeat _heartbeat;
+
     private DateTime _lastCleanupAt = DateTime.MinValue;
 
-    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration)
+    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration,
+        WorkerHeartbeat heartbeat)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _heartbeat = heartbeat;
         _configuration = configuration;
         _maxRetryCount = _configuration.GetValue("Outbox:MaxRetryCount", 5);
         _retentionDays = _configuration.GetValue("Outbox:RetentionDays", 7);
@@ -52,6 +57,10 @@ public class Worker : BackgroundService
             {
                 _logger.LogError(ex, "Unexpected error in NewsOutboxWorker loop.");
             }
+
+            // Tur tamamlandı. try/catch'in dışında: hata alan ama dönmeye devam eden
+            // döngü canlıdır; asılı kalan döngü ise bu satıra hiç ulaşamaz.
+            _heartbeat.Beat();
 
             await Task.Delay(_pollInterval, stoppingToken);
         }

@@ -39,9 +39,9 @@ services:
       apisix:
         condition: service_started
       identity-service:
-        condition: service_started
+        condition: service_healthy
       news-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - apisix
 
@@ -230,6 +230,14 @@ services:
     image: notification-inbox-worker:latest
     container_name: notification-inbox-worker
     restart: always
+    healthcheck:
+      # Worker'da tek ready kontrolü döngünün canlılığı: çöken process'i restart
+      # toparlar, ama asılı kalan döngüyü ancak bu yakalar.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
       - Smtp__Host=smtp.gmail.com
@@ -243,7 +251,7 @@ services:
       postgres:
         condition: service_healthy
       notification-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - apisix
 
@@ -254,6 +262,15 @@ services:
     image: notification-service:latest
     container_name: notification-service
     restart: always
+    healthcheck:
+      # /health/ready yalnızca Postgres'e bakar; Redis/Kafka/MinIO kesintisi tolere
+      # edildiği için servisi rotasyondan düşürmez.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      # Açılışta EF migration'ları uygulanıyor; ilk saniyelerdeki başarısızlıklar sayılmamalı.
+      start_period: 45s
     # Public REST endpoint'i yok (yalnızca Kafka consumer'ları çalışır) — dışarıya
     # port açmaya gerek yok, tüm trafik zaten APISIX üzerinden gelmiyor.
     environment:
@@ -326,6 +343,15 @@ services:
     image: identity-service:latest
     container_name: identity-service
     restart: always
+    healthcheck:
+      # /health/ready yalnızca Postgres'e bakar; Redis/Kafka/MinIO kesintisi tolere
+      # edildiği için servisi rotasyondan düşürmez.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      # Açılışta EF migration'ları uygulanıyor; ilk saniyelerdeki başarısızlıklar sayılmamalı.
+      start_period: 45s
     # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
@@ -361,6 +387,14 @@ services:
     image: identity-outbox-worker:latest
     container_name: identity-outbox-worker
     restart: always
+    healthcheck:
+      # Worker'da tek ready kontrolü döngünün canlılığı: çöken process'i restart
+      # toparlar, ama asılı kalan döngüyü ancak bu yakalar.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
@@ -370,7 +404,7 @@ services:
       kafka:
         condition: service_healthy
       identity-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - apisix
 
@@ -381,6 +415,14 @@ services:
     image: news-outbox-worker:latest
     container_name: news-outbox-worker
     restart: always
+    healthcheck:
+      # Worker'da tek ready kontrolü döngünün canlılığı: çöken process'i restart
+      # toparlar, ama asılı kalan döngüyü ancak bu yakalar.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+      start_period: 40s
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
@@ -390,6 +432,46 @@ services:
       kafka:
         condition: service_healthy
       news-service:
+        condition: service_healthy
+    networks:
+      - apisix
+
+  # Üç servisin sağlığını tek sayfada toplayan panel. İzlediği servislerden
+  # bağımsız bir container: birinin içinde koşsaydı o servis çöktüğünde panel de
+  # erişilemez olurdu.
+  health-dashboard:
+    build:
+      context: .
+      dockerfile: src/HealthDashboard/Dockerfile
+    image: health-dashboard:latest
+    container_name: health-dashboard
+    restart: always
+    ports:
+      - "9095:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - HealthChecksUI__EvaluationSeconds=15
+      - HealthChecksUI__HealthChecks__0__Name=News Service
+      - HealthChecksUI__HealthChecks__0__Uri=http://news-service:8080/health
+      - HealthChecksUI__HealthChecks__1__Name=Identity Service
+      - HealthChecksUI__HealthChecks__1__Uri=http://identity-service:8080/health
+      - HealthChecksUI__HealthChecks__2__Name=Notification Service
+      - HealthChecksUI__HealthChecks__2__Uri=http://notification-service:8080/health
+      - HealthChecksUI__HealthChecks__3__Name=News Outbox Worker
+      - HealthChecksUI__HealthChecks__3__Uri=http://news-outbox-worker:8080/health
+      - HealthChecksUI__HealthChecks__4__Name=Identity Outbox Worker
+      - HealthChecksUI__HealthChecks__4__Uri=http://identity-outbox-worker:8080/health
+      - HealthChecksUI__HealthChecks__5__Name=Notification Inbox Worker
+      - HealthChecksUI__HealthChecks__5__Uri=http://notification-inbox-worker:8080/health
+    depends_on:
+      # service_started bilinçli: panelin görevi servisleri izlemek, bu yüzden
+      # onlar sağlıksızken de ayakta olmalı — sağlıklı olmalarını beklerse
+      # tam ihtiyaç duyulduğu anda başlamaz.
+      news-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      notification-service:
         condition: service_started
     networks:
       - apisix
@@ -401,6 +483,15 @@ services:
     image: news-service:latest
     container_name: news-service
     restart: always
+    healthcheck:
+      # /health/ready yalnızca Postgres'e bakar; Redis/Kafka/MinIO kesintisi tolere
+      # edildiği için servisi rotasyondan düşürmez.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      # Açılışta EF migration'ları uygulanıyor; ilk saniyelerdeki başarısızlıklar sayılmamalı.
+      start_period: 45s
     # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
       - ASPNETCORE_ENVIRONMENT=Development

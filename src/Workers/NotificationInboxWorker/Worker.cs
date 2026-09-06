@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Application.Interfaces;
 using NotificationService.Domain.Entities;
-using Shared.Messaging;
+using Shared.HealthChecks;
 using Shared.Messaging.Events;
+using Shared.Messaging;
 using System.Text.Json;
 
 namespace NotificationInboxWorker;
@@ -19,12 +20,16 @@ public class Worker : BackgroundService
     /// <summary>Temizlik her turda değil, bu aralıkta bir çalışır.</summary>
     private readonly TimeSpan _cleanupInterval;
 
+    private readonly WorkerHeartbeat _heartbeat;
+
     private DateTime _lastCleanupAt = DateTime.MinValue;
 
-    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration)
+    public Worker(IServiceScopeFactory scopeFactory, ILogger<Worker> logger, IConfiguration configuration,
+        WorkerHeartbeat heartbeat)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _heartbeat = heartbeat;
         _maxRetryCount = configuration.GetValue("Inbox:MaxRetryCount", 5);
         _retentionDays = configuration.GetValue("Inbox:RetentionDays", 30);
         _batchSize = configuration.GetValue("Inbox:BatchSize", 50);
@@ -47,6 +52,10 @@ public class Worker : BackgroundService
             {
                 _logger.LogError(ex, "Unexpected error in NotificationInboxWorker.");
             }
+
+            // Tur tamamlandı. try/catch'in dışında: hata alan ama dönmeye devam eden
+            // döngü canlıdır; asılı kalan döngü ise bu satıra hiç ulaşamaz.
+            _heartbeat.Beat();
 
             await Task.Delay(_pollInterval, stoppingToken);
         }

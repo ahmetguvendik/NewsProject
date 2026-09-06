@@ -1,5 +1,11 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
+EXPOSE 8080
+
+# Worker artık sağlık ucu açıyor; compose healthcheck'i buraya istek atıyor.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
@@ -9,6 +15,8 @@ COPY ["src/Services/NotificationService/Core/NotificationService.Domain/Notifica
 COPY ["src/Services/NotificationService/Core/NotificationService.Application/NotificationService.Application.csproj", "src/Services/NotificationService/Core/NotificationService.Application/"]
 COPY ["src/Services/NotificationService/Infrastructure/NotificationService.Persistance/NotificationService.Persistance.csproj", "src/Services/NotificationService/Infrastructure/NotificationService.Persistance/"]
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]
+
+COPY ["src/Shared.HealthChecks/Shared.HealthChecks.csproj", "src/Shared.HealthChecks/"]
 
 RUN dotnet restore "src/Workers/NotificationInboxWorker/NotificationInboxWorker.csproj"
 

@@ -6,6 +6,7 @@ using NewsService.Persistance;
 using NewsService.Persistance.Contexts;
 using NewsService.WebApi.Infrastructure;
 using Shared.Extensions;
+using Shared.HealthChecks;
 using Shared.Models;
 using System.Text.Json;
 
@@ -68,6 +69,14 @@ builder.Services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformat
 builder.Services.AddApplicationServices();
 builder.Services.AddPersistanceServices(builder.Configuration);
 
+// Kafka eklenmedi: WebApi Kafka'ya hiç bağlanmıyor, olayları outbox tablosuna yazıyor.
+// Kafka'yı burada raporlamak olmayan bir bağımlılık varmış izlenimi verirdi.
+builder.Services.AddAppHealthChecks(builder.Configuration)
+    .AddPostgres()
+    .AddRedis()
+    .AddKeycloak()
+    .AddStorage();
+
 var app = builder.Build();
 
 // Şema, container açılışında migration'lardan oluşturulur (Postgres hazır olana kadar retry'lı).
@@ -83,5 +92,6 @@ app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapAppHealthChecks();
 
 app.Run();

@@ -91,6 +91,40 @@ JSON
   echo "route $id  $base (+ /*) -> $upstream_host  [${count}/${window}sn]  (HTTP $http_code)"
 }
 
+# ─── Sağlık uçları ─────────────────────────────────────────────────────
+# Servisler host'a port açmadığı için sağlık uçları yalnızca konteyner ağından
+# erişilebiliyordu. Bu route'lar tarayıcıdan bakabilmek için açıyor.
+#
+# UYARI: bağımlılıkların adlarını ve durumlarını dışarı veriyorlar. Geliştirme
+# ortamı için sorun değil; canlıya çıkarken ya kaldırılmalı ya da kimlik
+# doğrulamasıyla korunmalı.
+#
+# proxy-rewrite şart: dışarıda /health/news, serviste /health.
+put_health_route() {
+  id="$1"; uri="$2"; upstream_host="$3"; target="$4"
+
+  cat > /tmp/route.json <<JSON
+{
+  "uri": "$uri",
+  "priority": 30,
+  "upstream": {"type":"roundrobin","nodes":{"$upstream_host":1}},
+  "plugins": {
+    "proxy-rewrite": {"uri": "$target"},
+    "limit-count": {"count":120,"time_window":60,"key_type":"var","key":"remote_addr","policy":"local","rejected_code":429}
+  }
+}
+JSON
+
+  http_code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$ADMIN_URL/apisix/admin/routes/$id" \
+    -H "X-API-KEY: $ADMIN_KEY" -H 'Content-Type: application/json' --data @/tmp/route.json)
+
+  echo "route $id  $uri -> $upstream_host$target  (HTTP $http_code)"
+}
+
+put_health_route 30 "/health/news"         "news-service:8080"         "/health"
+put_health_route 31 "/health/identity"     "identity-service:8080"     "/health"
+put_health_route 32 "/health/notification" "notification-service:8080" "/health"
+
 # ─── Sıkı limitli uçlar ────────────────────────────────────────────────
 # Kayıt: sahte hesap seline karşı saatte 3. Gerçek bir kullanıcı bir kez kaydolur.
 put_exact_route 10 "/api/auth/register" "identity-service:8080" 3 3600 \

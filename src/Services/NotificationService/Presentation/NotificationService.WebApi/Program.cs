@@ -3,6 +3,7 @@ using NotificationService.Persistance;
 using NotificationService.Persistance.Contexts;
 using NotificationService.WebApi.Infrastructure;
 using Shared.Extensions;
+using Shared.HealthChecks;
 using Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +40,12 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddPersistanceServices(builder.Configuration);
 
+// Kafka burada gerçek bir bağımlılık: iki consumer bu process'in içinde koşuyor.
+// Redis ve MinIO bu serviste kullanılmıyor.
+builder.Services.AddAppHealthChecks(builder.Configuration)
+    .AddPostgres()
+    .AddKafka();
+
 var app = builder.Build();
 
 // Kafka consumer'ları InboxMessages'a yazdığı için şema Run()'dan önce hazır olmalı.
@@ -53,5 +60,6 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseAuthorization();
 app.MapControllers();
+app.MapAppHealthChecks();
 
 app.Run();
