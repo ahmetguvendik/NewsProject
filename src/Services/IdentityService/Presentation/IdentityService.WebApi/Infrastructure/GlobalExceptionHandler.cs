@@ -33,12 +33,31 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
     {
         var (statusCode, response) = BuildResponse(exception);
 
-        // Beklenmeyen hatalar ERROR seviyesinde loglanır; domain hataları WARNING yeterli.
+        // Seviye ve yığın izi, hatanın TÜRÜNE göre ayrılıyor.
+        //
+        // Beklenmeyen hata (5xx) gerçek bir arıza: yığın izi olmadan teşhis edilemez.
+        //
+        // İş kuralı ihlali (4xx) ise normal bir sonuç — "bu e-posta zaten kayıtlı"
+        // demek sistemde bir şey bozuk demek değil. Exception NESNESİ bilerek
+        // geçilmiyor: geçilseydi her rutin 409 için belgenin yarısını kaplayan bir
+        // yığın izi yazılır, gerçek hatalar bu gürültünün altında kalırdı.
+        //
+        // Yetkilendirme hataları ayrı tutuluyor: tek tek normal olsalar da
+        // tekrarlandıklarında saldırı işareti olabilirler.
         if (statusCode >= 500)
+        {
             _logger.LogError(exception, "Beklenmeyen hata. TraceId={TraceId}", httpContext.TraceIdentifier);
+        }
+        else if (statusCode is 401 or 403)
+        {
+            _logger.LogWarning("Yetkilendirme reddi [{ErrorCode}]: {ErrorMessage}. Status={StatusCode}",
+                response.ErrorCode, exception.Message, statusCode);
+        }
         else
-            _logger.LogWarning(exception, "Domain hatası [{Code}]. TraceId={TraceId}",
-                response.ErrorCode, httpContext.TraceIdentifier);
+        {
+            _logger.LogInformation("İş kuralı ihlali [{ErrorCode}]: {ErrorMessage}. Status={StatusCode}",
+                response.ErrorCode, exception.Message, statusCode);
+        }
 
         // Development'ta stack trace description'a eklenir.
         if (_env.IsDevelopment() && statusCode >= 500)

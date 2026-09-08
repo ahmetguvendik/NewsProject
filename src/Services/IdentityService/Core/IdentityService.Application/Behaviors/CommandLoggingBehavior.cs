@@ -52,7 +52,7 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
         // Kimlik alanları log'a ayrı ayrı yazılıyor: aksi halde eylemin HEDEFİ
         // yalnızca url.path içine gömülü kalıyor ve aranamıyor. "Kim kimi pasife
         // aldı" sorusu, aktörü ekleyen UserEnricher ile birlikte cevaplanabiliyor.
-        using (LogContext.Push(new TargetFieldsEnricher(request)))
+        using (LogContext.Push(new TargetFieldsEnricher(request, response)))
         {
             _logger.LogInformation("{CommandName} tamamlandı ({ElapsedMs} ms).",
                 name, stopwatch.ElapsedMilliseconds);
@@ -62,63 +62,69 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
     }
 
     /// <summary>
-    /// Komuttaki kimlik alanlarını <c>target.*</c> öneki altında log'a ekler.
+    /// Eylemin hedefini <c>target.*</c> öneki altında log'a ekler.
     ///
     /// İSİMLENDİRME BİLİNÇLİ:
-    ///   user.id          → eylemi YAPAN   (UserEnricher, token'dan)
-    ///   target.user.id   → eylemin HEDEFİ (buradan, komuttan)
+    ///   actor.id         → eylemi YAPAN   (UserEnricher, token'dan)
+    ///   target.user.id   → eylemin HEDEFİ (burada, komut ve yanıttan)
     ///
-    /// Önce hedef alanları komuttaki adlarıyla (UserId, ArticleId) yazılıyordu ve
-    /// log'da "user.id" ile "UserId" yan yana düşüyordu — hangisinin yapan hangisinin
-    /// yapılan olduğu okunamıyordu. target. öneki bu belirsizliği kaldırıyor.
+    /// HEM KOMUT HEM YANIT OKUNUYOR. Yalnızca komut okunduğunda oluşturma
+    /// işlemleri kimliksiz kalıyordu: CreateCategoryCommand'da yeni kategorinin
+    /// Id'si henüz yok, handler çalıştıktan sonra oluşuyor. Log "bir kategori
+    /// eklendi" diyor ama hangisi olduğunu söylemiyordu.
     ///
-    /// user.* aktör için bırakıldı çünkü ECS'in tanımı bu ve Elastic APM eklendiğinde
-    /// aynı alanı o da dolduracak; kendi adımızı uydursaydık ikisi ayrışırdı.
+    /// GÜVENLİK — beyaz liste, kara liste değil:
+    ///   • adı "Id" ile biten her alan (UserId, ArticleId, ...)
+    ///   • TAM eşleşen birkaç adlandırma alanı: Name, Title, RoleName
     ///
-    /// GÜVENLİK: yalnızca adı "Id" ile biten özellikler ve açıkça izin verilen birkaç
-    /// ad okunuyor. İsteği olduğu gibi serileştirmek pratik görünürdü ama
-    /// RegisterUserCommand parola taşıyor — beyaz liste, yarın eklenecek hassas bir
-    /// alanın kazara log'a düşmesini de engelliyor.
+    /// "Name" bilerek TAM eşleşme: FirstName ve LastName böylece dışarıda kalıyor.
+    /// RegisterUserCommand ayrıca Email ve Password taşıyor — beyaz liste bunları
+    /// da, yarın eklenecek hassas bir alanı da kendiliğinden dışarıda tutuyor.
     /// </summary>
     private sealed class TargetFieldsEnricher : ILogEventEnricher
     {
-        private readonly object _request;
+        private readonly object?[] _sources;
 
-        public TargetFieldsEnricher(object request) => _request = request;
+        public TargetFieldsEnricher(object? request, object? response) =>
+            _sources = [request, response];
 
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory factory)
         {
-            foreach (var property in _request.GetType().GetProperties())
+            foreach (var source in _sources)
             {
-                var fieldName = MapName(property.Name);
-                if (fieldName is null)
+                if (source is null || source.GetType().IsPrimitive)
                     continue;
 
-                var value = property.GetValue(_request);
-                if (value is null)
-                    continue;
+                foreach (var property in source.GetType().GetProperties())
+                {
+                    var fieldName = MapName(property.Name);
+                    if (fieldName is null)
+                        continue;
 
-                logEvent.AddPropertyIfAbsent(factory.CreateProperty(fieldName, value));
+                    var value = property.GetValue(source);
+                    if (value is null)
+                        continue;
+
+                    // Komut önce geliyor: aynı alan için komuttaki değer kazanır.
+                    logEvent.AddPropertyIfAbsent(factory.CreateProperty(fieldName, value));
+                }
             }
         }
 
         /// <summary>
-        /// UserId → target.user.id, ArticleId → target.article.id, Id → target.id.
-        /// Beyaz listede olmayan her şey için null döner, yani log'a yazılmaz.
+        /// UserId → target.user.id, ArticleId → target.article.id, Id → target.id,
+        /// Name → target.name. Beyaz listede olmayan her şey için null döner.
         /// </summary>
-        private static string? MapName(string propertyName)
+        private static string? MapName(string propertyName) => propertyName switch
         {
-            if (propertyName == "RoleName")
-                return "target.role.name";
-
-            if (!propertyName.EndsWith("Id", StringComparison.Ordinal))
-                return null;
-
-            var prefix = propertyName[..^2];
-
-            return prefix.Length == 0
-                ? "target.id"
-                : $"target.{prefix.ToLowerInvariant()}.id";
-        }
+            "RoleName" => "target.role.name",
+            "Name" => "target.name",
+            "Title" => "target.title",
+            _ when propertyName.EndsWith("Id", StringComparison.Ordinal) =>
+                propertyName.Length == 2
+                    ? "target.id"
+                    : $"target.{propertyName[..^2].ToLowerInvariant()}.id",
+            _ => null
+        };
     }
 }

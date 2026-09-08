@@ -3,7 +3,8 @@ using System.Net.Http.Json;
 
 namespace NotificationInboxWorker;
 
-public record UserContact(string Email, string FirstName, string LastName);
+// KeycloakId taşınıyor: loglarda e-posta adresi yerine bu kimlik yazılıyor.
+public record UserContact(string KeycloakId, string Email, string FirstName, string LastName);
 
 public interface IIdentityContactClient
 {
@@ -48,7 +49,7 @@ public class IdentityContactClient : IIdentityContactClient
         var body = await response.Content.ReadFromJsonAsync<ContactDto>(cancellationToken)
             ?? throw new InvalidOperationException("IdentityService /internal/contact boş içerik döndürdü.");
 
-        return new UserContact(body.Email, body.FirstName, body.LastName);
+        return new UserContact(body.KeycloakId, body.Email, body.FirstName, body.LastName);
     }
 
     public async Task<List<UserContact>> GetSubscribersAsync(CancellationToken cancellationToken = default)
@@ -61,7 +62,7 @@ public class IdentityContactClient : IIdentityContactClient
 
         var body = await response.Content.ReadFromJsonAsync<List<ContactDto>>(cancellationToken) ?? [];
 
-        return body.Select(c => new UserContact(c.Email, c.FirstName, c.LastName)).ToList();
+        return body.Select(c => new UserContact(c.KeycloakId, c.Email, c.FirstName, c.LastName)).ToList();
     }
 
     private sealed record ContactDto(string KeycloakId, string Email, string FirstName, string LastName);

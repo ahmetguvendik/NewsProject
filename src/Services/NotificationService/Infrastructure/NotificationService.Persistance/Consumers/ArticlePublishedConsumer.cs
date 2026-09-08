@@ -44,6 +44,9 @@ public class ArticlePublishedConsumer : BackgroundService
         var pollTimeout = TimeSpan.FromSeconds(1);
         var errorBackoff = TimeSpan.FromSeconds(_configuration.GetValue("Kafka:ErrorBackoffSeconds", 3));
 
+        // Topic yokluğu tekrar tekrar loglanmasın diye.
+        var topicMissingLogged = false;
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -91,6 +94,24 @@ public class ArticlePublishedConsumer : BackgroundService
             catch (OperationCanceledException)
             {
                 break;
+            }
+            catch (ConsumeException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
+            {
+                // Kafka topic'leri ilk mesaj üretildiğinde oluşuyor; henüz hiç olay
+                // yayınlanmadıysa topic de yok. Bu bir arıza değil, bekleme durumu —
+                // ilk üretimle birlikte kendiliğinden düzeliyor.
+                //
+                // Bir kez loglanıyor: her turda yazılsaydı 3 saniyede bir Error üretir
+                // ve "log.level: Error" araması gerçek hataları gösteremez hale gelirdi.
+                if (!topicMissingLogged)
+                {
+                    _logger.LogInformation(
+                        "'{Topic}' topic'i henüz oluşmadı; ilk mesaj üretilene kadar beklenecek.",
+                        Topics.Article.Published);
+                    topicMissingLogged = true;
+                }
+
+                await Task.Delay(errorBackoff, stoppingToken);
             }
             catch (Exception ex)
             {

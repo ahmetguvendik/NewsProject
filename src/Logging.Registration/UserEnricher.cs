@@ -16,6 +16,15 @@ namespace Logging.Registration;
 ///   actor.id        → eylemi YAPAN   (burada, token'dan)
 ///   target.user.id  → eylemin HEDEFİ (CommandLoggingBehavior, komuttan)
 ///
+/// YALNIZCA KİMLİK YAZILIYOR. Ad/e-posta bilerek eklenmiyor: kişisel veri,
+/// aranabilir bir depoda, her satırda tekrarlanır ve kullanıcı adresini
+/// değiştirdiğinde eski kayıtlar yanıltıcı hale gelir. Ada ihtiyaç olduğunda
+/// kimlikten veritabanına bakılır.
+///
+/// Roller de yazılmıyor: "o an admin miydi" sorusu, rol verme/alma işlemlerinin
+/// kendisi komut olarak loglandığı için (AssignRoleCommand + target.role.name)
+/// logların kendisinden kurulabiliyor — her satıra dizi damgalamaya gerek yok.
+///
 /// Aktör için ECS'in user.* alanı yerine actor.* seçildi. ECS'te user.* zaten
 /// "eylemi yapan" demek, ama log'da user.id ile target.user.id yan yana
 /// durduğunda hangisinin ne olduğu okunmuyordu. actor./target. çifti bu
@@ -51,15 +60,5 @@ public sealed class UserEnricher : ILogEventEnricher
         var keycloakId = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!string.IsNullOrEmpty(keycloakId))
             logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("actor.id", keycloakId));
-
-        // İnsan tarafından okunabilir ad: kimliği her seferinde çözmek zorunda
-        // kalmamak için. Kimlik değişmez, ad değişebilir — arama daima id ile.
-        var name = user.FindFirstValue("preferred_username") ?? user.FindFirstValue(ClaimTypes.Email);
-        if (!string.IsNullOrEmpty(name))
-            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("actor.name", name));
-
-        var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
-        if (roles.Length > 0)
-            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("actor.roles", roles));
     }
 }

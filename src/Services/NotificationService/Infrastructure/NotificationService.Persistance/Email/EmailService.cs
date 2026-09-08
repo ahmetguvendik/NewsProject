@@ -43,6 +43,8 @@ public class EmailService : IEmailService
 
         await client.SendMailAsync(message, cancellationToken);
 
-        _logger.LogInformation("Email sent to {Email} with subject '{Subject}'.", toEmail, subject);
+        // Adres loglanmıyor: kişisel veri. Hangi gönderim olduğu, aynı trace altındaki
+        // worker logundan (alıcı kimliğiyle) zaten anlaşılıyor.
+        _logger.LogInformation("SMTP gönderimi tamamlandı: '{Subject}'.", subject);
     }
 }

@@ -132,6 +132,7 @@ public class Worker : BackgroundService
             await SendAndSaveAsync(emailService, db,
                 type: "welcome",
                 recipient: evt.Email,
+                recipientKeycloakId: evt.KeycloakId,
                 subject: "Telgraf'a Hoşgeldiniz! 🎉",
                 body: $"""
                     <html><body style="font-family:Arial,sans-serif;padding:20px">
@@ -171,6 +172,7 @@ public class Worker : BackgroundService
                 await SendAndSaveAsync(emailService, db,
                     type: "article_published",
                     recipient: contact.Email,
+                    recipientKeycloakId: contact.KeycloakId,
                     subject: $"Haberiniz Yayınlandı: {evt.Title}",
                     body: $"""
                         <html><body style="font-family:Arial,sans-serif;padding:20px">
@@ -271,6 +273,7 @@ public class Worker : BackgroundService
             await SendAndSaveAsync(emailService, db,
                 type: "article_broadcast",
                 recipient: subscriber.Email,
+                recipientKeycloakId: subscriber.KeycloakId,
                 subject: $"Yeni haber: {evt.Title}",
                 body: $"""
                     <html><body style="font-family:Arial,sans-serif;padding:20px">
@@ -299,8 +302,8 @@ public class Worker : BackgroundService
     private static DateTime ToTurkeyLocalTime(DateTime utc) => utc.AddHours(3);
 
     private async Task SendAndSaveAsync(IEmailService emailService, InboxWorkerDbContext db,
-        string type, string recipient, string subject, string body, CancellationToken cancellationToken,
-        Guid? referenceId = null)
+        string type, string recipient, string recipientKeycloakId, string subject, string body,
+        CancellationToken cancellationToken, Guid? referenceId = null)
     {
         var notification = new Notification
         {
@@ -317,6 +320,11 @@ public class Worker : BackgroundService
 
         db.Notifications.Add(notification);
 
-        _logger.LogInformation("Email sent to {Recipient} for type '{Type}'.", recipient, type);
+        // Log'a adres DEĞİL kimlik yazılıyor. E-posta kişisel veri; Elasticsearch'te
+        // aranabilir halde ve 7 gün saklanıyor. Adrese gerçekten ihtiyaç olduğunda
+        // Notifications tablosundaki RecipientEmail alanından bakılır — o kayıt
+        // uygulamanın kendi verisi, log değil.
+        _logger.LogInformation("Mail gönderildi: alıcı {RecipientKeycloakId}, tür '{Type}'.",
+            recipientKeycloakId, type);
     }
 }
