@@ -52,7 +52,7 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
         // Kimlik alanları log'a ayrı ayrı yazılıyor: aksi halde eylemin HEDEFİ
         // yalnızca url.path içine gömülü kalıyor ve aranamıyor. "Kim kimi pasife
         // aldı" sorusu, aktörü ekleyen UserEnricher ile birlikte cevaplanabiliyor.
-        using (LogContext.Push(new TargetFieldsEnricher(request, response)))
+        using (LogContext.Push(new TargetFieldsEnricher(request, response, name)))
         {
             _logger.LogInformation("{CommandName} tamamlandı ({ElapsedMs} ms).",
                 name, stopwatch.ElapsedMilliseconds);
@@ -85,8 +85,37 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
     {
         private readonly object?[] _sources;
 
-        public TargetFieldsEnricher(object? request, object? response) =>
+        private readonly string _entity;
+
+        public TargetFieldsEnricher(object? request, object? response, string commandName)
+        {
             _sources = [request, response];
+            _entity = EntityFromCommandName(commandName);
+        }
+
+        /// <summary>
+        /// Komut adından varlık türünü çıkarır: DeleteArticleCommand → "article".
+        ///
+        /// Gerekli çünkü bazı komutlarda alan adı yalın: DeleteArticleCommand'ın
+        /// tek alanı "Id". Tür bilgisi olmadan log'a target.id yazılıyordu ve
+        /// karışık bir akışta bunun haber mi kategori mi kullanıcı mı olduğu
+        /// anlaşılmıyordu. Tür komut adında zaten var, oradan alınıyor.
+        /// </summary>
+        private static string EntityFromCommandName(string commandName)
+        {
+            var name = commandName.EndsWith("Command", StringComparison.Ordinal)
+                ? commandName[..^"Command".Length]
+                : commandName;
+
+            foreach (var verb in (string[])["Create", "Update", "Delete", "Assign", "Remove",
+                                            "Activate", "Deactivate", "Publish", "Register"])
+            {
+                if (name.StartsWith(verb, StringComparison.Ordinal))
+                    return name[verb.Length..].ToLowerInvariant();
+            }
+
+            return name.ToLowerInvariant();
+        }
 
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory factory)
         {
@@ -115,15 +144,22 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
         /// UserId → target.user.id, ArticleId → target.article.id, Id → target.id,
         /// Name → target.name. Beyaz listede olmayan her şey için null döner.
         /// </summary>
-        private static string? MapName(string propertyName) => propertyName switch
+        private string? MapName(string propertyName) => propertyName switch
         {
+            // Alan adı varlığı zaten söylüyor (UserId, RoleName) → doğrudan kullanılır.
             "RoleName" => "target.role.name",
-            "Name" => "target.name",
-            "Title" => "target.title",
+
+            // Yalın adlar: tür komut adından tamamlanıyor.
+            //   DeleteArticleCommand.Id   → target.article.id
+            //   CreateCategoryCommand.Name → target.category.name
+            "Name" => $"target.{_entity}.name",
+            "Title" => $"target.{_entity}.title",
+
             _ when propertyName.EndsWith("Id", StringComparison.Ordinal) =>
                 propertyName.Length == 2
-                    ? "target.id"
+                    ? $"target.{_entity}.id"
                     : $"target.{propertyName[..^2].ToLowerInvariant()}.id",
+
             _ => null
         };
     }
