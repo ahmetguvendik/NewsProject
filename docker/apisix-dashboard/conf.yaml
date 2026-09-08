@@ -1,0 +1,36 @@
+# APISIX Dashboard — route ve upstream'leri arayüzden yönetmek için.
+#
+# UYARI: route'lar iki yerden yönetilebilir hale geliyor — bu arayüz ve
+# docker/apisix/setup-routes.sh. İkisi aynı etcd'ye yazıyor, yani panelden
+# yapılan değişiklik script bir daha çalıştırıldığında GERİ ALINIR.
+# Kalıcı değişiklikler script'e yazılmalı; panel keşif ve inceleme için.
+
+conf:
+  listen:
+    host: 0.0.0.0
+    port: 9000
+
+  etcd:
+    endpoints:
+      - "etcd:2379"
+
+  log:
+    error_log:
+      level: warn
+      file_path: /dev/stderr
+    access_log:
+      file_path: /dev/stdout
+
+authentication:
+  secret: telgraf-dashboard-secret-change-me
+
+  # JWT ömrü, saniye. ZORUNLU: alan yazılmazsa sıfır kabul ediliyor ve token
+  # üretildiği anda geçersiz oluyor — giriş başarılı görünüyor ama bir sonraki
+  # istek 401 alıp kullanıcıyı login ekranına geri atıyor.
+  expire_time: 3600
+
+  # Geliştirme kimlik bilgisi. Canlıya çıkarken mutlaka değiştirilmeli;
+  # bu panel etcd'ye tam yazma yetkisiyle bağlı.
+  users:
+    - username: admin
+      password: admin

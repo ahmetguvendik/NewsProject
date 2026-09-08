@@ -53,15 +53,46 @@ limit_plugin() {
 JSON
 }
 
+# ─── Upstream'ler ──────────────────────────────────────────────────────
+# Hedef servisler route'ların içine gömülü değil, bağımsız nesneler olarak
+# tanımlanıyor ve route'lar upstream_id ile referans veriyor.
+#
+# Sebep: news-service beş ayrı route'ta hedef (article, category, tag, media,
+# weather). Gömülü tanımda port değişse ya da sağlık kontrolü eklensin istense
+# beş route birden düzenlenmesi gerekirdi. Bağımsız nesnede tek yer.
+#
+# Ayrıca APISIX Dashboard'ın Upstreams sekmesi yalnızca bağımsız nesneleri
+# listeliyor; gömülü tanımlar orada görünmüyordu.
+put_upstream() {
+  id="$1"; host="$2"
+
+  cat > /tmp/upstream.json <<JSON
+{
+  "type": "roundrobin",
+  "nodes": {"$host": 1}
+}
+JSON
+
+  http_code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$ADMIN_URL/apisix/admin/upstreams/$id" \
+    -H "X-API-KEY: $ADMIN_KEY" -H 'Content-Type: application/json' --data @/tmp/upstream.json)
+
+  echo "upstream $id -> $host  (HTTP $http_code)"
+}
+
+put_upstream "identity-service"     "identity-service:8080"
+put_upstream "news-service"         "news-service:8080"
+put_upstream "notification-service" "notification-service:8080"
+
+# ─── Route'lar ─────────────────────────────────────────────────────────
 # Tam path'e uygulanan sıkı limit. priority, genel route'un önüne geçmesi için.
 put_exact_route() {
-  id="$1"; uri="$2"; upstream_host="$3"; count="$4"; window="$5"; message="$6"; description="$7"
+  id="$1"; uri="$2"; upstream_id="$3"; count="$4"; window="$5"; message="$6"; description="$7"
 
   cat > /tmp/route.json <<JSON
 {
   "uri": "$uri",
   "priority": 20,
-  "upstream": {"type":"roundrobin","nodes":{"$upstream_host":1}},
+  "upstream_id": "$upstream_id",
   $(limit_plugin "$count" "$window" "$message" "$description")
 }
 JSON
@@ -69,18 +100,18 @@ JSON
   http_code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$ADMIN_URL/apisix/admin/routes/$id" \
     -H "X-API-KEY: $ADMIN_KEY" -H 'Content-Type: application/json' --data @/tmp/route.json)
 
-  echo "route $id  $uri -> $upstream_host  [${count}/${window}sn]  (HTTP $http_code)"
+  echo "route $id  $uri -> $upstream_id  [${count}/${window}sn]  (HTTP $http_code)"
 }
 
 put_route() {
-  id="$1"; base="$2"; upstream_host="$3"; count="$4"; window="$5"
+  id="$1"; base="$2"; upstream_id="$3"; count="$4"; window="$5"
 
   # "/foo/*" deseni yalnızca "/foo/" ile başlayanları eşliyor, "/foo"yu (liste
   # isteklerini) eşlemiyor — bu yüzden hem tam path hem wildcard veriliyor.
   cat > /tmp/route.json <<JSON
 {
   "uris": ["$base", "$base/*"],
-  "upstream": {"type":"roundrobin","nodes":{"$upstream_host":1}},
+  "upstream_id": "$upstream_id",
   $(limit_plugin "$count" "$window" "Çok fazla istek gönderdiniz." "Lütfen kısa bir süre bekleyip tekrar deneyin.")
 }
 JSON
@@ -88,7 +119,7 @@ JSON
   http_code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$ADMIN_URL/apisix/admin/routes/$id" \
     -H "X-API-KEY: $ADMIN_KEY" -H 'Content-Type: application/json' --data @/tmp/route.json)
 
-  echo "route $id  $base (+ /*) -> $upstream_host  [${count}/${window}sn]  (HTTP $http_code)"
+  echo "route $id  $base (+ /*) -> $upstream_id  [${count}/${window}sn]  (HTTP $http_code)"
 }
 
 # ─── Sağlık uçları ─────────────────────────────────────────────────────
@@ -101,13 +132,13 @@ JSON
 #
 # proxy-rewrite şart: dışarıda /health/news, serviste /health.
 put_health_route() {
-  id="$1"; uri="$2"; upstream_host="$3"; target="$4"
+  id="$1"; uri="$2"; upstream_id="$3"; target="$4"
 
   cat > /tmp/route.json <<JSON
 {
   "uri": "$uri",
   "priority": 30,
-  "upstream": {"type":"roundrobin","nodes":{"$upstream_host":1}},
+  "upstream_id": "$upstream_id",
   "plugins": {
     "proxy-rewrite": {"uri": "$target"},
     "limit-count": {"count":120,"time_window":60,"key_type":"var","key":"remote_addr","policy":"local","rejected_code":429}
@@ -118,31 +149,31 @@ JSON
   http_code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$ADMIN_URL/apisix/admin/routes/$id" \
     -H "X-API-KEY: $ADMIN_KEY" -H 'Content-Type: application/json' --data @/tmp/route.json)
 
-  echo "route $id  $uri -> $upstream_host$target  (HTTP $http_code)"
+  echo "route $id  $uri -> $upstream_id$target  (HTTP $http_code)"
 }
 
-put_health_route 30 "/health/news"         "news-service:8080"         "/health"
-put_health_route 31 "/health/identity"     "identity-service:8080"     "/health"
-put_health_route 32 "/health/notification" "notification-service:8080" "/health"
+put_health_route 30 "/health/news"         "news-service"         "/health"
+put_health_route 31 "/health/identity"     "identity-service"     "/health"
+put_health_route 32 "/health/notification" "notification-service" "/health"
 
 # ─── Sıkı limitli uçlar ────────────────────────────────────────────────
 # Kayıt: sahte hesap seline karşı saatte 3. Gerçek bir kullanıcı bir kez kaydolur.
-put_exact_route 10 "/api/auth/register" "identity-service:8080" 3 3600 \
+put_exact_route 10 "/api/auth/register" "identity-service" 3 3600 \
   "Çok fazla kayıt denemesi yaptınız." "Lütfen bir saat sonra tekrar deneyin."
 
 # Yükleme izni: depo şişirmeye karşı. Bir haber genelde tek görsel alır.
-put_exact_route 11 "/api/media/upload-url" "news-service:8080" 20 60 \
+put_exact_route 11 "/api/media/upload-url" "news-service" 20 60 \
   "Çok fazla dosya yükleme isteği gönderdiniz." "Lütfen bir dakika sonra tekrar deneyin."
 
 # ─── Genel route'lar ───────────────────────────────────────────────────
 # Okuma ağırlıklı uçlar geniş, yazma ağırlıklılar daha dar tutuldu.
-put_route 1 "/api/auth"     "identity-service:8080"  60 60
-put_route 2 "/api/user"     "identity-service:8080" 300 60
-put_route 3 "/api/article"  "news-service:8080"     300 60
-put_route 4 "/api/category" "news-service:8080"     300 60
-put_route 5 "/api/tag"      "news-service:8080"     300 60
-put_route 6 "/api/media"    "news-service:8080"      60 60
-put_route 7 "/api/weather"  "news-service:8080"     300 60
+put_route 1 "/api/auth"     "identity-service"  60 60
+put_route 2 "/api/user"     "identity-service" 300 60
+put_route 3 "/api/article"  "news-service"     300 60
+put_route 4 "/api/category" "news-service"     300 60
+put_route 5 "/api/tag"      "news-service"     300 60
+put_route 6 "/api/media"    "news-service"      60 60
+put_route 7 "/api/weather"  "news-service"     300 60
 
-rm -f /tmp/route.json
+rm -f /tmp/route.json /tmp/upstream.json
 echo "APISIX route'ları ve rate limit'leri hazır."
