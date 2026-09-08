@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using NewsService.Application.Caching;
 using NewsService.Application.Features.Commands.Tag.Request;
 using NewsService.Application.Features.Commands.Tag.Response;
@@ -25,6 +26,12 @@ public class UpdateTagCommandHandler : IRequestHandler<UpdateTagCommand, UpdateT
     {
         var tag = await _tagRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Tag(request.Id);
+
+        var nameTaken = await _tagRepository.GetQueryable()
+            .AnyAsync(t => t.Id != request.Id && t.Name == request.Name, cancellationToken);
+
+        if (nameTaken)
+            throw ConflictException.TagAlreadyExists(request.Name);
 
         tag.Name = request.Name;
         tag.UpdatedAt = DateTime.UtcNow;

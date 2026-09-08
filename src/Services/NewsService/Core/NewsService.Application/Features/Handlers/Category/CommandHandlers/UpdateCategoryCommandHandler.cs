@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using NewsService.Application.Caching;
 using NewsService.Application.Features.Commands.Category.Request;
 using NewsService.Application.Features.Commands.Category.Response;
@@ -25,6 +26,13 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
     {
         var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Category(request.Id);
+
+        // Başka bir kategori bu adı kullanıyorsa çakışma; kendi adını korumak serbest.
+        var nameTaken = await _categoryRepository.GetQueryable()
+            .AnyAsync(c => c.Id != request.Id && c.Name == request.Name, cancellationToken);
+
+        if (nameTaken)
+            throw ConflictException.CategoryAlreadyExists(request.Name);
 
         category.Name = request.Name;
         category.Description = request.Description;

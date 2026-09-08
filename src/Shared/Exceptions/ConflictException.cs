@@ -29,4 +29,14 @@ public class ConflictException : AppException
         ErrorCodes.Article.AlreadyPublished,
         "Makale zaten yayınlanmış.",
         $"'{id}' ID'li makale daha önce yayınlanmış, tekrar yayınlanamaz.");
+
+    public static ConflictException CategoryAlreadyExists(string name) => new(
+        ErrorCodes.Category.AlreadyExists,
+        "Bu adda bir kategori zaten var.",
+        $"'{name}' adlı kategori mevcut. Farklı bir ad seçin.");
+
+    public static ConflictException TagAlreadyExists(string name) => new(
+        ErrorCodes.Tag.AlreadyExists,
+        "Bu adda bir etiket zaten var.",
+        $"'{name}' adlı etiket mevcut. Farklı bir ad seçin.");
 }

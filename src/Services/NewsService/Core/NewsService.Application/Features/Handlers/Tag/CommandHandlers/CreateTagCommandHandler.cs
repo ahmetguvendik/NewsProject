@@ -1,4 +1,6 @@
 using MediatR;
+using Shared.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using NewsService.Application.Caching;
 using NewsService.Application.Features.Commands.Tag.Request;
 using NewsService.Application.Features.Commands.Tag.Response;
@@ -22,6 +24,12 @@ public class CreateTagCommandHandler : IRequestHandler<CreateTagCommand, CreateT
 
     public async Task<CreateTagResponse> Handle(CreateTagCommand request, CancellationToken cancellationToken)
     {
+        var exists = await _tagRepository.GetQueryable()
+            .AnyAsync(t => t.Name == request.Name, cancellationToken);
+
+        if (exists)
+            throw ConflictException.TagAlreadyExists(request.Name);
+
         var tag = new Domain.Entities.Tag { Name = request.Name };
         await _tagRepository.CreateAsync(tag, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
