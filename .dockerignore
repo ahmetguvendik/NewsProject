@@ -2,6 +2,11 @@
 **/bin/
 **/obj/
 
+# Frontend bağımlılıkları: 87 MB ve hiçbir backend imajı Client'a ihtiyaç duymuyor.
+# Dışlanmadığında her build'de context olarak Docker daemon'a gönderiliyordu.
+**/node_modules/
+**/dist/
+
 # VCS & IDE
 .git/
 .gitignore

@@ -42,7 +42,16 @@ public class Worker : BackgroundService
 
         var producerConfig = new ProducerConfig
         {
-            BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9092"
+            BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9092",
+
+            // Ayarlanmazsa librdkafka varsayılanı 5 DAKİKA: Kafka çöktüğünde
+            // ProduceAsync o kadar süre teslim bekler ve döngü tek bir mesajda
+            // asılı kalır. Bu sürede tabloda başka mesajlar birikir ve hiçbiri
+            // işlenmez; worker-loop kontrolü de 30 sn'de sağlıksıza döner.
+            //
+            // Kısa timeout ile başarısızlık hızlı anlaşılıyor, RetryCount artıyor
+            // ve döngü akmaya devam ediyor — retry mekanizması zaten bunun için var.
+            MessageTimeoutMs = _configuration.GetValue("Outbox:ProduceTimeoutSeconds", 30) * 1000
         };
 
         using var producer = new ProducerBuilder<string, string>(producerConfig).Build();

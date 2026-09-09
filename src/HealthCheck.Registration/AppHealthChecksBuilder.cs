@@ -13,6 +13,19 @@ namespace HealthCheck.Registration;
 /// </summary>
 public sealed class AppHealthChecksBuilder
 {
+    /// <summary>
+    /// Her ağ kontrolüne uygulanan üst sınır.
+    ///
+    /// ZORUNLU: timeout verilmezse kontrol süresiz bekliyor. Kafka durdurulduğunda
+    /// tam bu oldu — kafka kontrolü asılı kaldı, /health ucu 25 saniyede bile cevap
+    /// vermedi ve panel "ne bozuk" diyemedi, yalnızca "uç cevap vermedi" dedi.
+    /// Aynı servisteki diğer kontroller de görünmez oldu.
+    ///
+    /// Timeout ile kontrol hızla başarısız oluyor ve HANGİ bağımlılığın çöktüğü
+    /// panelde okunabiliyor.
+    /// </summary>
+    private static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(5);
+
     private readonly IHealthChecksBuilder _builder;
     private readonly IConfiguration _configuration;
 
@@ -36,7 +49,8 @@ public sealed class AppHealthChecksBuilder
             connectionString,
             name: "postgres",
             failureStatus: HealthStatus.Unhealthy,
-            tags: [HealthCheckTags.Ready]);
+            tags: [HealthCheckTags.Ready],
+            timeout: CheckTimeout);
 
         return this;
     }
@@ -55,8 +69,9 @@ public sealed class AppHealthChecksBuilder
         _builder.AddRedis(
             connectionString,
             name: "redis",
-            failureStatus: HealthStatus.Degraded,
-            tags: [HealthCheckTags.Dependency]);
+            failureStatus: HealthStatus.Unhealthy,
+            tags: [HealthCheckTags.Dependency],
+            timeout: CheckTimeout);
 
         return this;
     }
@@ -75,8 +90,9 @@ public sealed class AppHealthChecksBuilder
         _builder.AddKafka(
             new ProducerConfig { BootstrapServers = bootstrapServers },
             name: "kafka",
-            failureStatus: HealthStatus.Degraded,
-            tags: [HealthCheckTags.Dependency]);
+            failureStatus: HealthStatus.Unhealthy,
+            tags: [HealthCheckTags.Dependency],
+            timeout: CheckTimeout);
 
         return this;
     }
@@ -97,8 +113,9 @@ public sealed class AppHealthChecksBuilder
         _builder.AddUrlGroup(
             discoveryUri,
             name: "keycloak",
-            failureStatus: HealthStatus.Degraded,
-            tags: [HealthCheckTags.Dependency]);
+            failureStatus: HealthStatus.Unhealthy,
+            tags: [HealthCheckTags.Dependency],
+            timeout: CheckTimeout);
 
         return this;
     }
@@ -118,8 +135,38 @@ public sealed class AppHealthChecksBuilder
         _builder.AddUrlGroup(
             liveUri,
             name: "storage",
-            failureStatus: HealthStatus.Degraded,
-            tags: [HealthCheckTags.Dependency]);
+            failureStatus: HealthStatus.Unhealthy,
+            tags: [HealthCheckTags.Dependency],
+            timeout: CheckTimeout);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Dead-letter'a düşmüş mesaj sayısı. Sıfırdan büyükse Unhealthy.
+    ///
+    /// ETİKET BİLİNÇLİ OLARAK Dependency, Ready DEĞİL:
+    ///   • /health/ready etkilenmiyor → container sağlıklı kalıyor. Ölü bir mesaj
+    ///     worker'ın bozuk olduğu anlamına gelmez; döngü çalışmaya devam ediyor ve
+    ///     onu yeniden başlatmak hiçbir şeyi düzeltmez.
+    ///   • /health Unhealthy oluyor → panel kırmızıya dönüyor ve webhook tetikleniyor.
+    ///
+    /// Ready etiketi verseydik container unhealthy olur, ona bağlı servisler
+    /// beklemeye başlar ve tek bir bozuk mesaj yüzünden çalışan bir sistem
+    /// durdurulurdu.
+    ///
+    /// Sorgu dışarıdan veriliyor: bu proje OutboxMessage/InboxMessage tiplerini
+    /// tanımıyor ve tanımamalı.
+    /// </summary>
+    public AppHealthChecksBuilder AddDeadLetters(
+        Func<IServiceProvider, CancellationToken, Task<int>> countAsync)
+    {
+        _builder.Add(new HealthCheckRegistration(
+            name: "dead-letters",
+            factory: sp => new DeadLetterHealthCheck(
+                sp.GetRequiredService<IServiceScopeFactory>(), countAsync),
+            failureStatus: HealthStatus.Unhealthy,
+            tags: [HealthCheckTags.Dependency]));
 
         return this;
     }

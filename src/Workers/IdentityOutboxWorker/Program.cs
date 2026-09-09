@@ -21,7 +21,14 @@ var pollSeconds = builder.Configuration.GetValue("Outbox:PollIntervalSeconds", 5
 
 builder.Services.AddAppHealthChecks(builder.Configuration)
     .AddWorkerHeartbeat(TimeSpan.FromSeconds(Math.Max(30, pollSeconds * 4)))
-    .AddPostgres();
+    .AddPostgres()
+
+    // Ölü mesajlar sessizce birikmesin: sıfırdan büyükse panel kırmızıya döner
+    // ve webhook tetiklenir. Container sağlıklı kalır (Dependency etiketi) —
+    // worker bozuk değil, işlenemeyen bir mesaj var.
+    .AddDeadLetters((sp, ct) =>
+        sp.GetRequiredService<OutboxWorkerDbContext>().OutboxMessages
+            .CountAsync(m => m.IsDeadLettered, ct));
 
 var host = builder.Build();
 

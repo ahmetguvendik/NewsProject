@@ -24,6 +24,14 @@ builder.Services
 
         // İzlenen uçlar ayardan geliyor (HealthChecksUI:HealthChecks). Kodda gömülü
         // olsaydı yeni bir servis eklendiğinde bu projeyi yeniden derlemek gerekirdi.
+        //
+        // Bildirimler de aynı şekilde ayardan (HealthChecksUI:Webhooks): bir process
+        // Unhealthy'ye DÜŞTÜĞÜNDE tetikleniyor, her yoklamada değil. Düzeldiğinde de
+        // ayrı bir "restored" bildirimi gidiyor.
+        //
+        // Varsayılan boş: hedef adres olmadan kurulamaz. Slack/Discord webhook URL'i
+        // compose ortam değişkeniyle verilir (bkz. docker-compose.yml). Adres gizli
+        // bilgi olduğu için repoya yazılmıyor.
     })
     // In-memory: panel yeniden başladığında geçmiş sıfırlanır. Anlık durum için
     // yeterli; kalıcı geçmiş isteniyorsa Postgres sağlayıcısına geçilir.

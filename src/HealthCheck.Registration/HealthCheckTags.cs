@@ -14,6 +14,13 @@ public static class HealthCheckTags
     /// </summary>
     public const string Ready = "ready";
 
-    /// <summary>Kesintisi tolere edilen bağımlılıklar; raporlanır, readiness'ı düşürmez.</summary>
+    /// <summary>
+    /// Servisin çalışmaya devam edebildiği ama bir şeyin bozuk olduğu bağımlılıklar.
+    ///
+    /// Hepsi Unhealthy raporluyor — "ne çökerse çöksün haberimiz olsun". Etiketin
+    /// Ready OLMAMASI kritik: /health/ready etkilenmediği için container sağlıklı
+    /// kalıyor ve ona bağlı servisler durmuyor. Redis'in kısa bir kesintisi tüm
+    /// sistemi durduramaz; yalnızca panelde kırmızı görünür ve bildirim gider.
+    /// </summary>
     public const string Dependency = "dependency";
 }
