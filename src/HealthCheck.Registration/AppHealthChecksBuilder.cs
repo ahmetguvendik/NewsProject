@@ -88,7 +88,19 @@ public sealed class AppHealthChecksBuilder
             return this;
 
         _builder.AddKafka(
-            new ProducerConfig { BootstrapServers = bootstrapServers },
+            new ProducerConfig
+            {
+                BootstrapServers = bootstrapServers,
+
+                // Kontrolün KENDİ timeout'u, çerçevenin timeout'undan kısa.
+                //
+                // Sebep: çerçeve süresi önce dolarsa kontrolü iptal ediyor ve panele
+                // "A task was canceled." yazılıyor — Kafka'ya ulaşılamadığını değil,
+                // kontrolün içinde tuhaf bir şey olduğunu düşündürüyor. Kafka önce
+                // kendi hatasını döndürsün ki panelde okunabilir bir sebep görünsün.
+                MessageTimeoutMs = 3000,
+                SocketTimeoutMs = 3000
+            },
             name: "kafka",
             failureStatus: HealthStatus.Unhealthy,
             tags: [HealthCheckTags.Dependency],
