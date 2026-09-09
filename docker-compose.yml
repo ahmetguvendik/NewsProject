@@ -367,11 +367,32 @@ services:
     networks:
       - apisix
 
+  # 7.3.7'den (2020) yükseltildi: o sürümün "legacy" uyarı sistemi yalnızca grafik
+  # panellerinde çalışıyor ve Elasticsearch'ü uyarı kaynağı olarak desteklemiyordu.
+  # Güncel sürümün birleşik uyarı sistemi ücretsiz ve Slack/e-posta gönderebiliyor.
+  #
+  # Kibana neden değil: Elasticsearch lisansı "basic" ve Kibana'da uyarı kuralı
+  # tanımlanabiliyor ama bildirim gönderecek bağlayıcıların çoğu ücretli katmanda.
   grafana:
-    image: grafana/grafana:7.3.7
+    image: grafana/grafana:11.4.0
+    container_name: grafana
     restart: always
     ports:
       - "3000:3000"
+    environment:
+      # Uyarı bildirimleri sağlık paneliyle aynı Slack kanalına gidiyor.
+      - GF_SLACK_WEBHOOK_URL=${HEALTH_WEBHOOK_URL:-}
+    volumes:
+      # Veri kaynakları ve uyarı kuralları dosyadan geliyor; arayüzden yapılan
+      # değişiklikler container yeniden yaratılınca kaybolur, bunlar kalır.
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+
+      # Grafana'nın kendi veritabanı (uyarı durumu, kullanıcı ayarları). Volume
+      # olmadan her yeniden yaratmada uyarılar "yeni" sayılıp tekrar tetiklenirdi.
+      - grafanadata:/var/lib/grafana
+    depends_on:
+      elasticsearch:
+        condition: service_started
     networks:
       - apisix
 
@@ -578,6 +599,7 @@ networks:
     driver: bridge
 
 volumes:
+  grafanadata:
   etcd_data:
   minio_data:
   postgres_data:

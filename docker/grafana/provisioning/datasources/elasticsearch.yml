@@ -1,0 +1,38 @@
+# Grafana veri kaynakları dosyadan tanımlanıyor, arayüzden değil.
+#
+# Sebep: grafana container'ının kalıcı volume'u yoktu ve arayüzden yapılan her ayar
+# container yeniden yaratılınca kayboluyordu. Dosyadan tanımlanınca ayar repoda
+# duruyor, sıfırdan kurulumda kendiliğinden geliyor ve neyin neden böyle olduğu
+# yorumlarda kalıyor.
+
+apiVersion: 1
+
+datasources:
+  - name: Elasticsearch
+
+    # Sabit kimlik: uyarı kuralları veri kaynağına bununla bağlanıyor. Otomatik
+    # üretilen kimlik container yeniden yaratıldığında değişebilir ve kurallar
+    # sessizce çalışmaz hale gelirdi.
+    uid: elasticsearch
+
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    isDefault: true
+    editable: false
+
+    # Uygulama logları bu desende: logs-{servis}-{tarih}
+    database: "logs-*"
+
+    jsonData:
+      timeField: "@timestamp"
+
+      # Elasticsearch 8.x; sürüm yanlış verilirse sorgular sessizce boş döner.
+      esVersion: "8.0.0"
+
+      # Grafana'nın Logs görünümünde satırın gövdesi ve seviye rengi bu alanlardan
+      # okunuyor. ECS formatında yazdığımız için adlar hazır uyuyor.
+      logMessageField: message
+      logLevelField: log.level
+
+      maxConcurrentShardRequests: 5

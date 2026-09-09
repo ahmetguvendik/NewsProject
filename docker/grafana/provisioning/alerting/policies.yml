@@ -1,0 +1,15 @@
+# Hangi uyarının nereye gideceği. Tek hedefimiz olduğu için kök politika
+# doğrudan Slack'e bağlanıyor.
+
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: slack
+
+    # Aynı uyarı tekrar tekrar gönderilmesin: ilk bildirimden sonra sorun devam
+    # ettiği sürece 4 saatte bir hatırlatılıyor. Sağlık panelindeki kısıtlamanın
+    # aynı mantığı — bildirim gürültüsü, bildirimlere bakmayı bıraktırır.
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
