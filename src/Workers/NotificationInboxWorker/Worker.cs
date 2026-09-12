@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Logging.Registration;
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Application.Interfaces;
 using NotificationService.Domain.Entities;
@@ -85,10 +86,8 @@ public class Worker : BackgroundService
             // sırasındaki loglar, haberi yayınlayan isteğin trace'i altında görünsün.
             // Zincirin son halkası burası — yayın isteğinden mailin gitmesine kadar
             // hepsi tek bir trace.id ile aranabilir hale geliyor.
-            var activity = new Activity("inbox.process");
-            if (!string.IsNullOrEmpty(message.TraceParent))
-                activity.SetParentId(message.TraceParent);
-            using var startedActivity = activity.Start();
+            using var activity = AppTracing.StartLinked(
+                "inbox.process", message.TraceParent, ActivityKind.Consumer);
 
             try
             {

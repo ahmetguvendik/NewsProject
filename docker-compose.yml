@@ -258,6 +258,11 @@ services:
       start_period: 40s
     environment:
       - Logging__Kafka__BootstrapServers=kafka:9092
+      # Elastic APM. ServiceName loglardaki service.name ile AYNI olmalı:
+      # Kibana'da trace ile logları eşleştiren şey bu ad.
+      - ElasticApm__ServerUrl=http://apm-server:8200
+      - ElasticApm__Environment=Development
+      - ElasticApm__ServiceName=notification-inbox-worker
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
       - Smtp__Host=smtp.gmail.com
       - Smtp__Port=587
@@ -294,6 +299,11 @@ services:
     # port açmaya gerek yok, tüm trafik zaten APISIX üzerinden gelmiyor.
     environment:
       - Logging__Kafka__BootstrapServers=kafka:9092
+      # Elastic APM. ServiceName loglardaki service.name ile AYNI olmalı:
+      # Kibana'da trace ile logları eşleştiren şey bu ad.
+      - ElasticApm__ServerUrl=http://apm-server:8200
+      - ElasticApm__Environment=Development
+      - ElasticApm__ServiceName=notification-service
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
@@ -321,6 +331,11 @@ services:
     restart: always
     environment:
       - LS_JAVA_OPTS=-Xms256m -Xmx256m
+
+      # Pipeline dosyası bu değişkenleri okuyor. Kendi hesabı var: yalnızca
+      # logs-* üzerine yazabiliyor, başka bir şey okuyamıyor/silemiyor.
+      - LOGSTASH_USERNAME=logstash_writer
+      - LOGSTASH_PASSWORD=${LOGSTASH_PASSWORD:?LOGSTASH_PASSWORD .env dosyasinda tanimli olmali}
     volumes:
       - ./docker/logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ./docker/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
@@ -328,7 +343,29 @@ services:
       kafka:
         condition: service_healthy
       elasticsearch:
-        condition: service_started
+        condition: service_healthy
+    networks:
+      - apisix
+
+  # Trace verisini agent'lardan alıp Elasticsearch'e yazar. Kibana'nın APM
+  # arayüzü bu veriyi okuyor.
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:8.13.0
+    container_name: apm-server
+    restart: always
+    ports:
+      - "8200:8200"
+    environment:
+      # APM Server kendi veri akışlarını, ILM politikalarını ve index şablonlarını
+      # yönetiyor; bunlar küme seviyesinde yetki istiyor. Dar bir rol tanımlamak
+      # yerine yerleşik `elastic` hesabı kullanılıyor — bu bilinçli bir taviz,
+      # canlıda apm_system tabanlı bir rolle daraltılması gereken yer burası.
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+    volumes:
+      - ./docker/apm-server/apm-server.yml:/usr/share/apm-server/apm-server.yml:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
     networks:
       - apisix
 
@@ -337,12 +374,32 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+
+      # Kimlik doğrulama AÇIK. Kapalıyken Elasticsearch'e ağdaki herkes yazabiliyor
+      # ve silebiliyordu. Ayrıca Kibana Fleet'i güvenlik kapalıyken çalışmayı
+      # reddediyor — APM entegrasyonu ancak bu açıkken kurulabiliyor.
+      #
+      # TLS kapalı (xpack.security.http.ssl): tüm trafik compose ağının içinde
+      # kalıyor, dışarı açılan tek port geliştirme makinesinde. Sertifika yönetimi
+      # canlıya çıkarken eklenecek bir adım.
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?ELASTIC_PASSWORD .env dosyasinda tanimli olmali}
+
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
       - "9200:9200"
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    # Güvenlik açıkken ES'in hazır olması birkaç saniye daha sürüyor ve bu sırada
+    # gelen istekler 401 değil bağlantı hatası alıyor. Bağımlı servislerin
+    # service_started ile erken başlaması yanlış teşhise yol açıyordu.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -u elastic:$$ELASTIC_PASSWORD http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     networks:
       - apisix
 
@@ -353,8 +410,24 @@ services:
       - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
+      # Kibana'nın kendi kimliği. `elastic` superuser'ı DEĞİL: Kibana'ya yalnızca
+      # ihtiyacı olan yetkiler veriliyor. Parolası setup-elastic-security.sh ile
+      # atanıyor (yerleşik kullanıcı, oluşturulmuyor — parolası belirleniyor).
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD:?KIBANA_PASSWORD .env dosyasinda tanimli olmali}
+
+      # Fleet, entegrasyon ayarlarını şifreli saklıyor ve bu anahtar olmadan
+      # kurulumu reddediyor. Sabit olmak zorunda: değişirse mevcut şifreli
+      # kayıtlar okunamaz hale gelir.
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:?KIBANA_ENCRYPTION_KEY .env dosyasinda tanimli olmali}
+
+      # APM Server'ın kendi kendine kayıt olabilmesi için Fleet'in bu adresleri
+      # bilmesi gerekiyor.
+      - XPACK_FLEET_AGENTS_ELASTICSEARCH_HOSTS=["http://elasticsearch:9200"]
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     networks:
       - apisix
 
@@ -386,9 +459,14 @@ services:
       # Grafana'nın kendi veritabanı (uyarı durumu, kullanıcı ayarları). Volume
       # olmadan her yeniden yaratmada uyarılar "yeni" sayılıp tekrar tetiklenirdi.
       - grafanadata:/var/lib/grafana
+    environment:
+      # Veri kaynağı tanımı bu değişkeni okuyor (provisioning dosyasında $LOG_READER_*).
+      # Salt okunur hesap: pano hiçbir şey yazmıyor.
+      - LOG_READER_USERNAME=log_reader
+      - LOG_READER_PASSWORD=${LOG_READER_PASSWORD:?LOG_READER_PASSWORD .env dosyasinda tanimli olmali}
     depends_on:
       elasticsearch:
-        condition: service_started
+        condition: service_healthy
     networks:
       - apisix
 
@@ -412,6 +490,11 @@ services:
     # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
       - Logging__Kafka__BootstrapServers=kafka:9092
+      # Elastic APM. ServiceName loglardaki service.name ile AYNI olmalı:
+      # Kibana'da trace ile logları eşleştiren şey bu ad.
+      - ElasticApm__ServerUrl=http://apm-server:8200
+      - ElasticApm__Environment=Development
+      - ElasticApm__ServiceName=identity-service
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
       - Keycloak__Authority=http://keycloak:8080/realms/news-portal
@@ -455,6 +538,11 @@ services:
       start_period: 40s
     environment:
       - Logging__Kafka__BootstrapServers=kafka:9092
+      # Elastic APM. ServiceName loglardaki service.name ile AYNI olmalı:
+      # Kibana'da trace ile logları eşleştiren şey bu ad.
+      - ElasticApm__ServerUrl=http://apm-server:8200
+      - ElasticApm__Environment=Development
+      - ElasticApm__ServiceName=identity-outbox-worker
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsIdentityServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
@@ -484,6 +572,11 @@ services:
       start_period: 40s
     environment:
       - Logging__Kafka__BootstrapServers=kafka:9092
+      # Elastic APM. ServiceName loglardaki service.name ile AYNI olmalı:
+      # Kibana'da trace ile logları eşleştiren şey bu ad.
+      - ElasticApm__ServerUrl=http://apm-server:8200
+      - ElasticApm__Environment=Development
+      - ElasticApm__ServiceName=news-outbox-worker
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
     depends_on:
@@ -528,6 +621,11 @@ services:
       - HealthChecksUI__HealthChecks__6__Name=Log Hata Oranı
       - HealthChecksUI__HealthChecks__6__Uri=http://healthcheck-api:8080/health
       - Elasticsearch__Url=http://elasticsearch:9200
+      # Hata oranı kontrolü yalnızca sayıyor; Grafana ile aynı salt okunur hesabı
+      # kullanıyor. Kimlik bilgisi olmadan sorgu 401 döner ve kontrol Unhealthy'ye
+      # düşer — yani parola unutulursa sessizce körleşmek yerine haber veriyor.
+      - Elasticsearch__Username=log_reader
+      - Elasticsearch__Password=${LOG_READER_PASSWORD}
       - Alerting__ErrorRate__WindowMinutes=5
       - Alerting__ErrorRate__Threshold=10
       # Bir process Unhealthy'ye düştüğünde bildirim gider (dead-letter dahil).
@@ -572,6 +670,11 @@ services:
     # Dışarıya port açmıyor — tüm erişim APISIX gateway'i (:9080) üzerinden.
     environment:
       - Logging__Kafka__BootstrapServers=kafka:9092
+      # Elastic APM. ServiceName loglardaki service.name ile AYNI olmalı:
+      # Kibana'da trace ile logları eşleştiren şey bu ad.
+      - ElasticApm__ServerUrl=http://apm-server:8200
+      - ElasticApm__Environment=Development
+      - ElasticApm__ServiceName=news-service
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NewsServiceDb;Username=ahmet;Password=Ahmet.123
       - Keycloak__Authority=http://keycloak:8080/realms/news-portal

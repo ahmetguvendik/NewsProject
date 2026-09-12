@@ -7,6 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("identity-outbox-worker");
 
+// Elastic APM. Worker'da HTTP trafiği yok denecek kadar az — buradaki değer
+// EF Core sorguları ve, asıl önemlisi, servislerden gelen trace'in devamını
+// görebilmek: outbox satırındaki traceparent geri kurulduğu için worker'ın
+// yaptığı iş isteği başlatan trace'in altında görünüyor.
+builder.Services.AddAllElasticApm();
+
 builder.Services.AddDbContext<OutboxWorkerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 

@@ -170,13 +170,15 @@ public sealed class AppHealthChecksBuilder
         string elasticsearchUrl,
         string indexPattern = "logs-*",
         int windowMinutes = 5,
-        int threshold = 10)
+        int threshold = 10,
+        string? username = null,
+        string? password = null)
     {
         _builder.Add(new HealthCheckRegistration(
             name: "hata-orani",
             factory: sp => new ErrorRateHealthCheck(
                 sp.GetRequiredService<IHttpClientFactory>(),
-                elasticsearchUrl, indexPattern, windowMinutes, threshold),
+                elasticsearchUrl, indexPattern, windowMinutes, threshold, username, password),
             failureStatus: HealthStatus.Unhealthy,
             tags: [HealthCheckTags.Dependency],
             timeout: CheckTimeout));

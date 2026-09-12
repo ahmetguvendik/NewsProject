@@ -11,6 +11,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("notification-service");
 
+// Elastic APM: HTTP istekleri, EF Core sorguları ve HttpClient çağrıları
+// kendiliğinden enstrümante ediliyor.
+//
+// Loglarla bağlantıyı trace.id kuruyor: loglarımız zaten ECS formatında ve bu
+// alanı taşıyor, agent da aynısını yazıyor. Kibana'da bir trace'ten onun
+// loglarına geçmek bu sayede doğrudan çalışıyor.
+//
+// Ayarlar ortam değişkeninden (bkz. docker-compose.yml): sunucu adresi, servis
+// adı ve ortam. Servis adı loglardaki service.name ile AYNI olmalı, yoksa iki
+// taraf birbirini tanımaz.
+builder.Services.AddAllElasticApm();
+
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {

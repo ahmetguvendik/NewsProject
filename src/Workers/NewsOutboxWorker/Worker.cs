@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Logging.Registration;
 using Confluent.Kafka;
 using Microsoft.EntityFrameworkCore;
 using HealthCheck.Registration;
@@ -99,14 +100,11 @@ public class Worker : BackgroundService
             // Olayı üreten isteğin trace bağlamı geri kuruluyor: bundan sonraki loglar
             // isteği başlatan trace ile aynı kimliği taşıyor. Kafka bağlamı kendisi
             // taşımadığı için traceparent ayrıca mesaj başlığına da konuyor.
-            // Sade Activity API'si: dinleyici gerektirmiyor, her koşulda trace.id üretir.
-            // NOT: OpenTelemetry eklendiğinde bunun ActivitySource'a çevrilmesi gerekiyor —
-            // new Activity() ile üretilenler bir kaynağa bağlı olmadığı için OTel onları
-            // görmez ve span'e dönüşmezler.
-            var activity = new Activity("outbox.publish");
-            if (!string.IsNullOrEmpty(message.TraceParent))
-                activity.SetParentId(message.TraceParent);
-            using var startedActivity = activity.Start();
+            //
+            // Producer: bu bölüm bir mesaj üretiyor ve tüketen tarafla trace üzerinden
+            // eşleşiyor — APM arayüzü bu türü bilerek ikisini bağlıyor.
+            using var activity = AppTracing.StartLinked(
+                "outbox.publish", message.TraceParent, ActivityKind.Producer);
 
             try
             {

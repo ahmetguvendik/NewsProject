@@ -21,6 +21,14 @@ datasources:
     isDefault: true
     editable: false
 
+    # Elasticsearch'te kimlik doğrulama açık. Kullanıcı adı ve parola ortam
+    # değişkeninden okunuyor; Grafana provisioning dosyalarında $VAR sözdizimini
+    # kendisi çözüyor, böylece parola repoya girmiyor.
+    basicAuth: true
+    basicAuthUser: $LOG_READER_USERNAME
+    secureJsonData:
+      basicAuthPassword: $LOG_READER_PASSWORD
+
     # Uygulama logları bu desende: logs-{servis}-{tarih}
     database: "logs-*"
 

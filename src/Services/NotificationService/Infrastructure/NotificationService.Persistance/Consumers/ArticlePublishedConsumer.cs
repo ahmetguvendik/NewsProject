@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using System.Diagnostics;
+using Logging.Registration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -60,10 +61,8 @@ public class ArticlePublishedConsumer : BackgroundService
                 // asıl işi yapan worker ayrı bir process ve saniyeler sonra çalışıyor.
                 var traceParent = ReadTraceParent(result.Message.Headers);
 
-                var activity = new Activity("inbox.receive");
-                if (!string.IsNullOrEmpty(traceParent))
-                    activity.SetParentId(traceParent);
-                using var startedActivity = activity.Start();
+                using var activity = AppTracing.StartLinked(
+                    "inbox.receive", traceParent, ActivityKind.Consumer);
 
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<NotificationServiceDbContext>();

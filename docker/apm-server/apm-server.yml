@@ -1,0 +1,49 @@
+# APM Server: agent'lardan trace verisi alır, Elasticsearch'e yazar.
+#
+# Loglardan AYRI bir yol izliyor: loglar Kafka üzerinden Logstash'e gidiyor,
+# trace verisi doğrudan buraya. Sebebi hacim farkı — trace verisi çok daha
+# yoğun ve APM Server kendi örnekleme/tamponlama mantığına sahip.
+#
+# Bağlantıyı kuran şey trace.id: loglarımız ECS formatında ve zaten bu alanı
+# taşıyor, agent da aynısını yazıyor. Kibana'da "bu trace'in logları" bu sayede
+# doğrudan çalışıyor.
+
+apm-server:
+  host: "0.0.0.0:8200"
+
+  # Tarayıcıdan gelen trace kapalı: yalnızca sunucu tarafını izliyoruz.
+  # Açılırsa CORS ve kaynak doğrulama ayarları gerekir.
+  rum:
+    enabled: false
+
+  # Kimlik doğrulama kapalı — yerel geliştirme kurulumu. Canlıya çıkarken
+  # secret token ya da API key zorunlu: bu uç açıkta olursa herkes sahte
+  # trace verisi yazabilir.
+  auth:
+    anonymous:
+      enabled: true
+
+  # data_streams.wait_for_integration BİLİNÇLİ OLARAK AYARLANMADI (varsayılan: true).
+  #
+  # APM Server, "APM integration" index şablonlarının kurulmuş olmasını bekler.
+  # Bir süre bu bekleme kapatılarak veri akıtıldı ve sonuç şuydu: belgeler yazıldı
+  # ama şablon olmadığı için Elasticsearch alanları dinamik eşledi —
+  # transaction.name `keyword` yerine `text` oldu ve Kibana'nın APM arayüzü servis
+  # listesini boş döndürdü (alan üzerinde gruplama yapılamıyor).
+  #
+  # Doğru yol: Fleet entegrasyonu kurmak. Fleet Kibana güvenliğinin açık olmasını
+  # şart koşuyor, o yüzden xpack.security açıldı ve entegrasyon
+  # docker/setup-elastic-security.sh ile kuruluyor.
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+
+  # Elasticsearch'te kimlik doğrulama açık. Parola ortamdan geliyor; bu dosya
+  # repoda duruyor, parola durmuyor.
+  username: "elastic"
+  password: "${ELASTICSEARCH_PASSWORD}"
+
+# Kendi logları stdout'a; docker compose logs ile okunabilsin.
+logging:
+  level: warning
+  to_files: false

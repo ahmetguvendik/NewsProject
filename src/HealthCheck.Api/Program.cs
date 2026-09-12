@@ -29,7 +29,9 @@ builder.Services.AddAppHealthChecks(builder.Configuration)
         elasticsearchUrl: builder.Configuration["Elasticsearch:Url"] ?? "http://elasticsearch:9200",
         indexPattern: builder.Configuration["Alerting:ErrorRate:IndexPattern"] ?? "logs-*",
         windowMinutes: builder.Configuration.GetValue("Alerting:ErrorRate:WindowMinutes", 5),
-        threshold: builder.Configuration.GetValue("Alerting:ErrorRate:Threshold", 10));
+        threshold: builder.Configuration.GetValue("Alerting:ErrorRate:Threshold", 10),
+        username: builder.Configuration["Elasticsearch:Username"],
+        password: builder.Configuration["Elasticsearch:Password"]);
 
 builder.Services
     .AddHealthChecksUI(settings =>

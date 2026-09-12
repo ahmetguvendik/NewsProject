@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Core\NotificationService.Application\NotificationService.Application.csproj" />
     <ProjectReference Include="..\..\..\..\Shared\Shared.csproj" />
+    <!-- Trace bölümlerinin ortak ActivitySource'u için (AppTracing). -->
+    <ProjectReference Include="..\..\..\..\Logging.Registration\Logging.Registration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

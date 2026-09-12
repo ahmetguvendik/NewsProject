@@ -1,4 +1,6 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -24,19 +26,32 @@ internal sealed class ErrorRateHealthCheck : IHealthCheck
     private readonly string _indexPattern;
     private readonly int _windowMinutes;
     private readonly int _threshold;
+    private readonly AuthenticationHeaderValue? _authorization;
 
     public ErrorRateHealthCheck(
         IHttpClientFactory httpClientFactory,
         string elasticsearchUrl,
         string indexPattern,
         int windowMinutes,
-        int threshold)
+        int threshold,
+        string? username,
+        string? password)
     {
         _httpClientFactory = httpClientFactory;
         _elasticsearchUrl = elasticsearchUrl.TrimEnd('/');
         _indexPattern = indexPattern;
         _windowMinutes = windowMinutes;
         _threshold = threshold;
+
+        // Elasticsearch'te kimlik doğrulama açık. Kullanıcı adı verilmemişse
+        // başlık eklenmiyor: güvenliğin kapalı olduğu bir kurulumda da çalışsın.
+        if (!string.IsNullOrEmpty(username))
+        {
+            var credentials = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{username}:{password}"));
+
+            _authorization = new AuthenticationHeaderValue("Basic", credentials);
+        }
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(
@@ -65,8 +80,15 @@ internal sealed class ErrorRateHealthCheck : IHealthCheck
                 }
             };
 
-            using var response = await client.PostAsJsonAsync(
-                $"{_elasticsearchUrl}/{_indexPattern}/_count", query, cancellationToken);
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post, $"{_elasticsearchUrl}/{_indexPattern}/_count")
+            {
+                Content = JsonContent.Create(query)
+            };
+
+            request.Headers.Authorization = _authorization;
+
+            using var response = await client.SendAsync(request, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
