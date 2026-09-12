@@ -367,21 +367,17 @@ services:
     networks:
       - apisix
 
-  # 7.3.7'den (2020) yükseltildi: o sürümün "legacy" uyarı sistemi yalnızca grafik
-  # panellerinde çalışıyor ve Elasticsearch'ü uyarı kaynağı olarak desteklemiyordu.
-  # Güncel sürümün birleşik uyarı sistemi ücretsiz ve Slack/e-posta gönderebiliyor.
+  # Yalnızca PANO için. Uyarılar buradan değil, sağlık kontrollerinden çıkıyor
+  # (bkz. docker/grafana/provisioning/alerting/README.md).
   #
-  # Kibana neden değil: Elasticsearch lisansı "basic" ve Kibana'da uyarı kuralı
-  # tanımlanabiliyor ama bildirim gönderecek bağlayıcıların çoğu ücretli katmanda.
+  # 7.3.7'den (2020) yükseltildi: o sürüm Elasticsearch'ü veri kaynağı olarak
+  # düzgün desteklemiyordu, grafik çizilemiyordu.
   grafana:
     image: grafana/grafana:11.4.0
     container_name: grafana
     restart: always
     ports:
       - "3000:3000"
-    environment:
-      # Uyarı bildirimleri sağlık paneliyle aynı Slack kanalına gidiyor.
-      - GF_SLACK_WEBHOOK_URL=${HEALTH_WEBHOOK_URL:-}
     volumes:
       # Veri kaynakları ve uyarı kuralları dosyadan geliyor; arayüzden yapılan
       # değişiklikler container yeniden yaratılınca kaybolur, bunlar kalır.
@@ -527,6 +523,13 @@ services:
       - HealthChecksUI__HealthChecks__4__Uri=http://identity-outbox-worker:8080/health
       - HealthChecksUI__HealthChecks__5__Name=Notification Inbox Worker
       - HealthChecksUI__HealthChecks__5__Uri=http://notification-inbox-worker:8080/health
+      # Kendini de izliyor: içindeki "hata oranı" kontrolü sistem geneline ait bir
+      # soru soruyor ve Unhealthy olduğunda diğer uyarılarla aynı webhook'tan çıkıyor.
+      - HealthChecksUI__HealthChecks__6__Name=Log Hata Oranı
+      - HealthChecksUI__HealthChecks__6__Uri=http://healthcheck-api:8080/health
+      - Elasticsearch__Url=http://elasticsearch:9200
+      - Alerting__ErrorRate__WindowMinutes=5
+      - Alerting__ErrorRate__Threshold=10
       # Bir process Unhealthy'ye düştüğünde bildirim gider (dead-letter dahil).
       # HEALTH_WEBHOOK_URL .env'de tanımlanır; boşsa bildirim kurulmaz ve panel
       # yalnızca görsel uyarı verir. Slack/Discord webhook adresi gizli bilgidir,
@@ -539,6 +542,8 @@ services:
       # service_started bilinçli: panelin görevi servisleri izlemek, bu yüzden
       # onlar sağlıksızken de ayakta olmalı — sağlıklı olmalarını beklerse
       # tam ihtiyaç duyulduğu anda başlamaz.
+      elasticsearch:
+        condition: service_started
       news-service:
         condition: service_started
       identity-service:

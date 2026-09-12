@@ -155,6 +155,36 @@ public sealed class AppHealthChecksBuilder
     }
 
     /// <summary>
+    /// Son N dakikadaki hata sayısı. Eşiği aşarsa Unhealthy.
+    ///
+    /// Diğer kontroller DURUM soruyor ("Postgres ayakta mı"), bu DESEN soruyor
+    /// ("hata oranı fırladı mı"). Bir bağımlılık çökmeden de sistem bozulabilir:
+    /// hatalı bir deploy'da her istek 500 dönerken bağımlılık kontrollerinin
+    /// hepsi yeşil kalır.
+    ///
+    /// Bu kontrol yalnızca HealthCheck.Api'de kayıtlı, tek tek servislerde değil:
+    /// soru sistem geneline ait, tek bir servise değil. Eşiği her serviste ayrı
+    /// uygulamak "hangi servis kaç hata verdi" sorusuna kayardı.
+    /// </summary>
+    public AppHealthChecksBuilder AddErrorRate(
+        string elasticsearchUrl,
+        string indexPattern = "logs-*",
+        int windowMinutes = 5,
+        int threshold = 10)
+    {
+        _builder.Add(new HealthCheckRegistration(
+            name: "hata-orani",
+            factory: sp => new ErrorRateHealthCheck(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                elasticsearchUrl, indexPattern, windowMinutes, threshold),
+            failureStatus: HealthStatus.Unhealthy,
+            tags: [HealthCheckTags.Dependency],
+            timeout: CheckTimeout));
+
+        return this;
+    }
+
+    /// <summary>
     /// Dead-letter'a düşmüş mesaj sayısı. Sıfırdan büyükse Unhealthy.
     ///
     /// ETİKET BİLİNÇLİ OLARAK Dependency, Ready DEĞİL:

@@ -1,3 +1,4 @@
+using HealthCheck.Registration;
 using HealthChecks.UI.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,22 @@ using Microsoft.EntityFrameworkCore;
 // container başına sinyal istiyor, dışarıdan üretilemez.
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHttpClient();
+
+// Bu servisin KENDİ sağlık ucu. İçindeki tek kontrol sistem geneline ait bir
+// soruyu soruyor: son 5 dakikada hata oranı fırladı mı?
+//
+// Tek tek servislere değil buraya konuldu çünkü soru global. Ayrıca bu servis
+// kendini de izlenen uçlar listesine ekliyor (bkz. docker-compose.yml): kontrol
+// Unhealthy olduğunda panel kırmızıya döner ve mevcut webhook Slack'e yollar —
+// yani hata oranı uyarısı diğer uyarılarla AYNI yoldan çıkıyor.
+builder.Services.AddAppHealthChecks(builder.Configuration)
+    .AddErrorRate(
+        elasticsearchUrl: builder.Configuration["Elasticsearch:Url"] ?? "http://elasticsearch:9200",
+        indexPattern: builder.Configuration["Alerting:ErrorRate:IndexPattern"] ?? "logs-*",
+        windowMinutes: builder.Configuration.GetValue("Alerting:ErrorRate:WindowMinutes", 5),
+        threshold: builder.Configuration.GetValue("Alerting:ErrorRate:Threshold", 10));
 
 builder.Services
     .AddHealthChecksUI(settings =>
@@ -41,6 +58,9 @@ var app = builder.Build();
 
 // Panel kök adreste.
 app.MapHealthChecksUI(options => options.UIPath = "/");
+
+// Kendi sağlık uçları: /health, /health/live, /health/ready.
+app.MapAppHealthChecks();
 
 // Toplu durum, makine tarafından okunabilir biçimde. Panel bir insan arayüzü;
 // bu uç script'ler, izleme araçları ve Grafana gibi tüketiciler için.
