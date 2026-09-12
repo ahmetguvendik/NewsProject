@@ -1,0 +1,22 @@
+# Panolar dosyadan yükleniyor, arayüzden değil.
+#
+# Sebep: Kibana'da API üzerinden pano kurmuştum ve bozuk çıkmıştı — sayfayı
+# çökerten bir panel tanımı. Ayrıca arayüzden kurulan panolar container yeniden
+# yaratılınca kaybolur. Dosyada durunca hem repoda kalıyor hem gözden geçirilebiliyor.
+
+apiVersion: 1
+
+providers:
+  - name: newsproject
+    orgId: 1
+    folder: Uygulama
+    type: file
+    disableDeletion: false
+
+    # Arayüzden düzenlemeye izin veriliyor ama kaydedilen değişiklik dosyaya
+    # yazılmaz; kalıcı olması için bu klasördeki JSON güncellenmeli.
+    allowUiUpdates: true
+
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

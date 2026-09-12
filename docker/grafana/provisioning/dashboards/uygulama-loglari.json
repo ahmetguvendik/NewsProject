@@ -1,0 +1,252 @@
+{
+  "uid": "newsproject-loglar",
+  "title": "Uygulama Logları",
+  "description": "Elasticsearch'teki loglardan üretilen eğilim grafikleri. Tek tek kayıtlar için Kibana, anlık durum için sağlık paneli (:9095).",
+  "tags": [
+    "newsproject"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Servis başına log hacmi",
+      "description": "Bir servis aniden sessizleşirse çizgisi düşer. Sağlık kontrolü bunu yakalamaz: servis ayakta, sadece iş yapmıyor olabilir.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "query": "",
+          "alias": "",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "3",
+              "type": "terms",
+              "field": "service.name",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "0"
+              }
+            },
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Hata sayısı",
+      "description": "Uyarı eşiği aşıldığında bildirim gidiyor; burada asıl görünen TREND. Yavaş yavaş mı artıyor yoksa bir anda mı sıçradı?",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "query": "log.level:Error",
+          "alias": "",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Komut süreleri (ortalama)",
+      "description": "CommandLoggingBehavior her komutun süresini metadata.ElapsedMs olarak yazıyor. Tek bir log satırına bakarak 'bu komut yavaşlıyor mu' sorusu cevaplanamaz.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "query": "",
+          "alias": "",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "avg",
+              "field": "metadata.ElapsedMs"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "3",
+              "type": "terms",
+              "field": "labels.CommandName",
+              "settings": {
+                "size": "8",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "0"
+              }
+            },
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "En sık komutlar",
+      "description": "Hangi işlemler ne sıklıkla yapılıyor.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "elasticsearch"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "elasticsearch"
+          },
+          "query": "",
+          "alias": "",
+          "timeField": "@timestamp",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "3",
+              "type": "terms",
+              "field": "labels.CommandName",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "0"
+              }
+            }
+          ]
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {}
+    }
+  ]
+}
