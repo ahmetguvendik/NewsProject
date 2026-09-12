@@ -59,22 +59,6 @@ export function UsersPage() {
     }
   }
 
-  const remove = async (user: AppUser) => {
-    if (!confirm(`${user.email} silinsin mi? DB'de soft-delete, Keycloak'ta devre dışı bırakılır.`)) return
-
-    setBusyId(user.id)
-    setError(null)
-    try {
-      await identityApi.deleteUser(user.id)
-      // Sayfadaki son kullanıcı silindiyse ve bu ilk sayfa değilse bir önceki sayfaya dön
-      if (users.length === 1 && page > 1) setPage(page - 1)
-      else await load()
-    } catch (err) {
-      setError(err)
-    } finally {
-      setBusyId(null)
-    }
-  }
 
   const toggleActive = async (user: AppUser) => {
     // Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir
@@ -165,13 +149,6 @@ export function UsersPage() {
                         title={user.isActive ? 'Kullanıcı login edemez hale gelir' : 'Kullanıcı tekrar login edebilir'}
                       >
                         {user.isActive ? 'Pasife al' : 'Aktif et'}
-                      </button>
-                      <button
-                        className="btn btn--sm btn--danger"
-                        disabled={busyId === user.id}
-                        onClick={() => remove(user)}
-                      >
-                        Sil
                       </button>
                     </div>
                   </td>

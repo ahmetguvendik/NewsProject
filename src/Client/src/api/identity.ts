@@ -16,7 +16,6 @@ export const identityApi = {
   listUsers: (page = 1, pageSize = 20) =>
     api.get<PagedResult<AppUser>>(`/api/user?page=${page}&pageSize=${pageSize}`),
   getUser: (id: string) => api.get<AppUser>(`/api/user/${id}`),
-  deleteUser: (id: string) => api.del<void>(`/api/user/${id}`),
 
   /** Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir. Reversible. */
   deactivateUser: (id: string) => api.post<void>(`/api/user/${id}/deactivate`),

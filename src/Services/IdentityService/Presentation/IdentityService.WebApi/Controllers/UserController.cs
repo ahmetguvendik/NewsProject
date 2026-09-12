@@ -143,14 +143,6 @@ public class UserController : ControllerBase
     }
 
     [Authorize(Roles = "admin")]
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
-    {
-        await _mediator.Send(new DeleteUserCommand { Id = id }, cancellationToken);
-        return NoContent();
-    }
-
-    [Authorize(Roles = "admin")]
     [HttpPost("roles")]
     public async Task<IActionResult> AssignRole([FromBody] AssignRoleCommand command, CancellationToken cancellationToken)
     {

@@ -31,10 +31,19 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
         var user = await _userRepository.GetByIdAsync(request.UserId.ToString(), cancellationToken)
             ?? throw NotFoundException.User(request.UserId);
 
-        if (user.IsActive)
-            return; // zaten aktif — idempotent
-
+        // Keycloak HER ZAMAN etkinleştiriliyor, IsActive'e bakılmadan.
+        //
+        // Önce "zaten aktif" ise hemen dönülüyordu. Bu, veritabanı ile Keycloak
+        // ayrıştığında kullanıcıyı kurtarılamaz hale getiriyordu: IsActive=true
+        // ama Keycloak devre dışıysa, "Aktif et" hiçbir şey yapmadan dönüyor ve
+        // giriş engeli kalkmıyordu. Ayrışma normal akışta oluşmamalı ama Keycloak
+        // elle de yönetilebiliyor.
+        //
+        // Çağrı idempotent: zaten etkin bir kullanıcıyı etkinleştirmek zararsız.
         await _keycloakAdminClient.EnableUserAsync(user.KeycloakId, cancellationToken);
+
+        if (user.IsActive)
+            return; // DB zaten güncel — gereksiz yazma ve önbellek düşürme atlanıyor
 
         try
         {
