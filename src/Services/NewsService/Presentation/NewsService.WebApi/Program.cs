@@ -8,6 +8,7 @@ using NewsService.Persistance.Contexts;
 using NewsService.WebApi.Infrastructure;
 using Shared.Extensions;
 using HealthCheck.Registration;
+using NewsService.WebApi.Infrastructure;
 using Shared.Models;
 using System.Text.Json;
 
@@ -106,6 +107,14 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Pasife alınmış kullanıcının admin işlemlerini reddeder.
+//
+// UseAuthorization'dan SONRA: rol kontrolü zaten geçmiş olmalı, buradaki kontrol
+// "rolü var ama hesabı kapatılmış" durumunu yakalıyor. Token geri alınamadığı için
+// Keycloak'ta devre dışı bırakmak tek başına yetmiyordu — pasife alınan bir admin
+// kendi token'ıyla kendini yeniden aktif edebiliyordu.
+app.UseMiddleware<DisabledUserGuard>();
 app.MapControllers();
 app.MapAppHealthChecks();
 

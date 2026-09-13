@@ -4,6 +4,7 @@ using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
 using MediatR;
 using Shared.Exceptions;
+using Shared.Security;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
@@ -54,6 +55,16 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
             // IsActive profilde dönüyor. Telafi bloğunun içinde: DB yazması
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
+
+            // Kullanıcının ELİNDEKİ token süresi dolana kadar geçerli kalıyor ve
+            // yalnızca Keycloak'ta devre dışı bırakmak onu durdurmuyordu: pasife
+            // alınan bir admin kendi token'ıyla kendini yeniden aktif edebiliyordu.
+            // Bu kayıt, admin yetkisi isteyen uçların isteği reddetmesini sağlıyor.
+            await _cache.SetAsync(
+                DisabledUsers.Key(user.KeycloakId),
+                "1",
+                DisabledUsers.Retention,
+                cancellationToken);
         }
         catch
         {

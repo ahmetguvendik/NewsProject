@@ -4,6 +4,7 @@ using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
 using MediatR;
 using Shared.Exceptions;
+using Shared.Security;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
@@ -54,6 +55,11 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
             // IsActive profilde dönüyor. Telafi bloğunun içinde: DB yazması
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
+
+            // Pasif listesinden çıkar; aksi halde kullanıcı yeniden aktif edilse
+            // bile kaydın TTL'i dolana kadar admin uçlarından reddedilmeye
+            // devam ederdi.
+            await _cache.RemoveAsync(DisabledUsers.Key(user.KeycloakId), cancellationToken);
         }
         catch
         {

@@ -5,6 +5,7 @@ using IdentityService.Persistance.Contexts;
 using IdentityService.WebApi.Infrastructure;
 using Shared.Extensions;
 using HealthCheck.Registration;
+using IdentityService.WebApi.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
@@ -107,6 +108,14 @@ app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Pasife alınmış kullanıcının admin işlemlerini reddeder.
+//
+// UseAuthorization'dan SONRA: rol kontrolü zaten geçmiş olmalı, buradaki kontrol
+// "rolü var ama hesabı kapatılmış" durumunu yakalıyor. Token geri alınamadığı için
+// Keycloak'ta devre dışı bırakmak tek başına yetmiyordu — pasife alınan bir admin
+// kendi token'ıyla kendini yeniden aktif edebiliyordu.
+app.UseMiddleware<DisabledUserGuard>();
 app.MapControllers();
 app.MapAppHealthChecks();
 
