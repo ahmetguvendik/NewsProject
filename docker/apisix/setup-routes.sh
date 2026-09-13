@@ -157,9 +157,25 @@ put_health_route 31 "/health/identity"     "identity-service"     "/health"
 put_health_route 32 "/health/notification" "notification-service" "/health"
 
 # ─── Sıkı limitli uçlar ────────────────────────────────────────────────
-# Kayıt: sahte hesap seline karşı saatte 3. Gerçek bir kullanıcı bir kez kaydolur.
-put_exact_route 10 "/api/auth/register" "identity-service" 3 3600 \
-  "Çok fazla kayıt denemesi yaptınız." "Lütfen bir saat sonra tekrar deneyin."
+# Kayıt: sahte hesap seline karşı.
+#
+# ÖNCEDEN SAATTE 3'TÜ VE KULLANILAMAZ HALDEYDİ. Sayaç isteğin SONUCUNA bakmıyor —
+# APISIX sınırı yanıt üretilmeden önce uyguluyor, dolayısıyla doğrulamaya takılan
+# denemeler de kotadan düşüyordu. E-postasını üç kez yanlış yazan bir kullanıcı
+# bir saat boyunca hiç kaydolamıyordu; yani sınır kötü niyetliyi değil, acemi
+# kullanıcıyı cezalandırıyordu.
+#
+# Pencere kısaltıldı ve kota genişletildi: elini yanlış atan kullanıcının beş
+# denemesi var ve takılırsa bir saat değil on dakika bekliyor. Kötüye kullanım
+# tarafında kayıp küçük — saatte 3 yerine 30 hesap, ki sahte hesap seline karşı
+# asıl caydırıcı zaten e-posta doğrulaması olmalı (henüz yok, ayrı bir iş).
+#
+# NOT: sayaç remote_addr üzerinden ve APISIX şu an uçta duruyor, yani bu gerçek
+# istemci adresi. Öne bir yük dengeleyici konulursa herkes tek kotayı paylaşır;
+# o zaman anahtarın X-Forwarded-For'a taşınması ve APISIX'in real_ip_from
+# ayarının o proxy'yi kapsaması gerekir (bkz. apisix_conf/config.yaml).
+put_exact_route 10 "/api/auth/register" "identity-service" 5 600 \
+  "Çok fazla kayıt denemesi yaptınız." "Lütfen on dakika sonra tekrar deneyin."
 
 # Yükleme izni: depo şişirmeye karşı. Bir haber genelde tek görsel alır.
 put_exact_route 11 "/api/media/upload-url" "news-service" 20 60 \

@@ -50,7 +50,19 @@ public sealed class UserEnricher : ILogEventEnricher
 
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
-        var user = _httpContextAccessor.HttpContext?.User;
+        var context = _httpContextAccessor.HttpContext;
+        if (context is null)
+            return;
+
+        // IP, kimlik kontrolünden ÖNCE yazılıyor. Sebebi: en çok ihtiyaç duyulan
+        // satırlar anonim olanlar — başarısız giriş denemeleri, kayıt selleri,
+        // hız sınırına takılan istekler. Bunların hiçbirinde token yok; kontrolden
+        // sonra yazılsaydı tam da soruşturulması gereken trafik IP'siz kalırdı.
+        var clientIp = ResolveClientIp(context);
+        if (!string.IsNullOrEmpty(clientIp))
+            logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("client.ip", clientIp));
+
+        var user = context.User;
 
         if (user?.Identity?.IsAuthenticated != true)
             return;
@@ -60,5 +72,38 @@ public sealed class UserEnricher : ILogEventEnricher
         var keycloakId = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!string.IsNullOrEmpty(keycloakId))
             logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("actor.id", keycloakId));
+    }
+
+    /// <summary>
+    /// İsteği yapanın gerçek IP'si.
+    ///
+    /// <c>RemoteIpAddress</c> TEK BAŞINA YETMİYOR: servisler APISIX'in arkasında
+    /// duruyor, dolayısıyla o alan her istekte gateway container'ının IP'sini
+    /// gösterir — tüm satırlar aynı adresi taşır ve alan işe yaramaz. Gerçek
+    /// adres APISIX'in eklediği başlıkta geliyor.
+    ///
+    /// X-Forwarded-For bir zincir olabilir ("istemci, proxy1, proxy2"); ilk
+    /// girdi en dıştaki istemcidir.
+    ///
+    /// GÜVENİLİRLİK SINIRI: bu başlıklar istemci tarafından uydurulabilir. Burada
+    /// sorun değil çünkü değer yalnızca LOGLANIYOR, yetkilendirmede kullanılmıyor;
+    /// ayrıca servis portları dışarı açılmadığı için istekler APISIX'ten geçmek
+    /// zorunda ve APISIX başlığı kendi gördüğü adresle yeniden yazıyor. Bu alan
+    /// ileride bir karara (engelleme, hız sınırı) dayanak yapılacaksa, o zaman
+    /// yalnızca güvenilen proxy'lerden gelen başlığa itibar edilmeli.
+    /// </summary>
+    private static string? ResolveClientIp(HttpContext context)
+    {
+        var forwardedFor = context.Request.Headers["X-Forwarded-For"].ToString();
+
+        if (!string.IsNullOrWhiteSpace(forwardedFor))
+            return forwardedFor.Split(',')[0].Trim();
+
+        var realIp = context.Request.Headers["X-Real-IP"].ToString();
+
+        if (!string.IsNullOrWhiteSpace(realIp))
+            return realIp.Trim();
+
+        return context.Connection.RemoteIpAddress?.ToString();
     }
 }
