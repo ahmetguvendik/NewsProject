@@ -6,6 +6,7 @@ import { CoverImage } from '../components/CoverImage'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { Pagination } from '../components/Pagination'
 import { coverStyle } from '../lib/cover'
+import { displayAuthor, useAuthorNames } from '../lib/useAuthorNames'
 import { formatDate } from '../lib/format'
 import type { ArticleSummary, Category } from '../types'
 
@@ -85,6 +86,11 @@ export function ArticlesPage() {
     void load()
   }, [load])
 
+  // Listedeki tüm yazarlar TEK dizin isteğiyle çözülüyor — kart başına ayrı
+  // istek atılsaydı bir sayfa 20 çağrı üretirdi. Yalnızca içeriği yönetenler
+  // yazarı gördüğü için okuyucu bu isteği hiç yapmıyor.
+  const authorNames = useAuthorNames(canEdit ? articles.map((a) => a.authorKeycloakId) : [])
+
   /** Filtre değişince sayfa 1'e döner; yoksa 3. sayfadayken filtreleyip boş liste görülebilir. */
   const applyFilter = (next: { q?: string; kategori?: string; sayfa?: number }) => {
     const params: Record<string, string> = {}
@@ -139,7 +145,19 @@ export function ArticlesPage() {
               {article.isPublished ? 'Yayında' : 'Taslak'}
             </span>
           )}
-          <span className="meta">{formatDate(dateOf(article))}</span>
+          <span className="meta">
+            {formatDate(dateOf(article))}
+            {/* Yazar yalnızca içeriği yönetenlere gösteriliyor.
+                Sebebi düğmelerin anlaşılır olması: editör başkasının taslağını
+                düzenleyemiyor ve Düzenle düğmesi o kartta hiç çizilmiyor. Yazar
+                adı olmadan bu "bozuk" gibi görünüyordu; adla birlikte neden
+                dokunamadığı kendiliğinden anlaşılıyor. */}
+            {canEdit && (
+              <span className="meta__dot">
+                {displayAuthor(authorNames, article.authorKeycloakId)}
+              </span>
+            )}
+          </span>
         </div>
 
         {canEdit && (
