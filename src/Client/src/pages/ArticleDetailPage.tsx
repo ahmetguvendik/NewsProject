@@ -11,7 +11,7 @@ import type { ArticleDetail } from '../types'
 
 export function ArticleDetailPage() {
   const { id = '' } = useParams()
-  const { hasRole } = useAuth()
+  const { hasRole, session } = useAuth()
 
   const [article, setArticle] = useState<ArticleDetail | null>(null)
   const [error, setError] = useState<unknown>(null)
@@ -81,7 +81,11 @@ export function ArticleDetailPage() {
 
       <div className="row row--wrap">
         <Link className="btn" to="/">← Akışa dön</Link>
-        {hasRole('editor', 'admin') && (
+        {/* Admin her haberi; editör yalnızca kendi yayınlanmamış taslağını.
+            Aynı kural sunucuda da var — buradaki 403 dönecek bir düğmeyi
+            göstermemek için. */}
+        {(hasRole('admin') ||
+          (!article.isPublished && article.authorKeycloakId === session?.sub)) && (
           <Link className="btn" to={`/haber/${article.id}/duzenle`}>Düzenle</Link>
         )}
       </div>

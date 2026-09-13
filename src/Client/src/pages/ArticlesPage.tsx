@@ -25,7 +25,7 @@ const CARD_COVER_SIZES = '(max-width: 666px) 100vw, (max-width: 984px) 50vw, 380
 const LEAD_COVER_SIZES = '(max-width: 860px) 100vw, 610px'
 
 export function ArticlesPage() {
-  const { hasRole } = useAuth()
+  const { hasRole, session } = useAuth()
   const navigate = useNavigate()
 
   // Filtre ve sayfa durumu URL'de tutuluyor — sayfa yenilense de kaybolmuyor,
@@ -46,6 +46,18 @@ export function ArticlesPage() {
   // (Asıl filtreleme backend'de, token'daki role bakılarak yapılıyor.)
   const canEdit = hasRole('editor', 'admin')
   const canPublish = hasRole('admin')
+
+  // Silme ve yayınlama yalnızca admin'de.
+  const isAdmin = hasRole('admin')
+
+  // Editör yalnızca KENDİ yazdığı ve HENÜZ YAYINLANMAMIŞ haberi düzenleyebilir.
+  // Yayına çıkmış haber okuyucunun gördüğü şey; değiştirme kararı admin'in.
+  //
+  // Aynı kural sunucuda da uygulanıyor (UpdateArticleCommandHandler) — buradaki
+  // kontrol yetkilendirme değil, basıldığında 403 dönecek bir düğmeyi hiç
+  // göstermemek için.
+  const canEditArticle = (article: ArticleSummary) =>
+    isAdmin || (!article.isPublished && article.authorKeycloakId === session?.sub)
 
   const load = useCallback(async () => {
     setError(null)
@@ -141,7 +153,10 @@ export function ArticlesPage() {
                 {busyId === article.id ? 'Yayınlanıyor…' : 'Yayınla'}
               </button>
             )}
-            <Link className="btn btn--sm" to={`/haber/${article.id}/duzenle`}>Düzenle</Link>
+            {canEditArticle(article) && (
+              <Link className="btn btn--sm" to={`/haber/${article.id}/duzenle`}>Düzenle</Link>
+            )}
+            {isAdmin && (
             <button
               className="btn btn--sm btn--danger"
               disabled={busyId === article.id}
@@ -153,6 +168,7 @@ export function ArticlesPage() {
             >
               Sil
             </button>
+            )}
           </div>
         )}
       </div>

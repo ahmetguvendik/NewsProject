@@ -24,6 +24,11 @@ export function ArticleEditorPage() {
   const [tagIds, setTagIds] = useState<string[]>([])
   const [notifySubscribers, setNotifySubscribers] = useState(false)
 
+  // Etiket kataloğunun yüklenip yüklenmediği. Aşağıdaki "silinmiş etiket" tespiti
+  // buna bakmak zorunda: katalog daha gelmemişken makalenin BÜTÜN etiketleri
+  // katalogda yokmuş gibi görünür ve uyarı boş yere çıkardı.
+  const [tagsLoaded, setTagsLoaded] = useState(false)
+
   const [policy, setPolicy] = useState<MediaPolicy | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -36,6 +41,7 @@ export function ArticleEditorPage() {
       .then(([nextCategories, nextTags]) => {
         setCategories(nextCategories)
         setTags(nextTags)
+        setTagsLoaded(true)
         setCategoryId((current) => current || nextCategories[0]?.id || '')
       })
       .catch(setError)
@@ -101,6 +107,23 @@ export function ArticleEditorPage() {
       current.includes(tagId) ? current.filter((value) => value !== tagId) : [...current, tagId],
     )
 
+  // Makalenin taşıdığı ama katalogda ARTIK OLMAYAN etiketler — yani makaleye
+  // iliştirildikten sonra silinmiş olanlar.
+  //
+  // Neden ayrıca hesaplanıyor: kutucuklar katalogdan çiziliyor, dolayısıyla silinmiş
+  // bir etiketin kutucuğu hiç çizilmiyor. Kullanıcı onu ekranda göremediği için
+  // işaretini de kaldıramıyor; ama kimliği state'te durduğu ve her kaydetmede geri
+  // gönderildiği için sunucu 404 TAG_NOT_FOUND dönüyordu. Sonuç: makale arayüzden
+  // bir daha ASLA kaydedilemiyordu — çıkış yolu yoktu.
+  //
+  // Her render'da yeniden türetiliyor, state'e yazılmıyor: katalog ile makale iki
+  // ayrı istekle geliyor ve hangisinin önce döneceği belli değil.
+  const knownTagIds = new Set(tags.map((tag) => tag.id))
+  const missingTagIds = tagsLoaded ? tagIds.filter((tagId) => !knownTagIds.has(tagId)) : []
+
+  // Sunucuya yalnızca kullanıcının ekranda görüp değiştirebildiği etiketler gidiyor.
+  const submittableTagIds = tagsLoaded ? tagIds.filter((tagId) => knownTagIds.has(tagId)) : tagIds
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setSaving(true)
@@ -115,7 +138,7 @@ export function ArticleEditorPage() {
           summary: summary || null,
           imageUrl: imageValue || null,
           categoryId,
-          tagIds,
+          tagIds: submittableTagIds,
         })
         navigate(`/haber/${id}`)
       } else {
@@ -125,7 +148,7 @@ export function ArticleEditorPage() {
           summary: summary || null,
           imageUrl: imageValue || null,
           categoryId,
-          tagIds,
+          tagIds: submittableTagIds,
           notifySubscribers,
         })
         navigate(`/haber/${created.id}`)
@@ -212,6 +235,15 @@ export function ArticleEditorPage() {
                 </label>
               ))}
             </div>
+          )}
+          {missingTagIds.length > 0 && (
+            // Sessizce düşürmek yerine söylüyoruz: kullanıcı kaydettiğinde makalenin
+            // etiketlerinin değişeceğini bilsin. Etiket zaten silinmiş durumda, yani
+            // geri getirilebilecek bir şey yok — yapılabilecek tek şey haber vermek.
+            <p className="field__hint">
+              Bu makaledeki {missingTagIds.length} etiket silinmiş. Kaydettiğinizde
+              makaleden de çıkarılacak.
+            </p>
           )}
           {isEdit && (
             <p className="field__hint">

@@ -38,6 +38,23 @@ public class UpdateArticleCommandHandler : IRequestHandler<UpdateArticleCommand,
         var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Article(request.Id);
 
+        // ── Yetki: admin her haberi, editör yalnızca kendi taslağını ──────
+        //
+        // Sıra önemli: önce "senin mi", sonra "yayında mı". Tersi olsaydı bir
+        // editör başkasının yayınlanmış haberini düzenlemeye çalıştığında
+        // "yayındaki haber düzenlenemez" cevabını alır ve haberin kendisine ait
+        // olmadığını değil, yalnızca yayında olduğunu öğrenirdi — yanıltıcı olurdu.
+        if (!request.EditorIsAdmin)
+        {
+            if (!string.Equals(article.AuthorKeycloakId, request.EditorKeycloakId, StringComparison.Ordinal))
+                throw ForbiddenException.NotArticleAuthor();
+
+            // Yayına çıkmış haber artık okuyucunun gördüğü şey; içeriğini sessizce
+            // değiştirmek editörün tek başına alabileceği bir karar değil.
+            if (article.IsPublished)
+                throw ForbiddenException.ArticleAlreadyPublished();
+        }
+
         // Yeni CategoryId veritabanında var mı?
         _ = await _categoryRepository.GetByIdAsync(request.CategoryId, cancellationToken)
             ?? throw NotFoundException.Category(request.CategoryId);
