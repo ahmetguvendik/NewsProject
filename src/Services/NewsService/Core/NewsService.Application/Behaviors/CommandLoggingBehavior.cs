@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using MediatR;
+using NewsService.Application.Auditing;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using Serilog.Core;
@@ -29,10 +30,14 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
     where TRequest : notnull
 {
     private readonly ILogger<CommandLoggingBehavior<TRequest, TResponse>> _logger;
+    private readonly IChangeAuditCollector _changes;
 
-    public CommandLoggingBehavior(ILogger<CommandLoggingBehavior<TRequest, TResponse>> logger)
+    public CommandLoggingBehavior(
+        ILogger<CommandLoggingBehavior<TRequest, TResponse>> logger,
+        IChangeAuditCollector changes)
     {
         _logger = logger;
+        _changes = changes;
     }
 
     public async Task<TResponse> Handle(
@@ -52,10 +57,27 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
         // Kimlik alanları log'a ayrı ayrı yazılıyor: aksi halde eylemin HEDEFİ
         // yalnızca url.path içine gömülü kalıyor ve aranamıyor. "Kim kimi pasife
         // aldı" sorusu, aktörü ekleyen UserEnricher ile birlikte cevaplanabiliyor.
+
+        // Veri değişiklikleri komutun KENDİ satırına yazılıyor, ayrı satırlara değil.
+        // ChangeAuditInterceptor bunları kaydetme sırasında topladı; handler bitmiş
+        // olduğu için toplayıcı artık dolu. Ayrı satırlar yazıldığında tek bir
+        // güncelleme loglarda üçe bölünüyor ve okuyan kişi parçaları trace.id ile
+        // birleştirmek zorunda kalıyordu.
+        var changes = _changes.Drain();
+
         using (LogContext.Push(new TargetFieldsEnricher(request, response, name)))
         {
-            _logger.LogInformation("{CommandName} tamamlandı ({ElapsedMs} ms).",
-                name, stopwatch.ElapsedMilliseconds);
+            if (changes.Count == 0)
+            {
+                _logger.LogInformation("{CommandName} tamamlandı ({ElapsedMs} ms).",
+                    name, stopwatch.ElapsedMilliseconds);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "{CommandName} tamamlandı ({ElapsedMs} ms). Değişenler: {Changes}",
+                    name, stopwatch.ElapsedMilliseconds, string.Join(" | ", changes));
+            }
         }
 
         return response;
@@ -146,6 +168,12 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
         /// </summary>
         private string? MapName(string propertyName) => propertyName switch
         {
+            // EYLEMİ YAPAN kişi hedef DEĞİL. Bu alanlar isteği yapanın kimliğini
+            // taşıyor ve "Id" ile bittikleri için aşağıdaki kural onları
+            // target.editorkeycloak.id gibi adlarla hedef sanıyordu — hem gürültü
+            // hem yanıltıcı. Yapanın kimliği zaten actor.id'de (UserEnricher).
+            "EditorKeycloakId" or "AuthorKeycloakId" => null,
+
             // Alan adı varlığı zaten söylüyor (UserId, RoleName) → doğrudan kullanılır.
             "RoleName" => "target.role.name",
 

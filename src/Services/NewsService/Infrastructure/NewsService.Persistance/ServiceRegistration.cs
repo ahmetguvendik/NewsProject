@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NewsService.Application.Auditing;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
+using NewsService.Persistance.Auditing;
 using NewsService.Persistance.Caching;
 using StackExchange.Redis;
 using NewsService.Persistance.External;
@@ -18,8 +20,18 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddPersistanceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<NewsServiceDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+        // Denetim kaydedicisi: her kaydetmede hangi alanın hangi değere geçtiğini
+        // yazıyor. Singleton değil scoped — ILogger enjekte ediyor ve DbContext
+        // ile aynı ömrü paylaşması gerekiyor.
+        // Toplayıcı interceptor ile CommandLoggingBehavior arasında paylaşılıyor;
+        // ikisi de aynı isteğin scope'unda olduğu için aynı örneği görüyor.
+        services.AddScoped<IChangeAuditCollector, ChangeAuditCollector>();
+        services.AddScoped<ChangeAuditInterceptor>();
+
+        services.AddDbContext<NewsServiceDbContext>((serviceProvider, options) =>
+            options
+                .UseNpgsql(configuration.GetConnectionString("DefaultConnection"))
+                .AddInterceptors(serviceProvider.GetRequiredService<ChangeAuditInterceptor>()));
 
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IArticleTagRepository, ArticleTagRepository>();
