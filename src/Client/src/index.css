@@ -188,6 +188,22 @@ button, input, textarea, select { font: inherit; }
   margin-bottom: 26px;
 }
 
+/*
+  Başlık sarmalayıcısı, içeriğinden geniş olamaz.
+
+  Bu tek satır olmadan .filters şeridi (aşağıda) kaydırılmak yerine SAYFAYI
+  genişletiyordu: şeritte overflow-x:auto tanımlı ama flex öğesi olan bu
+  sarmalayıcı içeriğinin altına daralmadığı için kaydırma hiç devreye girmiyor,
+  kapsayıcı büyüyüp belgeyi yatay kaydırılır hale getiriyordu. Kategori sayısı
+  ~20'yi geçtiğinde ya da dar ekranda görünür oluyordu; 375px'te 28 kategoriyle
+  belge 3179px'e çıkıyordu.
+
+  min-width:0 DENENDİ, YETMEDİ — asıl gereken içeriğe değil kapsayıcıya karşı
+  sınır koymak. flex-shrink:0 da gerekmiyor: .filters bir kaydırma kapsayıcısı
+  olduğu için rozetler zaten ezilmiyor.
+*/
+.page__head > div { max-width: 100%; }
+
 .page__title { font-size: 30px; font-weight: 700; letter-spacing: -.022em; margin: 0; }
 .page__sub { color: var(--text-dim); font-size: 13.5px; margin: 7px 0 0; }
 
