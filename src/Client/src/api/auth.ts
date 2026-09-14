@@ -4,6 +4,33 @@ const REALM = 'news-portal'
 const CLIENT_ID = 'news-portal-client'
 
 /**
+ * Keycloak'ın tarayıcıdan doğrudan erişilen adresi.
+ *
+ * Token istekleri /gw/kc proxy'sinden geçiyor ama parola sıfırlama TAM SAYFA
+ * GEZİNME: Keycloak kendi HTML'ini döndürüyor ve o sayfa kendi statik
+ * dosyalarına (/resources/...) mutlak yolla bağlanıyor. Proxy yolu /gw/kc'yi
+ * kırptığı için bu dosyalar 404 olur ve sayfa biçimsiz görünürdü.
+ *
+ * Üretimde VITE_KEYCLOAK_URL ile verilir; varsayılan yerel geliştirme içindir.
+ */
+const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL ?? 'http://localhost:8080'
+
+/**
+ * "Şifremi unuttum" akışının başlangıç adresi.
+ *
+ * Sıfırlama akışını Keycloak yürütüyor: jetonu o üretiyor, maili o gönderiyor,
+ * yeni parola formunu o gösteriyor. Uygulamanın tarafında yalnızca bu bağlantı
+ * var — bilerek, çünkü jeton güvenliğini (üretim, saklama, süre, tek kullanım)
+ * kendimiz yazmak yerine kimlik sağlayıcısına bırakıyoruz.
+ *
+ * Bedeli görünürde: kullanıcı Keycloak'ın varsayılan temasını görüyor. Tema
+ * özelleştirilerek uygulamanın görünümüne yaklaştırılabilir — ayrı bir iş.
+ */
+export const forgotPasswordUrl =
+  `${KEYCLOAK_URL}/realms/${REALM}/login-actions/reset-credentials` +
+  `?client_id=${encodeURIComponent(CLIENT_ID)}`
+
+/**
  * Keycloak "direct access grant" (password grant) ile token alır.
  *
  * Not: Parolanın SPA üzerinden geçmesi üretim için ideal değil; doğrusu

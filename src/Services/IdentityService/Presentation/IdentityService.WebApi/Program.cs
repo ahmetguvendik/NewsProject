@@ -28,6 +28,10 @@ builder.UseAppLogging("identity-service");
 // taraf birbirini tanımaz.
 builder.Services.AddAllElasticApm();
 
+// Keycloak'ın parola olaylarını kendi log hattımıza taşır. Parola sıfırlama
+// baştan sona Keycloak'ın içinde geçtiği için servislerimiz onu hiç görmüyordu.
+builder.Services.AddHostedService<KeycloakEventPoller>();
+
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {

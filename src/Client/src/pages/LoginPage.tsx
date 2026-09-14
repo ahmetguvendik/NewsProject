@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { forgotPasswordUrl } from '../api/auth'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
 
@@ -61,6 +62,15 @@ export function LoginPage() {
               required
             />
           </label>
+
+          {/* Parola alanının hemen altında: kullanıcı parolayı hatırlamadığını
+              tam da burada fark ediyor. Sıfırlamayı Keycloak yürüttüğü için bu
+              bir React yönlendirmesi değil, uygulamadan çıkan düz bir bağlantı. */}
+          <p className="field__hint" style={{ marginTop: -6, marginBottom: 16, textAlign: 'right' }}>
+            <a href={forgotPasswordUrl} style={{ color: 'var(--accent)' }}>
+              Şifremi unuttum
+            </a>
+          </p>
 
           <button className="btn btn--primary btn--block" disabled={busy}>
             {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}

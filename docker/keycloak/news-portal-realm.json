@@ -1,5 +1,20 @@
 {
   "realm": "news-portal",
+  "resetPasswordAllowed": true,
+  "eventsEnabled": true,
+  "eventsExpiration": 604800,
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "enabledEventTypes": [
+    "SEND_RESET_PASSWORD",
+    "SEND_RESET_PASSWORD_ERROR",
+    "RESET_PASSWORD",
+    "RESET_PASSWORD_ERROR",
+    "UPDATE_PASSWORD",
+    "UPDATE_PASSWORD_ERROR"
+  ],
+  "adminEventsEnabled": false,
   "enabled": true,
   "sslRequired": "none",
   "registrationAllowed": false,
@@ -7,7 +22,6 @@
   "duplicateEmailsAllowed": false,
   "accessTokenLifespan": 3600,
   "ssoSessionIdleTimeout": 3600,
-
   "bruteForceProtected": true,
   "permanentLockout": false,
   "failureFactor": 10,
@@ -41,8 +55,12 @@
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["*"],
-      "webOrigins": ["*"],
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
       "fullScopeAllowed": true
     }
   ]

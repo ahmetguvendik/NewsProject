@@ -69,6 +69,7 @@ public static class ErrorCodes
         public const string RoleAssignFailed    = "KEYCLOAK_ROLE_ASSIGN_FAILED";
         public const string RoleNotFound        = "KEYCLOAK_ROLE_NOT_FOUND";
         public const string AdminAuthFailed     = "KEYCLOAK_ADMIN_AUTH_FAILED";
+        public const string EventsReadFailed    = "KEYCLOAK_EVENTS_READ_FAILED";
     }
 
     // ─── General ─────────────────────────────────────────────────

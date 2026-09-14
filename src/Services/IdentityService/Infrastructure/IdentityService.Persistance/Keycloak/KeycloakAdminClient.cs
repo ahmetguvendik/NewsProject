@@ -229,6 +229,60 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         // Hata durumunda sessizce devam et — bu zaten compensating transaction
     }
 
+    public async Task<IReadOnlyList<KeycloakSecurityEvent>> GetSecurityEventsAsync(
+        IReadOnlyCollection<string> types,
+        int max,
+        CancellationToken cancellationToken = default)
+    {
+        var token = await GetAdminTokenAsync(cancellationToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // dateFrom/dateTo BİLEREK KULLANILMIYOR: Keycloak bu parametreleri gün
+        // hassasiyetinde alıyor, dolayısıyla "son yoklamadan beri" demeye yetmiyor
+        // ve her seferinde o günün tamamı dönerdi. Bunun yerine en yeni kayıtlar
+        // çekilip çağıran taraf zamana göre süzüyor.
+        var query = new StringBuilder($"?max={max}");
+
+        foreach (var type in types)
+            query.Append("&type=").Append(Uri.EscapeDataString(type));
+
+        var response = await _httpClient.GetAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/events{query}", cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.EventsReadFailed,
+                "güvenlik olaylarını okuma",
+                await ReadErrorAsync(response, cancellationToken));
+        }
+
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync(cancellationToken));
+
+        var events = new List<KeycloakSecurityEvent>();
+
+        foreach (var element in document.RootElement.EnumerateArray())
+        {
+            events.Add(new KeycloakSecurityEvent
+            {
+                Time = element.TryGetProperty("time", out var time) ? time.GetInt64() : 0,
+                Type = element.TryGetProperty("type", out var type) ? type.GetString() ?? string.Empty : string.Empty,
+                UserId = Read(element, "userId"),
+                IpAddress = Read(element, "ipAddress"),
+                ClientId = Read(element, "clientId")
+
+                // details OKUNMUYOR: e-posta ve kullanıcı adı içeriyor (bkz.
+                // KeycloakSecurityEvent). Loglara kişisel veri geri sızmasın.
+            });
+        }
+
+        return events;
+
+        static string? Read(JsonElement element, string name) =>
+            element.TryGetProperty(name, out var value) ? value.GetString() : null;
+    }
+
     private async Task<string> GetAdminTokenAsync(CancellationToken cancellationToken)
     {
         // admin-cli is a public client in Keycloak's master realm — it only supports
