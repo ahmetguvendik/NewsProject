@@ -1,12 +1,11 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { RoleBadges } from './RoleBadges'
 import { SearchBox } from './SearchBox'
+import { UserMenu } from './UserMenu'
 import { WeatherWidget } from './WeatherWidget'
 
 export function Layout() {
-  const { session, signOut, hasRole } = useAuth()
-  const navigate = useNavigate()
+  const { session, hasRole } = useAuth()
 
   const navClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'is-active' : '')
 
@@ -27,19 +26,7 @@ export function Layout() {
             <SearchBox />
 
             {session ? (
-              <div className="row" style={{ gap: 10 }}>
-                <span className="topbar__name">{session.fullName || session.email}</span>
-                <RoleBadges roles={session.roles} />
-                <button
-                  className="btn btn--sm btn--ghost"
-                  onClick={() => {
-                    signOut()
-                    navigate('/')
-                  }}
-                >
-                  Çıkış
-                </button>
-              </div>
+              <UserMenu />
             ) : (
               <div className="row" style={{ gap: 8 }}>
                 <NavLink to="/kayit" className="btn btn--sm btn--ghost">Kayıt ol</NavLink>
