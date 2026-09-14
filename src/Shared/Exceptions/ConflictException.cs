@@ -35,6 +35,19 @@ public class ConflictException : AppException
         "Bu adda bir kategori zaten var.",
         $"'{name}' adlı kategori mevcut. Farklı bir ad seçin.");
 
+    /// <summary>
+    /// Bağlı haberi olan kategori silinmek istendiğinde.
+    ///
+    /// Sayı mesaja KONULUYOR: "silinemez" tek başına admin'i çaresiz bırakıyor —
+    /// kaç haberi taşıması gerektiğini bilmeden işe nereden başlayacağını
+    /// kestiremez.
+    /// </summary>
+    public static ConflictException CategoryInUse(string name, int articleCount) => new(
+        ErrorCodes.Category.InUse,
+        "Bu kategori silinemez.",
+        $"'{name}' kategorisine bağlı {articleCount} haber var. " +
+        "Silmeden önce bu haberleri başka bir kategoriye taşıyın.");
+
     public static ConflictException TagAlreadyExists(string name) => new(
         ErrorCodes.Tag.AlreadyExists,
         "Bu adda bir etiket zaten var.",

@@ -40,6 +40,7 @@ public static class ErrorCodes
         public const string NotFound      = "CATEGORY_NOT_FOUND";
         public const string AlreadyExists = "CATEGORY_ALREADY_EXISTS";
         public const string NameRequired  = "CATEGORY_NAME_REQUIRED";
+        public const string InUse         = "CATEGORY_IN_USE";
     }
 
     // ─── Tag ─────────────────────────────────────────────────────
