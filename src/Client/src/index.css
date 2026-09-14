@@ -194,6 +194,50 @@ button, input, textarea, select { font: inherit; }
 .usermenu__item--danger { color: var(--danger); }
 .usermenu__item--danger:hover { background: var(--danger-wash); }
 
+/* ── Piyasa şeridi ────────────────────────────────────────────── */
+
+/*
+  Başlık çubuğuyla gezinme arasında ince bir şerit. Klasik haber sitesi yeri:
+  göz zaten oradan geçiyor ve dikey alandan çok az götürüyor.
+
+  Dar ekranda yatay kaydırılıyor — sarmak yerine. Dört değer alt alta sarsaydı
+  şerit iki üç satıra çıkıp başlığı aşağı iter, "ince şerit" olmaktan çıkardı.
+  Burada .page__head'deki daralma sorunu yok: .ticker__row'un ebeveyni blok,
+  flex değil, dolayısıyla genişliği zaten kapsayıcıya bağlı.
+*/
+.ticker {
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+
+.ticker__row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  height: 34px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ticker__row::-webkit-scrollbar { display: none; }
+
+.ticker__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.ticker__label { color: var(--text-faint); }
+.ticker__value { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Yatay değer sütunu yok ama rakamlar sayfa yenilendikçe değişiyor; tabular-nums
+   genişliğin oynamasını engelliyor. */
+.ticker__delta { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.ticker__delta.is-up { color: var(--live); }
+.ticker__delta.is-down { color: var(--danger); }
+
 .weather-chip { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
 
 .search-box {

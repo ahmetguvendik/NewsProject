@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { MarketTicker } from './MarketTicker'
 import { SearchBox } from './SearchBox'
 import { UserMenu } from './UserMenu'
 import { WeatherWidget } from './WeatherWidget'
@@ -35,6 +36,10 @@ export function Layout() {
             )}
           </div>
         </div>
+
+        {/* Piyasa şeridi: başlık çubuğuyla gezinme arasında. Veri yoksa
+            bileşen kendini gizliyor, bu yüzden koşul burada değil içeride. */}
+        <MarketTicker />
 
         <div className="container">
           <nav className="nav topbar__row2">

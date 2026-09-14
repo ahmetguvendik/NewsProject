@@ -68,6 +68,20 @@ public static class ServiceRegistration
         services.AddHttpClient<IWeatherClient, OpenMeteoWeatherClient>(client =>
             client.Timeout = weatherTimeout);
 
+        services.AddHttpClient<IMarketClient, YahooMarketClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://query1.finance.yahoo.com");
+
+            // User-Agent ZORUNLU: başlıksız isteklere Yahoo 403 dönüyor.
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(
+                "Mozilla/5.0 (compatible; Telgraf/1.0)");
+
+            // Kısa timeout: şerit süs, yavaş bir dış servis sayfayı bekletmemeli.
+            // Süre dolarsa istemci boş liste döner ve şerit gizlenir.
+            client.Timeout = TimeSpan.FromSeconds(
+                configuration.GetValue("Market:TimeoutSeconds", 5));
+        });
+
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
         // S3 client'ları pahalı ve thread-safe — istek başına yeniden kurulmamalı.
         services.AddSingleton<IStorageService, S3StorageService>();

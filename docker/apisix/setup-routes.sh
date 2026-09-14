@@ -190,6 +190,7 @@ put_route 4 "/api/category" "news-service"     300 60
 put_route 5 "/api/tag"      "news-service"     300 60
 put_route 6 "/api/media"    "news-service"      60 60
 put_route 7 "/api/weather"  "news-service"     300 60
+put_route 8 "/api/market"   "news-service"     300 60
 
 rm -f /tmp/route.json /tmp/upstream.json
 echo "APISIX route'ları ve rate limit'leri hazır."
