@@ -64,9 +64,9 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
             // göremez ve neden olduğunu anlayamazdı. Bedeli bir kez tekrar
             // giriş yapmak; karşılığı yetkinin hemen geçerli olması.
             await _cache.SetAsync(
-                TokenInvalidation.Key(user.KeycloakId),
-                TokenInvalidation.Value(DateTimeOffset.UtcNow, TokenInvalidation.ReasonRoles),
-                TokenInvalidation.Retention,
+                TokenRevocation.Key(user.KeycloakId),
+                TokenRevocation.Now(TokenRevocation.ReasonRoleChange),
+                TokenRevocation.Retention,
                 cancellationToken);
         }
         catch

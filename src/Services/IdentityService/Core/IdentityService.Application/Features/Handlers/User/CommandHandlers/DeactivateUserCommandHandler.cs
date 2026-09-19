@@ -61,9 +61,9 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
             // alınan bir admin kendi token'ıyla kendini yeniden aktif edebiliyordu.
             // Bu damga, servislerin o token'ları reddetmesini sağlıyor.
             await _cache.SetAsync(
-                TokenInvalidation.Key(user.KeycloakId),
-                TokenInvalidation.Value(DateTimeOffset.UtcNow, TokenInvalidation.ReasonDisabled),
-                TokenInvalidation.Retention,
+                TokenRevocation.Key(user.KeycloakId),
+                TokenRevocation.Now(TokenRevocation.ReasonAccountDisabled),
+                TokenRevocation.Retention,
                 cancellationToken);
         }
         catch

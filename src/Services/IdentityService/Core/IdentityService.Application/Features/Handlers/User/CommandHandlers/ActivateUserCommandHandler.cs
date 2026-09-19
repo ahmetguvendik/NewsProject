@@ -60,7 +60,7 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
             // kaydın TTL'i dolana kadar reddedilmeye devam ederdi. Damga
             // silinmese de yeni girişte üretilen token damgadan sonra doğduğu
             // için geçerli sayılırdı, ama o ana kadarki istekler boşa giderdi.
-            await _cache.RemoveAsync(TokenInvalidation.Key(user.KeycloakId), cancellationToken);
+            await _cache.RemoveAsync(TokenRevocation.Key(user.KeycloakId), cancellationToken);
         }
         catch
         {

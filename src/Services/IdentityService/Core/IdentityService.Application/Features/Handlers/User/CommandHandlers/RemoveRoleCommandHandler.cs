@@ -76,9 +76,9 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
             // Telafi bloğunun DIŞINDA değil içinde: DB yazması başarısız olursa
             // rol aslında kalkmamış demektir, damgaya da gerek yok.
             await _cache.SetAsync(
-                TokenInvalidation.Key(user.KeycloakId),
-                TokenInvalidation.Value(DateTimeOffset.UtcNow, TokenInvalidation.ReasonRoles),
-                TokenInvalidation.Retention,
+                TokenRevocation.Key(user.KeycloakId),
+                TokenRevocation.Now(TokenRevocation.ReasonRoleChange),
+                TokenRevocation.Retention,
                 cancellationToken);
         }
         catch

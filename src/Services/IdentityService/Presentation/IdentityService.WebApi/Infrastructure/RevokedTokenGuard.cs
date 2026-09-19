@@ -10,7 +10,7 @@ namespace IdentityService.WebApi.Infrastructure;
 ///
 /// ÇÖZDÜĞÜ SORUN: JWT geri alınamaz. Kullanıcı pasife alındığında ya da rolü
 /// değiştiğinde elindeki token süresi dolana kadar (1 saat) hiçbir şey olmamış
-/// gibi çalışıyor. Gerekçenin tamamı <see cref="TokenInvalidation"/> içinde.
+/// gibi çalışıyor. Gerekçenin tamamı <see cref="TokenRevocation"/> içinde.
 ///
 /// EN KRİTİK YER BURASI: pasife alma, aktif etme ve rol atama/kaldırma uçlarının
 /// hepsi bu serviste. "Kendini yeniden aktif etme" ve "kendine admin rolünü geri
@@ -81,7 +81,7 @@ public sealed class RevokedTokenGuard
             return;
         }
 
-        var disabled = reason == TokenInvalidation.ReasonDisabled;
+        var disabled = reason == TokenRevocation.ReasonAccountDisabled;
 
         _logger.LogWarning(
             "Geçersiz kılınmış token ile istek reddedildi [{Reason}]: {Path}",
@@ -114,23 +114,23 @@ public sealed class RevokedTokenGuard
 
         if (!_redis.IsConnected)
         {
-            _logger.LogWarning("Geçersiz token listesi okunamadı (Redis bağlı değil); istek geçirildi.");
+            _logger.LogWarning("İptal kaydı okunamadı (Redis bağlı değil); istek geçirildi.");
             return null;
         }
 
-        string? stamp;
+        string? raw;
         try
         {
-            stamp = await _redis.GetDatabase().StringGetAsync(TokenInvalidation.Key(keycloakId));
+            raw = await _redis.GetDatabase().StringGetAsync(TokenRevocation.Key(keycloakId));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Geçersiz token listesi okunamadı; istek geçirildi.");
+            _logger.LogWarning(ex, "İptal kaydı okunamadı; istek geçirildi.");
             return null;
         }
 
-        if (!TokenInvalidation.TryParse(stamp, out var invalidBefore, out var reason))
-            return null;
+        var revocation = TokenRevocation.Parse(raw);
+        if (revocation is null) return null;
 
         var issuedAt = IssuedAtUnix(context);
         if (issuedAt is null)
@@ -144,8 +144,8 @@ public sealed class RevokedTokenGuard
             return null;
         }
 
-        // Damgadan SONRA üretilmiş token geçerli: kullanıcı tekrar giriş yapmış.
-        return issuedAt.Value <= invalidBefore ? reason : null;
+        // Kayıttan SONRA üretilmiş token geçerli: kullanıcı tekrar giriş yapmış.
+        return revocation.Covers(issuedAt.Value) ? revocation.Reason : null;
     }
 
     /// <summary>
