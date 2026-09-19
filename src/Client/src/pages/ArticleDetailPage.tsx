@@ -18,6 +18,8 @@ export function ArticleDetailPage() {
   // Biçimi bozuk kimlik için istek hiç atılmıyor — gerekçesi lib/id.ts'te.
   const validId = isUuid(id)
 
+  const canEdit = hasRole('editor', 'admin')
+
   const [article, setArticle] = useState<ArticleDetail | null>(null)
   const [error, setError] = useState<unknown>(null)
 
@@ -56,9 +58,15 @@ export function ArticleDetailPage() {
 
       <div className="row row--between">
         <span className="chip">{article.categoryName}</span>
-        <span className={`badge badge--${article.isPublished ? 'published' : 'draft'}`}>
-          {article.isPublished ? 'Yayında' : 'Taslak'}
-        </span>
+        {/* Yayın durumu yalnızca içeriği yönetenleri ilgilendiriyor — akış
+            sayfasında da aynı kural. Okuyucuya "Yayında" demek bilgi vermiyor:
+            taslaklar zaten ona hiç ulaşmıyor (API 404 dönüyor), dolayısıyla
+            gördüğü her haberde aynı rozet çıkıyordu. */}
+        {canEdit && (
+          <span className={`badge badge--${article.isPublished ? 'published' : 'draft'}`}>
+            {article.isPublished ? 'Yayında' : 'Taslak'}
+          </span>
+        )}
       </div>
 
       <h2 className="reader__title">{article.title}</h2>
