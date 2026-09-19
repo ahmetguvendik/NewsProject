@@ -3,12 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { mediaApi } from '../api/media'
 import { newsApi } from '../api/news'
 import { ErrorAlert } from '../components/ErrorAlert'
+import { isUuid } from '../lib/id'
 import type { Category, MediaPolicy, Tag } from '../types'
+import { NotFoundPage } from './NotFoundPage'
 
 export function ArticleEditorPage() {
   const { id } = useParams()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+
+  // Adreste kimlik VAR ama biçimi bozuksa düzenlenecek bir haber de yok.
+  // Gerekçesi lib/id.ts'te; "yeni haber" modunda kimlik zaten olmuyor.
+  const validId = !isEdit || isUuid(id)
 
   const [categories, setCategories] = useState<Category[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -51,7 +57,7 @@ export function ArticleEditorPage() {
   }, [])
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !validId) return
 
     newsApi
       .getArticle(id)
@@ -66,7 +72,7 @@ export function ArticleEditorPage() {
         setTagIds(article.tagIds)
       })
       .catch(setError)
-  }, [id])
+  }, [id, validId])
 
   const pickFile = async (file: File) => {
     setError(null)
@@ -159,6 +165,9 @@ export function ArticleEditorPage() {
       setSaving(false)
     }
   }
+
+  // Erken dönüş hook'ların ARDINDAN: sıra her render'da aynı kalmalı.
+  if (!validId) return <NotFoundPage />
 
   return (
     <>

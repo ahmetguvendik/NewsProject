@@ -6,21 +6,30 @@ import { CoverImage } from '../components/CoverImage'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { coverStyle } from '../lib/cover'
 import { formatDateTime } from '../lib/format'
+import { isUuid } from '../lib/id'
 import { displayAuthor, useAuthorNames } from '../lib/useAuthorNames'
 import type { ArticleDetail } from '../types'
+import { NotFoundPage } from './NotFoundPage'
 
 export function ArticleDetailPage() {
   const { id = '' } = useParams()
   const { hasRole, session } = useAuth()
 
+  // Biçimi bozuk kimlik için istek hiç atılmıyor — gerekçesi lib/id.ts'te.
+  const validId = isUuid(id)
+
   const [article, setArticle] = useState<ArticleDetail | null>(null)
   const [error, setError] = useState<unknown>(null)
 
   useEffect(() => {
+    if (!validId) return
     newsApi.getArticle(id).then(setArticle).catch(setError)
-  }, [id])
+  }, [id, validId])
 
   const authorNames = useAuthorNames(article ? [article.authorKeycloakId] : [])
+
+  // Erken dönüşler hook'ların ARDINDAN: sıra her render'da aynı kalmalı.
+  if (!validId) return <NotFoundPage />
 
   if (error) {
     return (
