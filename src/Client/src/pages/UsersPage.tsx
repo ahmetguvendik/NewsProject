@@ -97,65 +97,67 @@ export function UsersPage() {
         <div className="skeleton" style={{ height: 240 }} />
       ) : (
         <>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Kullanıcı</th>
-                <th>Roller</th>
-                <th>Durum</th>
-                <th className="right">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <strong>{user.firstName} {user.lastName}</strong>
-                    <div style={{ color: 'var(--muted)', fontSize: 13 }}>{user.email}</div>
-                  </td>
-                  <td><RoleBadges roles={user.roles} /></td>
-                  <td>
-                    <span className={`badge badge--${user.isActive ? 'published' : 'draft'}`}>
-                      {user.isActive ? 'aktif' : 'pasif'}
-                    </span>
-                  </td>
-                  <td className="right">
-                    <div className="row row--wrap" style={{ justifyContent: 'flex-end' }}>
-                      {ASSIGNABLE.filter((role) => user.roles.includes(role)).map((role) => (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Kullanıcı</th>
+                  <th>Roller</th>
+                  <th>Durum</th>
+                  <th className="right">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <strong>{user.firstName} {user.lastName}</strong>
+                      <div style={{ color: 'var(--muted)', fontSize: 13 }}>{user.email}</div>
+                    </td>
+                    <td><RoleBadges roles={user.roles} /></td>
+                    <td>
+                      <span className={`badge badge--${user.isActive ? 'published' : 'draft'}`}>
+                        {user.isActive ? 'aktif' : 'pasif'}
+                      </span>
+                    </td>
+                    <td className="right">
+                      <div className="row row--wrap" style={{ justifyContent: 'flex-end' }}>
+                        {ASSIGNABLE.filter((role) => user.roles.includes(role)).map((role) => (
+                          <button
+                            key={role}
+                            className="btn btn--sm btn--ghost"
+                            disabled={busyId === user.id}
+                            onClick={() => unassign(user, role)}
+                            title={`${role} rolünü kaldır`}
+                          >
+                            − {role}
+                          </button>
+                        ))}
+                        {ASSIGNABLE.filter((role) => !user.roles.includes(role)).map((role) => (
+                          <button
+                            key={role}
+                            className="btn btn--sm"
+                            disabled={busyId === user.id}
+                            onClick={() => assign(user, role)}
+                          >
+                            + {role}
+                          </button>
+                        ))}
                         <button
-                          key={role}
-                          className="btn btn--sm btn--ghost"
-                          disabled={busyId === user.id}
-                          onClick={() => unassign(user, role)}
-                          title={`${role} rolünü kaldır`}
-                        >
-                          − {role}
-                        </button>
-                      ))}
-                      {ASSIGNABLE.filter((role) => !user.roles.includes(role)).map((role) => (
-                        <button
-                          key={role}
                           className="btn btn--sm"
                           disabled={busyId === user.id}
-                          onClick={() => assign(user, role)}
+                          onClick={() => toggleActive(user)}
+                          title={user.isActive ? 'Kullanıcı login edemez hale gelir' : 'Kullanıcı tekrar login edebilir'}
                         >
-                          + {role}
+                          {user.isActive ? 'Pasife al' : 'Aktif et'}
                         </button>
-                      ))}
-                      <button
-                        className="btn btn--sm"
-                        disabled={busyId === user.id}
-                        onClick={() => toggleActive(user)}
-                        title={user.isActive ? 'Kullanıcı login edemez hale gelir' : 'Kullanıcı tekrar login edebilir'}
-                      >
-                        {user.isActive ? 'Pasife al' : 'Aktif et'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <Pagination page={page} pageSize={PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} />
         </>

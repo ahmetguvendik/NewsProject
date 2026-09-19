@@ -564,6 +564,17 @@ button, input, textarea, select { font: inherit; }
 
 /* ── Tablo ────────────────────────────────────────────────────── */
 
+/* Tablonun ASGARİ genişliği içeriğinden gelir; `width: 100%` bunu yenemez.
+   Dar ekranda sarmalayıcısız bırakılırsa tablo kendi kabını taşırıp TÜM
+   sayfayı yatay kaydırılır hale getiriyor — üst bar, logo ve menü de haberle
+   birlikte kayıyor. Taşmayı burada hapsediyoruz: kaydırma tabloya ait kalsın,
+   sayfa yerinde dursun. */
+.table-wrap {
+  overflow-x: auto;
+  /* Kaydırma kutusu, içindeki tablonun köşe yuvarlaklığını kırpmasın. */
+  border-radius: var(--radius);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

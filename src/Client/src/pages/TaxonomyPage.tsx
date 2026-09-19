@@ -103,40 +103,42 @@ export function TaxonomyPage() {
             <button className="btn btn--primary" disabled={busy}>Kategori ekle</button>
           </form>
 
-          <table className="table" style={{ marginTop: 22 }}>
-            <thead>
-              <tr>
-                <th>Ad</th>
-                <th className="right">Haber</th>
-                <th className="right"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.length === 0 && (
-                <tr><td colSpan={3} style={{ color: 'var(--muted)' }}>Kategori yok.</td></tr>
-              )}
-              {categories.map((category) => (
-                <tr key={category.id}>
-                  <td>
-                    <strong>{category.name}</strong>
-                    {category.description && (
-                      <div style={{ color: 'var(--muted)', fontSize: 13 }}>{category.description}</div>
-                    )}
-                  </td>
-                  <td className="right">{category.articleCount}</td>
-                  <td className="right">
-                    <button
-                      className="btn btn--sm btn--danger"
-                      disabled={busy}
-                      onClick={() => void run(() => newsApi.deleteCategory(category.id))}
-                    >
-                      Sil
-                    </button>
-                  </td>
+          <div className="table-wrap" style={{ marginTop: 22 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Ad</th>
+                  <th className="right">Haber</th>
+                  <th className="right"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {categories.length === 0 && (
+                  <tr><td colSpan={3} style={{ color: 'var(--muted)' }}>Kategori yok.</td></tr>
+                )}
+                {categories.map((category) => (
+                  <tr key={category.id}>
+                    <td>
+                      <strong>{category.name}</strong>
+                      {category.description && (
+                        <div style={{ color: 'var(--muted)', fontSize: 13 }}>{category.description}</div>
+                      )}
+                    </td>
+                    <td className="right">{category.articleCount}</td>
+                    <td className="right">
+                      <button
+                        className="btn btn--sm btn--danger"
+                        disabled={busy}
+                        onClick={() => void run(() => newsApi.deleteCategory(category.id))}
+                      >
+                        Sil
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="card">
@@ -158,35 +160,37 @@ export function TaxonomyPage() {
             <button className="btn btn--primary" disabled={busy}>Etiket ekle</button>
           </form>
 
-          <table className="table" style={{ marginTop: 22 }}>
-            <thead>
-              <tr>
-                <th>Ad</th>
-                <th className="right">Haber</th>
-                <th className="right"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {tags.length === 0 && (
-                <tr><td colSpan={3} style={{ color: 'var(--muted)' }}>Etiket yok.</td></tr>
-              )}
-              {tags.map((tag) => (
-                <tr key={tag.id}>
-                  <td><strong>#{tag.name}</strong></td>
-                  <td className="right">{tag.articleCount}</td>
-                  <td className="right">
-                    <button
-                      className="btn btn--sm btn--danger"
-                      disabled={busy}
-                      onClick={() => void run(() => newsApi.deleteTag(tag.id))}
-                    >
-                      Sil
-                    </button>
-                  </td>
+          <div className="table-wrap" style={{ marginTop: 22 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Ad</th>
+                  <th className="right">Haber</th>
+                  <th className="right"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tags.length === 0 && (
+                  <tr><td colSpan={3} style={{ color: 'var(--muted)' }}>Etiket yok.</td></tr>
+                )}
+                {tags.map((tag) => (
+                  <tr key={tag.id}>
+                    <td><strong>#{tag.name}</strong></td>
+                    <td className="right">{tag.articleCount}</td>
+                    <td className="right">
+                      <button
+                        className="btn btn--sm btn--danger"
+                        disabled={busy}
+                        onClick={() => void run(() => newsApi.deleteTag(tag.id))}
+                      >
+                        Sil
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       </div>
     </>
