@@ -701,6 +701,24 @@ button, input, textarea, select { font: inherit; }
 .alert ul { margin: 6px 0 0; padding-left: 18px; }
 .alert strong { color: inherit; }
 
+/* Yönlendirme metni: mesajdan sonra gelir ama ondan daha sönük — göz önce
+   "ne oldu"yu, sonra "ne yapmalı"yı okusun. */
+.alert__hint { margin: 6px 0 0; opacity: .85; }
+
+/* Yalnızca Development'ta 5xx aldığında görünür (bkz. ErrorAlert.tsx).
+   Yükseklik sınırlı: yığın izi sayfayı aşağı itmesin. */
+.alert__trace { margin-top: 8px; }
+.alert__trace summary { cursor: pointer; font-size: 12px; opacity: .7; }
+.alert__trace pre {
+  margin: 6px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: 11px;
+  opacity: .8;
+}
+
 /* ── Makale okuma ─────────────────────────────────────────────── */
 
 .reader { max-width: 740px; margin: 0 auto; }
