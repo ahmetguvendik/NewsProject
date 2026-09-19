@@ -10,6 +10,7 @@ import { ArticleEditorPage } from './pages/ArticleEditorPage'
 import { AccountPage } from './pages/AccountPage'
 import { ArticlesPage } from './pages/ArticlesPage'
 import { LoginPage } from './pages/LoginPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { TaxonomyPage } from './pages/TaxonomyPage'
 import { UsersPage } from './pages/UsersPage'
@@ -44,6 +45,10 @@ createRoot(document.getElementById('root')!).render(
             {/* yalnızca admin */}
             <Route path="taksonomi" element={<Guard roles={['admin']}><TaxonomyPage /></Guard>} />
             <Route path="kullanicilar" element={<Guard roles={['admin']}><UsersPage /></Guard>} />
+
+            {/* Eşleşmeyen her adres. Layout'un İÇİNDE: üst bar ve menü kalsın ki
+                kullanıcı yanlış adresten tek tıkla çıkabilsin. */}
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
       </AuthProvider>

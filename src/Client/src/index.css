@@ -746,6 +746,18 @@ button, input, textarea, select { font: inherit; }
 
 .empty__title { font-size: 20px; font-weight: 650; color: var(--text); margin: 0 0 6px; }
 
+/* Boş durum metninde geçen adres/kod parçaları. Tarayıcının varsayılan
+   monospace'i koyu tema ile uyumsuz kalıyor. */
+.empty code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 .skeleton {
   border-radius: var(--radius);
   background: linear-gradient(90deg, var(--surface), var(--surface-2), var(--surface));
