@@ -56,10 +56,11 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
 
-            // Pasif listesinden çıkar; aksi halde kullanıcı yeniden aktif edilse
-            // bile kaydın TTL'i dolana kadar admin uçlarından reddedilmeye
-            // devam ederdi.
-            await _cache.RemoveAsync(DisabledUsers.Key(user.KeycloakId), cancellationToken);
+            // Damgayı kaldır; aksi halde kullanıcı yeniden aktif edilse bile
+            // kaydın TTL'i dolana kadar reddedilmeye devam ederdi. Damga
+            // silinmese de yeni girişte üretilen token damgadan sonra doğduğu
+            // için geçerli sayılırdı, ama o ana kadarki istekler boşa giderdi.
+            await _cache.RemoveAsync(TokenInvalidation.Key(user.KeycloakId), cancellationToken);
         }
         catch
         {

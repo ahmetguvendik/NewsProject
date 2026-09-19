@@ -113,13 +113,15 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Pasife alınmış kullanıcının admin işlemlerini reddeder.
+// Geçersiz kılınmış token'la gelen istekleri reddeder (hesap pasife alındı ya da
+// rol değişti).
 //
-// UseAuthorization'dan SONRA: rol kontrolü zaten geçmiş olmalı, buradaki kontrol
-// "rolü var ama hesabı kapatılmış" durumunu yakalıyor. Token geri alınamadığı için
-// Keycloak'ta devre dışı bırakmak tek başına yetmiyordu — pasife alınan bir admin
-// kendi token'ıyla kendini yeniden aktif edebiliyordu.
-app.UseMiddleware<DisabledUserGuard>();
+// UseAuthorization'dan SONRA: yetkilendirmenin yerine geçmiyor, ona ek — sıra bu
+// olunca context.User dolu geliyor. Token geri alınamadığı için Keycloak tarafında
+// yapılan değişiklik tek başına yetmiyordu: pasife alınan admin kendini yeniden
+// aktif edebiliyor, rolü kaldırılan kullanıcı kendine rolü geri verebiliyordu.
+// Her iki ucun da bu serviste olması burayı en kritik nokta yapıyor.
+app.UseMiddleware<RevokedTokenGuard>();
 app.MapControllers();
 app.MapAppHealthChecks();
 

@@ -5,6 +5,7 @@ using IdentityService.Domain.Constants;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Shared.Exceptions;
+using Shared.Security;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
@@ -14,17 +15,20 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IKeycloakAdminClient _keycloakAdminClient;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
     public RemoveRoleCommandHandler(
         IGenericRepository<Domain.Entities.User> userRepository,
         IUserRoleRepository userRoleRepository,
         IKeycloakAdminClient keycloakAdminClient,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICacheService cache)
     {
         _userRepository = userRepository;
         _userRoleRepository = userRoleRepository;
         _keycloakAdminClient = keycloakAdminClient;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(RemoveRoleCommand request, CancellationToken cancellationToken)
@@ -62,6 +66,20 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
             // DB'den de kaldır
             await _userRoleRepository.DeleteAsync(existing, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Roller token'ın İÇİNDE. Keycloak'tan ve DB'den kaldırmak,
+            // kullanıcının elindeki token'ı etkilemiyor: süresi dolana kadar
+            // (1 saat) eski rolüyle çalışmaya devam ediyordu. Ölçüldüğünde
+            // admin rolü kaldırılan kullanıcı, o token'la POST /api/user/roles
+            // çağırıp kendine admin'i geri verebiliyordu.
+            //
+            // Telafi bloğunun DIŞINDA değil içinde: DB yazması başarısız olursa
+            // rol aslında kalkmamış demektir, damgaya da gerek yok.
+            await _cache.SetAsync(
+                TokenInvalidation.Key(user.KeycloakId),
+                TokenInvalidation.Value(DateTimeOffset.UtcNow, TokenInvalidation.ReasonRoles),
+                TokenInvalidation.Retention,
+                cancellationToken);
         }
         catch
         {

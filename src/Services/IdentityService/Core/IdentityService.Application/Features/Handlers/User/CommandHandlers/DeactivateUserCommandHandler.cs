@@ -59,11 +59,11 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
             // Kullanıcının ELİNDEKİ token süresi dolana kadar geçerli kalıyor ve
             // yalnızca Keycloak'ta devre dışı bırakmak onu durdurmuyordu: pasife
             // alınan bir admin kendi token'ıyla kendini yeniden aktif edebiliyordu.
-            // Bu kayıt, admin yetkisi isteyen uçların isteği reddetmesini sağlıyor.
+            // Bu damga, servislerin o token'ları reddetmesini sağlıyor.
             await _cache.SetAsync(
-                DisabledUsers.Key(user.KeycloakId),
-                "1",
-                DisabledUsers.Retention,
+                TokenInvalidation.Key(user.KeycloakId),
+                TokenInvalidation.Value(DateTimeOffset.UtcNow, TokenInvalidation.ReasonDisabled),
+                TokenInvalidation.Retention,
                 cancellationToken);
         }
         catch

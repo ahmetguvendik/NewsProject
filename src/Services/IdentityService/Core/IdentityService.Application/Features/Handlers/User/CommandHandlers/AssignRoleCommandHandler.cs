@@ -5,6 +5,7 @@ using IdentityService.Domain.Constants;
 using IdentityService.Domain.Entities;
 using MediatR;
 using Shared.Exceptions;
+using Shared.Security;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
@@ -14,17 +15,20 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IKeycloakAdminClient _keycloakAdminClient;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cache;
 
     public AssignRoleCommandHandler(
         IGenericRepository<Domain.Entities.User> userRepository,
         IUserRoleRepository userRoleRepository,
         IKeycloakAdminClient keycloakAdminClient,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICacheService cache)
     {
         _userRepository = userRepository;
         _userRoleRepository = userRoleRepository;
         _keycloakAdminClient = keycloakAdminClient;
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task Handle(AssignRoleCommand request, CancellationToken cancellationToken)
@@ -52,6 +56,18 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
                 cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Kaldırma ile SİMETRİK. Burada güvenlik sorunu yok — yeni rol
+            // token'da olmadığı için kullanıcı fazladan bir şey yapamaz. Damga
+            // yine de yazılıyor çünkü alternatifi sessiz bir tutarsızlık:
+            // "seni admin yaptım" denen kullanıcı menüyü 1 saat boyunca
+            // göremez ve neden olduğunu anlayamazdı. Bedeli bir kez tekrar
+            // giriş yapmak; karşılığı yetkinin hemen geçerli olması.
+            await _cache.SetAsync(
+                TokenInvalidation.Key(user.KeycloakId),
+                TokenInvalidation.Value(DateTimeOffset.UtcNow, TokenInvalidation.ReasonRoles),
+                TokenInvalidation.Retention,
+                cancellationToken);
         }
         catch
         {
