@@ -36,8 +36,11 @@ builder.Services.AddAppHealthChecks(builder.Configuration)
 builder.Services
     .AddHealthChecksUI(settings =>
     {
+        // Varsayılan 100 sn. Panel yedi ucu birden yokluyor; daha sık yoklamak
+        // (eskiden 15 sn) dakikada 28 istek üretiyor ve bu trafik loglara da
+        // yansıyordu. Bedeli, arızanın en geç bu süre kadar geç fark edilmesi.
         settings.SetEvaluationTimeInSeconds(
-            builder.Configuration.GetValue("HealthChecksUI:EvaluationSeconds", 15));
+            builder.Configuration.GetValue("HealthChecksUI:EvaluationSeconds", 100));
 
         settings.SetApiMaxActiveRequests(1);
 

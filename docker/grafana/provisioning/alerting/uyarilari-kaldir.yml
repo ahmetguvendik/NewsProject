@@ -1,0 +1,39 @@
+# Grafana'nın uyarı yapılandırmasını BOŞALTIR.
+#
+# Uyarılar bu kurulumda Grafana'dan değil sağlık kontrollerinden çıkıyor
+# (bkz. README.md). Grafana yalnızca pano.
+#
+# NEDEN BİR DOSYA GEREKTİ: uyarı kuralları Grafana'nın KENDİ VERİTABANINDA
+# duruyor ve o veritabanı kalıcı bir volume'da (grafanadata). Kural arayüzden
+# ya da eski bir provisioning dosyasından bir kez oluşturulduğunda, dosyayı
+# silmek onu kaldırmıyor — volume'da yaşamaya devam ediyor.
+#
+# Nitekim öyle olmuştu: README "burası bilerek boş, uyarılar Grafana'dan
+# çıkmıyor" derken çalışan Grafana'da "Hata oranı yüksek" kuralı hâlâ canlı
+# değerlendiriliyordu ve kök bildirim politikası Slack'e bakıyordu. Yani repo
+# bir şey söylüyor, sistem başka şey yapıyordu — ve eşik aşılsaydı sağlık
+# panelinin yanında İKİNCİ bir Slack mesajı daha çıkacaktı.
+#
+# Bu dosya niyeti yazıya değil kurala çeviriyor: Grafana her açılışta bu
+# kayıtları siliyor. Yeni bir kurulumda silinecek bir şey bulamaz ve sessizce
+# geçer, yani zararsız.
+
+apiVersion: 1
+
+# Eski "hata oranı" kuralı. Karşılığı ErrorRateHealthCheck'te yaşıyor.
+deleteRules:
+  - orgId: 1
+    uid: error-rate-5m
+
+# Slack kanalı. Sağlık paneli Slack'e KENDİ webhook'uyla gidiyor
+# (HealthChecksUI__Webhooks__0__Uri), Grafana'nınkine ihtiyaç yok. Duruyor
+# olması, ileride birinin buraya yeni bir kural bağlamasını davet ediyordu.
+deleteContactPoints:
+  - orgId: 1
+    uid: slack-receiver
+
+# Kök bildirim politikası Slack'i gösteriyordu; varsayılana döndürülüyor.
+# Bu olmadan kanal silinemez — politika ona başvurduğu sürece Grafana silmeyi
+# reddediyor.
+resetPolicies:
+  - 1

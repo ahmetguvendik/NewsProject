@@ -603,7 +603,18 @@ services:
       - "9095:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - HealthChecksUI__EvaluationSeconds=15
+      # Yoklama aralığı. 15 saniyeden 100'e çıkarıldı.
+      #
+      # Sebep hacim: panel yedi ucu birden yokluyor, yani 15 saniyede 28 istek/dk
+      # demekti ve bu trafik loglara da yansıyordu — daha önce log gürültüsünün
+      # büyük kısmı tam da bu sağlık kontrolü çağrılarıydı. 100 saniyede aynı iş
+      # dakikada ~4 isteğe iniyor.
+      #
+      # BEDELİ: bir arıza en geç 15 saniye yerine en geç 100 saniyede fark
+      # ediliyor, Slack bildirimi de o kadar gecikiyor. Kabul edilebilir çünkü
+      # bildirimin hedefi insan; 1,5 dakikalık gecikme müdahale hızını
+      # değiştirmiyor. Daha hızlı tepki gerekirse burası düşürülür.
+      - HealthChecksUI__EvaluationSeconds=100
       - HealthChecksUI__HealthChecks__0__Name=News Service
       - HealthChecksUI__HealthChecks__0__Uri=http://news-service:8080/health
       - HealthChecksUI__HealthChecks__1__Name=Identity Service
@@ -632,10 +643,25 @@ services:
       # HEALTH_WEBHOOK_URL .env'de tanımlanır; boşsa bildirim kurulmaz ve panel
       # yalnızca görsel uyarı verir. Slack/Discord webhook adresi gizli bilgidir,
       # repoya yazılmaz.
+      #
+      # MESAJIN İÇERİĞİ: önce yalnızca "X SAĞLIKSIZ — sebep" yazıyordu. Mesajı
+      # alan kişinin sonraki iki adımı hep aynıydı: hangi ortam olduğunu tahmin
+      # etmek ve panelle Kibana'yı elle açmak. İkisi de mesaja konuldu.
+      #
+      # [[FAILURE]] BİLEREK KULLANILMIYOR: kütüphanenin ürettiği genel İngilizce
+      # kalıp ("There is at least 1 healthcheck failing.") hiçbir bilgi eklemiyor
+      # ve [[DESCRIPTIONS]] ile yan yana gelince "...failing.: redis healthcheck
+      # is failing" gibi okunuyordu. Hangi kontrolün düştüğünü söyleyen tek yer
+      # tutucu DESCRIPTIONS.
+      #
+      # Ortam adı ÖNEMLİ: aynı Slack kanalına birden fazla ortam bağlandığında
+      # "News Service sağlıksız" mesajı tek başına hangi sistemden geldiğini
+      # söylemiyor ve yanlış yere koşturuyor.
+      - Alerting__Environment=${ALERT_ENVIRONMENT:-Development}
       - HealthChecksUI__Webhooks__0__Name=alerts
       - HealthChecksUI__Webhooks__0__Uri=${HEALTH_WEBHOOK_URL:-}
-      - 'HealthChecksUI__Webhooks__0__Payload={"text":"[[LIVENESS]] SAĞLIKSIZ — [[FAILURE]]: [[DESCRIPTIONS]]"}'
-      - 'HealthChecksUI__Webhooks__0__RestoredPayload={"text":"[[LIVENESS]] düzeldi."}'
+      - 'HealthChecksUI__Webhooks__0__Payload={"text":":rotating_light: *[[LIVENESS]]* sağlıksız — ${ALERT_ENVIRONMENT:-Development}\n[[DESCRIPTIONS]]\nPanel: ${HEALTH_PANEL_URL:-http://localhost:9095}  ·  Loglar: ${LOGS_URL:-http://localhost:5601/app/discover}"}'
+      - 'HealthChecksUI__Webhooks__0__RestoredPayload={"text":":white_check_mark: *[[LIVENESS]]* düzeldi — ${ALERT_ENVIRONMENT:-Development}"}'
     depends_on:
       # service_started bilinçli: panelin görevi servisleri izlemek, bu yüzden
       # onlar sağlıksızken de ayakta olmalı — sağlıklı olmalarını beklerse
