@@ -71,6 +71,7 @@ public static class ErrorCodes
         public const string RoleNotFound        = "KEYCLOAK_ROLE_NOT_FOUND";
         public const string AdminAuthFailed     = "KEYCLOAK_ADMIN_AUTH_FAILED";
         public const string EventsReadFailed    = "KEYCLOAK_EVENTS_READ_FAILED";
+        public const string VerifyMailFailed    = "KEYCLOAK_VERIFY_MAIL_FAILED";
     }
 
     // ─── General ─────────────────────────────────────────────────

@@ -80,7 +80,23 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, C
                 RegisteredAt = user.CreatedAt
             }, cancellationToken);
 
-            // 6. User + UserRole + OutboxMessage tek transaction'da kaydedilir
+            // 6. Doğrulama bağlantısını yolla.
+            //
+            // Realm'de verifyEmail açık: doğrulanmamış hesap giriş YAPAMIYOR
+            // (direct grant "invalid_grant / Account is not fully set up" döner).
+            // Yani bu adım isteğe bağlı değil — atlanırsa kullanıcı hesabını
+            // hiçbir zaman kullanamaz. Mektup gidemezse kayıt hiç olmamış
+            // sayılıyor ve kullanıcı tekrar deneyebiliyor; sessizce devam etmek
+            // "kaydoldum ama giremiyorum" gibi teşhisi zor bir durum bırakırdı.
+            //
+            // SaveChangesAsync'ten ÖNCE, bilerek: telafi bloğu yalnızca Keycloak
+            // kullanıcısını siliyor. Sonraya konsaydı ve mektup gidemeseydi DB
+            // satırı çoktan commit'lenmiş olur, Keycloak'ta karşılığı olmayan
+            // yerel bir kullanıcı kalırdı — yetim Keycloak kaydından daha kötü.
+            // Burada ise kaydedilmemiş değişiklikler kendiliğinden atılıyor.
+            await _keycloakAdminClient.SendVerificationEmailAsync(keycloakId, cancellationToken);
+
+            // 7. User + UserRole + OutboxMessage tek transaction'da kaydedilir
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new CreateUserResponse

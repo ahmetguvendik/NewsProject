@@ -1,6 +1,7 @@
 {
   "realm": "news-portal",
   "resetPasswordAllowed": true,
+  "verifyEmail": true,
   "eventsEnabled": true,
   "eventsExpiration": 604800,
   "eventsListeners": [

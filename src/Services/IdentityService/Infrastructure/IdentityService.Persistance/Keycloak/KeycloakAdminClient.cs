@@ -172,6 +172,41 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         }
     }
 
+    /// <summary>
+    /// <c>execute-actions-email</c> ile VERIFY_EMAIL eylemini tetikler: Keycloak
+    /// kullanıcıya tek kullanımlık bir doğrulama bağlantısı yollar.
+    ///
+    /// Mektubu Keycloak'ın kendisi hazırlayıp gönderiyor — şablon, bağlantı ömrü
+    /// ve SMTP ayarı realm'de duruyor (bkz. docker/setup-keycloak-mail.sh). Aynı
+    /// mektubu biz üretseydik jeton üretimini ve doğrulamasını da üstlenmemiz
+    /// gerekirdi; burada o iş zaten çözülmüş halde.
+    ///
+    /// <c>redirect_uri</c> BİLEREK verilmiyor: doğrulama sonrası Keycloak kendi
+    /// onay sayfasını gösteriyor. Adres verilseydi istemcinin redirectUris
+    /// listesiyle birebir uyması gerekirdi ve her ortam için ayrı ayar demekti.
+    /// </summary>
+    public async Task SendVerificationEmailAsync(string keycloakId, CancellationToken cancellationToken = default)
+    {
+        var token = await GetAdminTokenAsync(cancellationToken);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var payload = JsonSerializer.Serialize(new[] { "VERIFY_EMAIL" });
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var response = await _httpClient.PutAsync(
+            $"{_baseUrl}/admin/realms/{_realm}/users/{keycloakId}/execute-actions-email",
+            content,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw ExternalServiceException.Keycloak(
+                ErrorCodes.Keycloak.VerifyMailFailed,
+                "doğrulama e-postası gönderme",
+                await ReadErrorAsync(response, cancellationToken));
+        }
+    }
+
     public async Task EnableUserAsync(string keycloakId, CancellationToken cancellationToken = default)
     {
         var token = await GetAdminTokenAsync(cancellationToken);

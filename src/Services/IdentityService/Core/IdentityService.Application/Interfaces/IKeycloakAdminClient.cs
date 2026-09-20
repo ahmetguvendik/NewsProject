@@ -10,6 +10,16 @@ public interface IKeycloakAdminClient
     Task EnableUserAsync(string keycloakId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Kullanıcıya e-posta doğrulama bağlantısı gönderir.
+    ///
+    /// Realm'de <c>verifyEmail</c> açıkken doğrulanmamış hesap giriş YAPAMIYOR
+    /// (direct grant <c>invalid_grant / Account is not fully set up</c> döner).
+    /// Dolayısıyla bu çağrı kaydın isteğe bağlı bir süsü değil, zorunlu adımı:
+    /// gönderilmezse kullanıcı hesabını hiçbir zaman kullanamaz.
+    /// </summary>
+    Task SendVerificationEmailAsync(string keycloakId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Keycloak'ın kaydettiği son güvenlik olaylarını, yenisi önce gelecek şekilde döndürür.
     /// </summary>
     /// <param name="types">

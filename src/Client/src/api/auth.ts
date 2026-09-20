@@ -58,7 +58,12 @@ export async function login(username: string, password: string): Promise<Session
         ? 'E-posta veya parola hatalı.'
         : body.error_description === 'Account disabled'
           ? 'Kullanıcınız pasife alınmıştır.'
-          : (body.error_description ?? 'Giriş yapılamadı.')
+          // Realm'de verifyEmail açık ve hesabın e-postası doğrulanmamış.
+          // Keycloak bunu "Account is not fully set up" diye bildiriyor — teknik
+          // olarak doğru ama kullanıcıya ne yapacağını söylemiyor.
+          : body.error_description === 'Account is not fully set up'
+            ? 'E-posta adresiniz henüz doğrulanmadı. Kayıt sırasında gönderdiğimiz bağlantıya tıklayın.'
+            : (body.error_description ?? 'Giriş yapılamadı.')
 
     throw new Error(message)
   }
