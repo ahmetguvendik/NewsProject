@@ -150,6 +150,14 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-telgraf}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-Telgraf.123}
+      # Tarayıcı imzalı adrese PUT atarken bu çapraz origin bir istek ve
+      # preflight gerektiriyor. MinIO'nun VARSAYILANI her origin'e izin vermek:
+      # ölçüldüğünde uydurma bir adrese bile "Allow-Origin" yansıtıyordu, yani
+      # yükleme akışı bilinçli bir ayarla değil açık bir varsayılanla çalışıyordu.
+      # Artık yalnızca uygulamanın sunulduğu adres.
+      #
+      # Görsellerin <img> ile okunmasını etkilemez — o istekler CORS'a tabi değil.
+      MINIO_API_CORS_ALLOW_ORIGIN: ${PUBLIC_WEB_ORIGIN:-http://localhost:5173}
     ports:
       # 9000 API, 9001 web konsolu. API portu host'a açık olmak zorunda:
       # tarayıcı imzalı URL ile dosyayı doğrudan buraya yüklüyor.
