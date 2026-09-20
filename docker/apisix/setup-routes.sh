@@ -156,6 +156,51 @@ put_health_route 30 "/health/news"         "news-service"         "/health"
 put_health_route 31 "/health/identity"     "identity-service"     "/health"
 put_health_route 32 "/health/notification" "notification-service" "/health"
 
+# ─── Dışarıya kapalı uçlar ─────────────────────────────────────────────
+# /api/user/internal/* yalnızca servisler arası çağrı için var:
+#   contact     → tek kullanıcının e-postası
+#   subscribers → bülten abonelerinin TAMAMI
+#
+# Bunlar [AllowAnonymous] ve X-Internal-Api-Key başlığıyla korunuyor. Sorun
+# şuydu: genel /api/user route'u "/api/user/*" da kapsadığı için bu iki uç
+# internetten erişilebilir durumdaydı. Yani toplu kişisel veri döndüren bir uç,
+# tek bir başlık sırrının arkasında, dış dünyaya bakıyordu. Anahtar tahmin
+# edilemez ama sızarsa (log, ortam dökümü, yanlış commit) abone listesi
+# doğrudan dışarı çıkar.
+#
+# Kenarda kapatmanın maliyeti SIFIR: notification-inbox-worker bu uçları
+# APISIX üzerinden değil, konteyner ağından doğrudan çağırıyor
+# (Identity__BaseUrl=http://identity-service:8080, bkz. docker-compose.yml).
+#
+# 403 değil 404: ucun var olduğunu doğrulamamak için. Dışarıdan bakan biri
+# için böyle bir adres hiç yok.
+#
+# priority 40, hepsinin üstünde: genel /api/user route'u 0, sıkı limitliler 20,
+# sağlık uçları 30.
+cat > /tmp/route.json <<'JSON'
+{
+  "uris": ["/api/user/internal", "/api/user/internal/*"],
+  "priority": 40,
+  "plugins": {
+    "fault-injection": {
+      "abort": {
+        "http_status": 404,
+        "body": "{\"status\":404,\"errorCode\":\"NOT_FOUND\",\"message\":\"Böyle bir uç bulunamadı.\",\"description\":\"\",\"errors\":null}"
+      }
+    },
+    "response-rewrite": {
+      "vars": [["status", "==", 404]],
+      "headers": {"set": {"Content-Type": "application/json; charset=utf-8"}}
+    }
+  }
+}
+JSON
+
+http_code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$ADMIN_URL/apisix/admin/routes/40" \
+  -H "X-API-KEY: $ADMIN_KEY" -H 'Content-Type: application/json' --data @/tmp/route.json)
+
+echo "route 40  /api/user/internal(/*) -> DIŞARIYA KAPALI (404)  (HTTP $http_code)"
+
 # ─── Sıkı limitli uçlar ────────────────────────────────────────────────
 # Kayıt: sahte hesap seline karşı.
 #
