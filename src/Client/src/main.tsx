@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 
 import { AuthProvider } from './auth/AuthContext'
 import { Guard } from './components/Guard'
+import { GuestOnly } from './components/GuestOnly'
 import { Layout } from './components/Layout'
 import { ArticleDetailPage } from './pages/ArticleDetailPage'
 import { ArticleEditorPage } from './pages/ArticleEditorPage'
@@ -26,8 +27,10 @@ createRoot(document.getElementById('root')!).render(
             {/* Herkese açık — backend'de [AllowAnonymous] */}
             <Route index element={<ArticlesPage />} />
             <Route path="haber/:id" element={<ArticleDetailPage />} />
-            <Route path="giris" element={<LoginPage />} />
-            <Route path="kayit" element={<RegisterPage />} />
+            {/* Yalnızca oturumu olmayanlara: giriş yapmış kullanıcıya giriş/kayıt
+                formu göstermek çelişkili bir ekran üretiyordu. */}
+            <Route path="giris" element={<GuestOnly><LoginPage /></GuestOnly>} />
+            <Route path="kayit" element={<GuestOnly><RegisterPage /></GuestOnly>} />
 
             {/* giriş yapmış her kullanıcı */}
             <Route path="hesabim" element={<Guard><AccountPage /></Guard>} />
