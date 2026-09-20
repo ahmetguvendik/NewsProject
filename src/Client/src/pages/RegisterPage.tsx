@@ -1,19 +1,16 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { identityApi } from '../api/identity'
-import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
 
 export function RegisterPage() {
-  const { signIn } = useAuth()
-  const navigate = useNavigate()
-
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null)
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -22,14 +19,41 @@ export function RegisterPage() {
 
     try {
       await identityApi.register({ email, password, firstName, lastName })
-      // Kayıt Keycloak'ta kullanıcıyı da açtığı için hemen giriş yapılabiliyor
-      await signIn(email, password)
-      navigate('/', { replace: true })
+
+      // Kayıttan sonra OTOMATİK GİRİŞ YAPILMIYOR: realm'de verifyEmail açık,
+      // yeni hesap doğrulanana kadar giriş yapamıyor. Giriş denenirse
+      // "e-postanız doğrulanmadı" hatası kayıt formunun üstünde belirir ve
+      // kayıt başarısız olmuş gibi görünür — oysa hesap açılmıştır. Kullanıcı
+      // da büyük ihtimalle tekrar dener ve bu sefer "bu e-posta zaten kayıtlı"
+      // alır. Onun yerine ne olduğunu söyleyen bir sonuç ekranı gösteriliyor.
+      setRegisteredEmail(email)
     } catch (err) {
       setError(err)
     } finally {
       setBusy(false)
     }
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="auth-shell">
+        <div className="card">
+          <h2 className="card__title">Hesabınız oluşturuldu</h2>
+          <p className="card__sub">
+            <strong>{registeredEmail}</strong> adresine bir doğrulama bağlantısı gönderdik.
+            Giriş yapabilmek için önce o bağlantıya tıklamanız gerekiyor.
+          </p>
+
+          <p className="field__hint">
+            Bağlantı 30 dakika geçerli. E-posta gelmediyse gereksiz (spam) klasörünü kontrol edin.
+          </p>
+
+          <Link className="btn btn--primary btn--block" to="/giris" style={{ marginTop: 18 }}>
+            Giriş ekranına dön
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -95,7 +119,8 @@ export function RegisterPage() {
         </form>
 
         <p className="field__hint" style={{ marginTop: 18 }}>
-          Kayıt sonrası hoşgeldin e-postası outbox → Kafka → inbox zinciriyle asenkron gönderilir.
+          Kaydın ardından e-posta adresinize bir doğrulama bağlantısı gönderilir;
+          giriş yapabilmek için o bağlantıya tıklamanız gerekir.
         </p>
 
         <p className="field__hint">
