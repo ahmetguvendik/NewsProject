@@ -1,5 +1,7 @@
 using MediatR;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
+using NewsService.Application.Features.Queries.Article;
 using NewsService.Application.Features.Queries.Article.Request;
 using NewsService.Application.Features.Queries.Article.Response;
 using NewsService.Application.Interfaces;
@@ -11,13 +13,16 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
 {
     private readonly IGenericRepository<Domain.Entities.Article> _articleRepository;
     private readonly IStorageService _storage;
+    private readonly FeedOptions _feed;
 
     public GetAllArticlesQueryHandler(
         IGenericRepository<Domain.Entities.Article> articleRepository,
-        IStorageService storage)
+        IStorageService storage,
+        IOptions<FeedOptions> feed)
     {
         _articleRepository = articleRepository;
         _storage = storage;
+        _feed = feed.Value;
     }
 
     public async Task<PagedResult<GetAllArticlesResponse>> Handle(GetAllArticlesQuery request, CancellationToken cancellationToken)
@@ -25,6 +30,19 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
         var query = _articleRepository.GetQueryable()
             .Include(a => a.Category)
             .Where(a => !a.IsDeleted && (request.IncludeUnpublished || a.IsPublished));
+
+        // Tazelik penceresi — gerekçesi FeedOptions'ta.
+        //
+        // Yalnızca herkese açık görünüme uygulanıyor: IncludeUnpublished editör
+        // ve admin için true, onların tam listeye erişmesi gerekiyor.
+        //
+        // Kategori ve arama filtrelerinden ÖNCE: amaç eski haberin aranıp
+        // bulunmaması, dolayısıyla pencere tüm sorguların tabanı.
+        if (!request.IncludeUnpublished && _feed.FreshnessDays > 0)
+        {
+            var cutoff = DateTime.UtcNow.AddDays(-_feed.FreshnessDays);
+            query = query.Where(a => (a.PublishedAt ?? a.CreatedAt) >= cutoff);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Category))
             query = query.Where(a => a.Category.Name == request.Category);

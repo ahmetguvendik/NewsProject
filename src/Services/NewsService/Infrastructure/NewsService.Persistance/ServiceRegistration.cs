@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NewsService.Application.Auditing;
+using NewsService.Application.Features.Queries.Article;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
 using NewsService.Persistance.Auditing;
@@ -57,6 +58,9 @@ public static class ServiceRegistration
             return ConnectionMultiplexer.Connect(options);
         });
         services.AddSingleton<ICacheService, RedisCacheService>();
+
+        // Herkese açık akışın tazelik penceresi — gerekçesi FeedOptions'ta.
+        services.Configure<FeedOptions>(configuration.GetSection(FeedOptions.SectionName));
 
         // Dış servis: yanıt önbelleklendiği için nadiren çağrılıyor; yine de
         // kısa timeout ile bekletilmiyor.
