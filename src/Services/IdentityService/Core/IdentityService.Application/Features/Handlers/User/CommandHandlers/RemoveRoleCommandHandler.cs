@@ -1,3 +1,4 @@
+using System.Data;
 using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;
@@ -41,52 +42,80 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
             ?? throw new ValidationException("roleName",
                 $"'{request.RoleName}' geçerli bir rol değil. Geçerli roller: admin, editor, user.");
 
-        // Kullanıcıda bu rol zaten yoksa kaldıracak bir şey yok → 404
-        var existing = await _userRoleRepository.GetAsync(user.Id, roleId, cancellationToken)
-            ?? throw NotFoundException.UserRole(request.UserId, request.RoleName);
+        // SERIALIZABLE TRANSACTION — "son admin kaldırılamaz" kuralı yüzünden.
+        //
+        // Kural bir kontrol-sonra-eylem: önce admin sayısı okunuyor, sonra rol
+        // siliniyor. Transaction'sız (ya da Postgres'in varsayılanı
+        // ReadCommitted ile) iki admin AYNI ANDA birbirinin rolünü kaldırırsa
+        // ikisi de "2 admin var" görür, ikisi de siler — sistemde hiç admin
+        // kalmaz ve yönetim paneline kimse giremez.
+        //
+        // Serializable'da Postgres iki işlemin birbirinin okuduğu veriyi
+        // değiştirdiğini fark edip birini iptal ediyor. Kaybeden 409 "işlem
+        // çakıştı" alıyor; tekrar denediğinde sayı artık 1 ve kural onu
+        // durduruyor. Sayma ve silme bu yüzden AYNI transaction'ın içinde.
+        //
+        // Transaction yalnızca admin rolü için değil her rol kaldırmada açılıyor:
+        // iki ayrı kod yolu tutmaya değmeyecek kadar seyrek bir işlem.
+        await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
-        // Sistemde admin rolü hiç kalmasın diye son admin'in rolü kaldırılamaz
-        if (roleId == RoleConstants.AdminId)
-        {
-            var adminCount = await _userRoleRepository.GetQueryable()
-                .CountAsync(ur => ur.RoleId == RoleConstants.AdminId, cancellationToken);
-
-            if (adminCount <= 1)
-                throw new BusinessException(
-                    ErrorCodes.User.LastAdminCannotBeRemoved,
-                    "Son admin rolü kaldırılamaz.",
-                    "Sistemde en az bir admin kalmalı. Önce başka bir kullanıcıya admin rolü atayın, sonra bunu kaldırın.");
-        }
-
-        // Keycloak'ta kaldır
-        await _keycloakAdminClient.RemoveRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);
-
+        var removedInKeycloak = false;
         try
         {
-            // DB'den de kaldır
+            // Kullanıcıda bu rol zaten yoksa kaldıracak bir şey yok → 404
+            var existing = await _userRoleRepository.GetAsync(user.Id, roleId, cancellationToken)
+                ?? throw NotFoundException.UserRole(request.UserId, request.RoleName);
+
+            if (roleId == RoleConstants.AdminId)
+            {
+                var adminCount = await _userRoleRepository.GetQueryable()
+                    .CountAsync(ur => ur.RoleId == RoleConstants.AdminId, cancellationToken);
+
+                if (adminCount <= 1)
+                    throw new BusinessException(
+                        ErrorCodes.User.LastAdminCannotBeRemoved,
+                        "Son admin rolü kaldırılamaz.",
+                        "Sistemde en az bir admin kalmalı. Önce başka bir kullanıcıya admin rolü atayın, sonra bunu kaldırın.");
+            }
+
+            // Keycloak veritabanının dışında, transaction onu kapsamıyor. DB
+            // tarafı iptal olursa aşağıdaki catch Keycloak'taki kaldırmayı geri
+            // alıyor (telafi eden işlem).
+            await _keycloakAdminClient.RemoveRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);
+            removedInKeycloak = true;
+
             await _userRoleRepository.DeleteAsync(existing, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Roller token'ın İÇİNDE. Keycloak'tan ve DB'den kaldırmak,
-            // kullanıcının elindeki token'ı etkilemiyor: süresi dolana kadar
-            // (1 saat) eski rolüyle çalışmaya devam ediyordu. Ölçüldüğünde
-            // admin rolü kaldırılan kullanıcı, o token'la POST /api/user/roles
-            // çağırıp kendine admin'i geri verebiliyordu.
-            //
-            // Telafi bloğunun DIŞINDA değil içinde: DB yazması başarısız olursa
-            // rol aslında kalkmamış demektir, damgaya da gerek yok.
-            await _cache.SetAsync(
-                TokenRevocation.Key(user.KeycloakId),
-                TokenRevocation.Now(TokenRevocation.ReasonRoleChange),
-                TokenRevocation.Retention,
-                cancellationToken);
+            // Serializable çakışması çoğunlukla burada çıkıyor: yarışı kaybeden
+            // işlem commit anında iptal ediliyor.
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
         }
         catch
         {
-            // DB başarısız olursa Keycloak'taki kaldırmayı geri al (compensating transaction) —
-            // aksi halde Keycloak ve DB birbirinden sapar.
-            await _keycloakAdminClient.AssignRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);
+            // İstek iptal edilmiş olsa bile geri alma ve telafi çalışmalı.
+            await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
+
+            // Keycloak'a henüz dokunulmadıysa (404, son admin kuralı, ya da
+            // Keycloak çağrısının kendisi başarısız) geri alınacak bir şey yok.
+            if (removedInKeycloak)
+                await _keycloakAdminClient.AssignRoleAsync(user.KeycloakId, request.RoleName, CancellationToken.None);
+
             throw;
         }
+
+        // Roller token'ın İÇİNDE. Keycloak'tan ve DB'den kaldırmak,
+        // kullanıcının elindeki token'ı etkilemiyor: süresi dolana kadar
+        // (1 saat) eski rolüyle çalışmaya devam ediyordu. Ölçüldüğünde
+        // admin rolü kaldırılan kullanıcı, o token'la POST /api/user/roles
+        // çağırıp kendine admin'i geri verebiliyordu.
+        //
+        // COMMIT'TEN SONRA: transaction iptal olursa rol aslında kalkmamış
+        // demektir, damga yazılsaydı kullanıcı boşuna oturumdan atılırdı.
+        await _cache.SetAsync(
+            TokenRevocation.Key(user.KeycloakId),
+            TokenRevocation.Now(TokenRevocation.ReasonRoleChange),
+            TokenRevocation.Retention,
+            cancellationToken);
     }
 }

@@ -89,5 +89,11 @@ public static class ErrorCodes
         public const string Conflict          = "CONFLICT";
         public const string InternalError     = "INTERNAL_SERVER_ERROR";
         public const string NotFound          = "NOT_FOUND";
+
+        /// <summary>
+        /// Eş zamanlı iki işlem aynı veri üzerinde çakıştı ve biri iptal edildi
+        /// (Postgres SQLSTATE 40001/40P01). Veri tutarlı; istemci tekrar denemeli.
+        /// </summary>
+        public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
     }
 }
