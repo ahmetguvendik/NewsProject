@@ -1,4 +1,4 @@
-namespace IdentityService.Application.Interfaces;
+namespace IdentityService.Application.Auditing;
 
 /// <summary>
 /// Keycloak'ın ürettiği bir güvenlik olayı.

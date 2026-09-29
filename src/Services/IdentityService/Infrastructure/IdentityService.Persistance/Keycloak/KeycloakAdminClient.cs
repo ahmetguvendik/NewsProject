@@ -1,3 +1,4 @@
+using IdentityService.Application.Auditing;
 using IdentityService.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Shared.Exceptions;

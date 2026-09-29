@@ -1,3 +1,5 @@
+using IdentityService.Application.Auditing;
+
 namespace IdentityService.Application.Interfaces;
 
 public interface IKeycloakAdminClient
