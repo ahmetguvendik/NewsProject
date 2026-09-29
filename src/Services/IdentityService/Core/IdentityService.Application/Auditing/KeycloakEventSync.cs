@@ -47,15 +47,18 @@ public sealed class KeycloakEventSync
 
     private readonly IKeycloakAdminClient _keycloak;
     private readonly IKeycloakEventCursor _cursor;
+    private readonly TimeProvider _clock;
     private readonly ILogger<KeycloakEventSync> _logger;
 
     public KeycloakEventSync(
         IKeycloakAdminClient keycloak,
         IKeycloakEventCursor cursor,
+        TimeProvider clock,
         ILogger<KeycloakEventSync> logger)
     {
         _keycloak = keycloak;
         _cursor = cursor;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -65,22 +68,33 @@ public sealed class KeycloakEventSync
     /// </summary>
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
     {
-        var events = await _keycloak.GetSecurityEventsAsync(
-            WatchedTypes, MaxEventsPerPoll, cancellationToken);
-
-        if (events.Count == 0)
-            return 0;
-
         var lastSeen = await _cursor.ReadAsync(cancellationToken);
 
-        // İmleç henüz kurulmamış: hiçbir şey loglanmıyor, yalnızca en yeniye
-        // ayarlanıyor. Aksi halde imlecin sıfırlandığı her durumda Keycloak'ın
-        // elindeki tüm geçmiş olaylar log'a yeniden düşerdi.
+        // İmleç henüz kurulmamış: "şu an"a kuruluyor, hiçbir şey yazılmıyor.
+        // Anlamı: izlemeye başladığım andan SONRA olan her şeyi yaz, öncesini
+        // geçmiş say. Aksi halde imleç her sıfırlandığında (yeniden başlatma)
+        // Keycloak'ın elindeki bütün geçmiş log'a yeniden düşerdi.
+        //
+        // ÖNCEDEN "görülen en yeni olay"a kuruluyordu ve bu bir olay yutuyordu:
+        // Keycloak'ta hiç olay yokken liste boş geliyor, imleç kurulmadan
+        // çıkılıyor, sonraki turda gelen İLK GERÇEK OLAY "geçmiş" sanılıp
+        // atlanıyordu. Keycloak olayları 7 gün sonra sildiği için bu olağan bir
+        // durum: son bir haftada kimse parola sıfırlamadıysa, servis açıldıktan
+        // sonraki ilk sıfırlama hiç loglanmıyordu. "Şu an" liste boşken de
+        // kurulabiliyor.
+        //
+        // SAAT FARKI: imleç bu servisin saatiyle, olay zamanları Keycloak'ın
+        // saatiyle. Aynı makinedeyken fark yok; ayrı makinelerde bu servisin
+        // saati ilerideyse, açılıştan hemen sonra o fark kadarlık pencerede
+        // olan olaylar atlanabilir.
         if (lastSeen is null)
         {
-            await _cursor.WriteAsync(events.Max(e => e.Time), cancellationToken);
+            await _cursor.WriteAsync(_clock.GetUtcNow().ToUnixTimeMilliseconds(), cancellationToken);
             return 0;
         }
+
+        var events = await _keycloak.GetSecurityEventsAsync(
+            WatchedTypes, MaxEventsPerPoll, cancellationToken);
 
         // Keycloak yeniden eskiye sıralı döndürüyor; eskiden yeniye yazmak için
         // ters çevriliyor, böylece log akışı gerçek sırayı yansıtıyor.

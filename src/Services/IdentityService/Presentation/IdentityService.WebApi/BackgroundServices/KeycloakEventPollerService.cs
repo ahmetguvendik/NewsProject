@@ -43,9 +43,14 @@ public sealed class KeycloakEventPollerService : BackgroundService
         {
             try
             {
-                // Scope her turda yeniden açılıyor: KeycloakEventSync scoped
-                // bağımlılıklar (IKeycloakAdminClient) kullanıyor ve
-                // BackgroundService singleton.
+                // Her turda yeni scope: KeycloakEventSync scoped kayıtlı, bu
+                // sınıf ise singleton — doğrudan enjekte edilemez.
+                //
+                // Scoped olmasının asıl sebebi taşıdığı IKeycloakAdminClient:
+                // IHttpClientFactory'den gelen bir typed HttpClient. Uzun ömürlü
+                // bir nesnede tutulsaydı tek bir HttpMessageHandler'a kilitlenir,
+                // fabrikanın handler yenilemesi (DNS değişikliklerini görmesi)
+                // devre dışı kalırdı. Her tur taze bir istemci alıyor.
                 using var scope = _scopeFactory.CreateScope();
                 var sync = scope.ServiceProvider.GetRequiredService<KeycloakEventSync>();
 

@@ -5,6 +5,7 @@ using IdentityService.Application.Caching;
 using IdentityService.Application.Interfaces;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace IdentityService.Application;
 
@@ -28,9 +29,18 @@ public static class ServiceRegistration
         // Tetikleyicisi Presentation'da (KeycloakEventPollerService); iş burada.
         //
         // İmleç SINGLETON olmak zorunda: turlar arasında yaşamazsa her tur
-        // "ilk tur" sayılır ve hiçbir olay loglanmaz. Sync ise scoped —
-        // IKeycloakAdminClient scoped olduğu için onunla aynı ömürde.
+        // "ilk tur" sayılır ve hiçbir olay loglanmaz.
+        //
+        // Sync ise scoped ve her turda yeni scope'tan alınıyor, çünkü taşıdığı
+        // IKeycloakAdminClient bir typed HttpClient (AddHttpClient → transient).
+        // Uzun ömürlü bir nesnede tutulsaydı IHttpClientFactory'nin handler
+        // yenilemesi devre dışı kalırdı.
+        //
+        // TimeProvider: Sync imleci "şu an"a kuruyor; saat enjekte edilince bu
+        // davranış sahte bir saatle test edilebiliyor. TryAdd, başka bir yerde
+        // zaten kayıtlıysa üzerine yazmasın diye.
         services.AddSingleton<IKeycloakEventCursor, InMemoryKeycloakEventCursor>();
+        services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<KeycloakEventSync>();
 
         return services;
