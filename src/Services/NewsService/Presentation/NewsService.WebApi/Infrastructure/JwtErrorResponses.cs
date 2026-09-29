@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Exceptions;
 using Shared.Models;
 
 namespace NewsService.WebApi.Infrastructure;
@@ -26,7 +27,7 @@ public static class JwtErrorResponses
             return WriteAsync(context.Response, new ErrorResponse
             {
                 Status = StatusCodes.Status401Unauthorized,
-                ErrorCode = expired ? "TOKEN_EXPIRED" : "UNAUTHORIZED",
+                ErrorCode = expired ? ErrorCodes.Auth.TokenExpired : ErrorCodes.Auth.Unauthorized,
                 Message = expired
                     ? "Oturumunuzun süresi doldu."
                     : "Bu işlem için giriş yapmalısınız.",
@@ -40,7 +41,7 @@ public static class JwtErrorResponses
         OnForbidden = context => WriteAsync(context.Response, new ErrorResponse
         {
             Status = StatusCodes.Status403Forbidden,
-            ErrorCode = "FORBIDDEN",
+            ErrorCode = ErrorCodes.Auth.Forbidden,
             Message = "Bu işlem için yetkiniz yok.",
             Description = "Hesabınızın rolü bu işlemi yapmaya izin vermiyor."
         })

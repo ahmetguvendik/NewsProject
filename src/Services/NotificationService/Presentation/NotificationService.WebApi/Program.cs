@@ -5,6 +5,7 @@ using NotificationService.Persistance.Contexts;
 using NotificationService.WebApi.Infrastructure;
 using Shared.Extensions;
 using HealthCheck.Registration;
+using Shared.Exceptions;
 using Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,7 +39,7 @@ builder.Services.AddControllers()
             var response = new ErrorResponse
             {
                 Status = StatusCodes.Status400BadRequest,
-                ErrorCode = "VALIDATION_ERROR",
+                ErrorCode = ErrorCodes.General.ValidationFailed,
                 Message = "Gönderilen veriler geçersiz.",
                 Description = "Lütfen hatalı alanları düzelterek tekrar deneyin.",
                 Errors = errors

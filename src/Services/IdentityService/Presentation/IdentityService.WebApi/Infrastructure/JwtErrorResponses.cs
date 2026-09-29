@@ -1,15 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Exceptions;
 using Shared.Models;
 
 namespace IdentityService.WebApi.Infrastructure;
 
-/// <summary>
-/// JWT katmanının ürettiği 401/403 yanıtları varsayılan olarak gövdesizdir;
-/// client elinde yalnızca status kodu kaldığı için kullanıcıya "İstek başarısız
-/// oldu (HTTP 401)" demekten öteye gidemez. Bu olaylar yanıtı diğer tüm
-/// hatalarla aynı <see cref="ErrorResponse"/> şekline çevirir.
-/// </summary>
+
 public static class JwtErrorResponses
 {
     public static JwtBearerEvents Create() => new()
@@ -18,15 +14,13 @@ public static class JwtErrorResponses
         {
             // Varsayılan gövdesiz yanıtın yazılmasını engelle.
             context.HandleResponse();
-
-            // Süresi dolmuş token ile hiç gönderilmemiş token kullanıcı için
-            // farklı durumlar: ilki "tekrar giriş yap", ikincisi "giriş yap".
+            
             var expired = context.AuthenticateFailure is SecurityTokenExpiredException;
 
             return WriteAsync(context.Response, new ErrorResponse
             {
                 Status = StatusCodes.Status401Unauthorized,
-                ErrorCode = expired ? "TOKEN_EXPIRED" : "UNAUTHORIZED",
+                ErrorCode = expired ? ErrorCodes.Auth.TokenExpired : ErrorCodes.Auth.Unauthorized,
                 Message = expired
                     ? "Oturumunuzun süresi doldu."
                     : "Bu işlem için giriş yapmalısınız.",
@@ -40,7 +34,7 @@ public static class JwtErrorResponses
         OnForbidden = context => WriteAsync(context.Response, new ErrorResponse
         {
             Status = StatusCodes.Status403Forbidden,
-            ErrorCode = "FORBIDDEN",
+            ErrorCode = ErrorCodes.Auth.Forbidden,
             Message = "Bu işlem için yetkiniz yok.",
             Description = "Hesabınızın rolü bu işlemi yapmaya izin vermiyor."
         })

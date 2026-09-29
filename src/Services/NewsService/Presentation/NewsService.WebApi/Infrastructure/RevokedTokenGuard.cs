@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using Shared.Exceptions;
 using Shared.Security;
 using StackExchange.Redis;
 
@@ -38,17 +39,17 @@ namespace NewsService.WebApi.Infrastructure;
 /// </summary>
 public sealed class RevokedTokenGuard
 {
-    private const string DisabledBody =
-        """
-        {"status":403,"errorCode":"AUTH_FORBIDDEN","message":"Hesabınız pasife alınmış.","description":"Bu işlem için yetkiniz kaldırıldı. Devam etmek için bir yöneticiyle görüşün.","errors":null}
+    private static readonly string DisabledBody =
+        $$"""
+        {"status":403,"errorCode":"{{ErrorCodes.Auth.Forbidden}}","message":"Hesabınız pasife alınmış.","description":"Bu işlem için yetkiniz kaldırıldı. Devam etmek için bir yöneticiyle görüşün.","errors":null}
         """;
 
     // 401: istemci bunu görünce token'ı siliyor ve giriş ekranına yönlendiriyor
     // (bkz. src/Client/src/api/http.ts). Rol değişiminde doğru davranış bu —
     // tekrar giriş yapmak sorunu çözüyor, 403 ise çıkmaz sokak gibi okunurdu.
-    private const string RolesBody =
-        """
-        {"status":401,"errorCode":"AUTH_TOKEN_STALE","message":"Yetkileriniz değişti.","description":"Oturumunuz güncel değil. Lütfen tekrar giriş yapın.","errors":null}
+    private static readonly string RolesBody =
+        $$"""
+        {"status":401,"errorCode":"{{ErrorCodes.Auth.TokenStale}}","message":"Yetkileriniz değişti.","description":"Oturumunuz güncel değil. Lütfen tekrar giriş yapın.","errors":null}
         """;
 
     private readonly RequestDelegate _next;

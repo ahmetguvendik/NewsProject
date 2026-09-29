@@ -58,6 +58,14 @@ public static class ErrorCodes
         public const string Forbidden        = "AUTH_FORBIDDEN";
         public const string TokenExpired     = "AUTH_TOKEN_EXPIRED";
         public const string TokenInvalid     = "AUTH_TOKEN_INVALID";
+
+        /// <summary>
+        /// Token imzası geçerli ama artık güncel değil: kullanıcının rolü
+        /// değişmiş, dolayısıyla tekrar giriş yapması gerekiyor
+        /// (bkz. <c>RevokedTokenGuard</c>). 401 ile dönüyor — istemci 401'de
+        /// token'ı silip giriş ekranına yönlendiriyor.
+        /// </summary>
+        public const string TokenStale       = "AUTH_TOKEN_STALE";
     }
 
     // ─── Keycloak ─────────────────────────────────────────────────
