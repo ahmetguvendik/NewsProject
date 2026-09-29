@@ -2,13 +2,14 @@ using Logging.Registration;
 using IdentityService.Application;
 using IdentityService.Persistance;
 using IdentityService.Persistance.Contexts;
+using IdentityService.WebApi.BackgroundServices;
 using IdentityService.WebApi.Infrastructure;
 using Shared.Extensions;
 using HealthCheck.Registration;
-using IdentityService.WebApi.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Exceptions;
 using Shared.Models;
 using System.Text.Json;
 
@@ -30,7 +31,7 @@ builder.Services.AddAllElasticApm();
 
 // Keycloak'ın parola olaylarını kendi log hattımıza taşır. Parola sıfırlama
 // baştan sona Keycloak'ın içinde geçtiği için servislerimiz onu hiç görmüyordu.
-builder.Services.AddHostedService<KeycloakEventPoller>();
+builder.Services.AddHostedService<KeycloakEventPollerService>();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
@@ -49,7 +50,7 @@ builder.Services.AddControllers()
             var response = new ErrorResponse
             {
                 Status = StatusCodes.Status400BadRequest,
-                ErrorCode = "VALIDATION_ERROR",
+                ErrorCode = ErrorCodes.General.ValidationFailed,
                 Message = "Gönderilen veriler geçersiz.",
                 Description = "Lütfen hatalı alanları düzelterek tekrar deneyin.",
                 Errors = errors
