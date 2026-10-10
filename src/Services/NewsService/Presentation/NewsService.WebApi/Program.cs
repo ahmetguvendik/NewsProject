@@ -73,7 +73,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
 
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddPersistanceServices(builder.Configuration);
 
 // Kafka eklenmedi: WebApi Kafka'ya hiç bağlanmıyor, olayları outbox tablosuna yazıyor.

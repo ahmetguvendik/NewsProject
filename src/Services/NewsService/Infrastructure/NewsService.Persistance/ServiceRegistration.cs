@@ -1,20 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NewsService.Application.Auditing.Abstract;
-using NewsService.Application.Auditing.Concrete;
-using NewsService.Application.Features.Queries.Article;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
 using NewsService.Persistance.Auditing;
 using NewsService.Persistance.Caching;
-using StackExchange.Redis;
-using NewsService.Persistance.External;
 using NewsService.Persistance.Contexts;
+using NewsService.Persistance.External;
 using NewsService.Persistance.Messaging;
 using NewsService.Persistance.Repositories;
 using NewsService.Persistance.Storage;
 using NewsService.Persistance.UnitOfWorks;
+using StackExchange.Redis;
 
 namespace NewsService.Persistance;
 
@@ -22,7 +19,6 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddPersistanceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IChangeAuditCollector, ChangeAuditCollector>();
         services.AddScoped<ChangeAuditInterceptor>();
 
         services.AddDbContext<NewsServiceDbContext>((serviceProvider, options) =>
@@ -47,11 +43,6 @@ public static class ServiceRegistration
         });
         services.AddSingleton<ICacheService, RedisCacheService>();
 
-        // Herkese açık akışın tazelik penceresi.
-        services.Configure<FeedOptions>(configuration.GetSection(FeedOptions.SectionName));
-
-        // Dış servis: yanıt önbelleklendiği için nadiren çağrılıyor; yine de
-        // kısa timeout ile bekletilmiyor.
         services.Configure<WeatherOptions>(configuration.GetSection(WeatherOptions.SectionName));
 
         var weatherTimeout = TimeSpan.FromSeconds(
@@ -68,8 +59,6 @@ public static class ServiceRegistration
             client.DefaultRequestHeaders.UserAgent.ParseAdd(
                 "Mozilla/5.0 (compatible; Telgraf/1.0)");
 
-            // Kısa timeout: şerit süs, yavaş bir dış servis sayfayı bekletmemeli.
-            // Süre dolarsa istemci boş liste döner ve şerit gizlenir.
             client.Timeout = TimeSpan.FromSeconds(
                 configuration.GetValue("Market:TimeoutSeconds", 5));
         });
