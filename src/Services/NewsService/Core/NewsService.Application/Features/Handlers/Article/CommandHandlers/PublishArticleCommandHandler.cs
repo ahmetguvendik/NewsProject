@@ -1,3 +1,4 @@
+using System.Data;
 using MediatR;
 using NewsService.Application.Caching.Concrete;
 using NewsService.Application.Exceptions;
@@ -30,28 +31,40 @@ public class PublishArticleCommandHandler : IRequestHandler<PublishArticleComman
 
     public async Task Handle(PublishArticleCommand request, CancellationToken cancellationToken)
     {
-        var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
-            ?? throw NotFoundException.Article(request.Id);
+        // Serializable: eşzamanlı iki yayın isteğinden yalnızca biri olay üretsin (çift mail gitmesin).
+        await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
-        if (article.IsPublished)
-            throw ConflictException.ArticleAlreadyPublished(request.Id);
-
-        article.IsPublished = true;
-        article.PublishedAt = DateTime.UtcNow;
-        article.UpdatedAt = DateTime.UtcNow;
-
-        await _articleRepository.UpdateAsync(article, cancellationToken);
-
-        await _eventPublisher.PublishAsync(Topics.Article.Published, new ArticlePublishedEvent
+        try
         {
-            ArticleId = article.Id,
-            Title = article.Title,
-            AuthorKeycloakId = article.AuthorKeycloakId,
-            NotifySubscribers = article.NotifySubscribers,
-            PublishedAt = article.PublishedAt!.Value
-        }, cancellationToken);
+            var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
+                ?? throw NotFoundException.Article(request.Id);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (article.IsPublished)
+                throw ConflictException.ArticleAlreadyPublished(request.Id);
+
+            article.IsPublished = true;
+            article.PublishedAt = DateTime.UtcNow;
+            article.UpdatedAt = DateTime.UtcNow;
+
+            await _articleRepository.UpdateAsync(article, cancellationToken);
+
+            await _eventPublisher.PublishAsync(Topics.Article.Published, new ArticlePublishedEvent
+            {
+                ArticleId = article.Id,
+                Title = article.Title,
+                AuthorKeycloakId = article.AuthorKeycloakId,
+                NotifySubscribers = article.NotifySubscribers,
+                PublishedAt = article.PublishedAt!.Value
+            }, cancellationToken);
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync(CancellationToken.None);
+            throw;
+        }
 
         // Listenin tüm varyantları (sayfa, kategori, rol) tek anahtarda;
         // biri değiştiğinde hepsi bayatladığı için tamamı düşürülüyor.

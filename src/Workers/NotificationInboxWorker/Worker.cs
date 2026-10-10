@@ -108,9 +108,10 @@ public class Worker : BackgroundService
                         message.Id, message.Topic, message.RetryCount, _maxRetryCount);
                 }
             }
-        }
 
-        await db.SaveChangesAsync(cancellationToken);
+            // Her mesajdan sonra: aynı turdaki sonraki mesaj, gönderilen maili "zaten gönderildi" olarak görsün.
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private async Task HandleMessageAsync(

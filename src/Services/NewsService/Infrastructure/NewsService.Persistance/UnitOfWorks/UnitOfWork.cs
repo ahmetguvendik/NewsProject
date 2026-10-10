@@ -1,3 +1,5 @@
+using System.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using NewsService.Application.UnitOfWorks;
 using NewsService.Persistance.Contexts;
@@ -17,24 +19,54 @@ public class UnitOfWork : IUnitOfWork
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => await _context.SaveChangesAsync(cancellationToken);
 
-    public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
-        => _transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+    public async Task BeginTransactionAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
+    {
+        if (_transaction is not null)
+            throw new InvalidOperationException("Zaten açık bir transaction var.");
+
+        _transaction = await _context.Database.BeginTransactionAsync(isolationLevel, cancellationToken);
+    }
 
     public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
     {
-        if (_transaction is not null)
+        if (_transaction is null)
+            return;
+
+        try
+        {
             await _transaction.CommitAsync(cancellationToken);
+        }
+        finally
+        {
+            await EndAsync();
+        }
     }
 
     public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
     {
-        if (_transaction is not null)
+        if (_transaction is null)
+            return;
+
+        try
+        {
             await _transaction.RollbackAsync(cancellationToken);
+        }
+        finally
+        {
+            await EndAsync();
+        }
     }
 
+    private async Task EndAsync()
+    {
+        await _transaction!.DisposeAsync();
+        _transaction = null;
+    }
+
+    // DbContext'i DI yönetiyor; burada yalnızca açık kalan transaction kapatılır.
     public void Dispose()
     {
         _transaction?.Dispose();
-        _context.Dispose();
+        _transaction = null;
     }
 }
