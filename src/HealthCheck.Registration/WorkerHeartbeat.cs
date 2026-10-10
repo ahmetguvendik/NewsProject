@@ -2,14 +2,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace HealthCheck.Registration;
 
-/// <summary>
-/// Worker döngüsünün her turda dokunduğu zaman damgası.
-///
-/// Worker'larda "hazır mı" sorusu anlamsız — kimse onlara trafik yönlendirmiyor.
-/// Asıl merak edilen şey farklı: <b>döngü hâlâ dönüyor mu?</b> Çöken bir process'i
-/// <c>restart: always</c> zaten toparlıyor, ama veritabanı çağrısında asılı kalan
-/// bir döngü sonsuza kadar sessizce durur ve hiçbir şey fark etmez.
-/// </summary>
 public sealed class WorkerHeartbeat
 {
     private long _lastBeatTicks = DateTime.UtcNow.Ticks;

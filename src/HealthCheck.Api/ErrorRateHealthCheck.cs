@@ -4,21 +4,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace HealthCheck.Registration;
+namespace HealthCheck.Api;
 
-/// <summary>
-/// Son N dakikadaki hata sayısı eşiği aşarsa Unhealthy döner.
-///
-/// Diğer kontrollerden farkı: onlar DURUM soruyor ("Postgres'e bağlanabiliyor
-/// muyum"), bu DESEN soruyor ("son 5 dakikada kaç hata oldu"). Aradaki fark
-/// pratikte şu: yeni bir deploy'da her yayınlama isteği 500 dönse, bağımlılık
-/// kontrollerinin hepsi yeşil kalır — Postgres ayakta, Redis ayakta, hiçbir şey
-/// "çökmüş" değil. Ama sistem bozuk. Bunu ancak logların kendisi gösterir.
-///
-/// Sağlık kontrolü olarak yazıldı, ayrı bir uyarı sistemine değil: mevcut panel
-/// ve webhook zaten kurulu, uyarıların tek yerden çıkması iki ayrı sistemi doğru
-/// yapılandırmaktan daha değerli.
-/// </summary>
 internal sealed class ErrorRateHealthCheck : IHealthCheck
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -42,9 +29,6 @@ internal sealed class ErrorRateHealthCheck : IHealthCheck
         _indexPattern = indexPattern;
         _windowMinutes = windowMinutes;
         _threshold = threshold;
-
-        // Elasticsearch'te kimlik doğrulama açık. Kullanıcı adı verilmemişse
-        // başlık eklenmiyor: güvenliğin kapalı olduğu bir kurulumda da çalışsın.
         if (!string.IsNullOrEmpty(username))
         {
             var credentials = Convert.ToBase64String(
@@ -92,8 +76,7 @@ internal sealed class ErrorRateHealthCheck : IHealthCheck
 
             if (!response.IsSuccessStatusCode)
             {
-                // Sorgu yapılamıyorsa "hata yok" demek yanlış olur: uyarının
-                // kaynağı kör kalmış demektir ve bu da bilinmesi gereken bir durum.
+                // Sorgu yapılamıyorsa "hata yok" denmez: uyarının kör kaldığı da bilinmeli.
                 return HealthCheckResult.Unhealthy(
                     $"Hata sayısı okunamadı: Elasticsearch {(int)response.StatusCode} döndü.");
             }

@@ -5,25 +5,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace HealthCheck.Registration;
 
-/// <summary>
-/// Servislerin ihtiyaç duydukları kontrolleri tek tek seçmesini sağlar. Her servis
-/// farklı bağımlılıklara sahip: NotificationService Redis kullanmıyor, MinIO yalnızca
-/// NewsService'te var. Hepsini otomatik eklemek, kullanılmayan bir bağımlılığın
-/// sağlığını raporlamak gibi yanıltıcı bir sonuç üretirdi.
-/// </summary>
 public sealed class AppHealthChecksBuilder
 {
-    /// <summary>
-    /// Her ağ kontrolüne uygulanan üst sınır.
-    ///
-    /// ZORUNLU: timeout verilmezse kontrol süresiz bekliyor. Kafka durdurulduğunda
-    /// tam bu oldu — kafka kontrolü asılı kaldı, /health ucu 25 saniyede bile cevap
-    /// vermedi ve panel "ne bozuk" diyemedi, yalnızca "uç cevap vermedi" dedi.
-    /// Aynı servisteki diğer kontroller de görünmez oldu.
-    ///
-    /// Timeout ile kontrol hızla başarısız oluyor ve HANGİ bağımlılığın çöktüğü
-    /// panelde okunabiliyor.
-    /// </summary>
+    // Zorunlu: timeout'suz kontrol süresiz bekler; Kafka durunca /health hiç cevap vermemişti.
     private static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(5);
 
     private readonly IHealthChecksBuilder _builder;
@@ -35,10 +19,6 @@ public sealed class AppHealthChecksBuilder
         _configuration = configuration;
     }
 
-    /// <summary>
-    /// Veritabanı — tek <c>Ready</c> etiketli kontrol. Postgres erişilemezse servis
-    /// hiçbir isteği karşılayamaz, dolayısıyla trafik almaması doğru davranış.
-    /// </summary>
     public AppHealthChecksBuilder AddPostgres(string connectionName = "DefaultConnection")
     {
         var connectionString = _configuration.GetConnectionString(connectionName);
@@ -55,11 +35,6 @@ public sealed class AppHealthChecksBuilder
         return this;
     }
 
-    /// <summary>
-    /// Önbellek. Kesintisi RedisCacheService'teki devre kesici tarafından yutuluyor,
-    /// istekler veritabanına düşerek yanıtlanmaya devam ediyor — o yüzden Ready değil.
-    /// Yavaşlamanın sebebini görebilmek için yine de raporlanıyor.
-    /// </summary>
     public AppHealthChecksBuilder AddRedis(string configKey = "Redis:Connection")
     {
         var connectionString = _configuration[configKey];
@@ -76,11 +51,6 @@ public sealed class AppHealthChecksBuilder
         return this;
     }
 
-    /// <summary>
-    /// Kafka. WebApi'ler Kafka'ya hiç bağlanmıyor (outbox tabloya yazıyor), yalnızca
-    /// consumer barındıran NotificationService için anlamlı. Kesinti outbox sayesinde
-    /// tolere edildiğinden Ready değil.
-    /// </summary>
     public AppHealthChecksBuilder AddKafka(string configKey = "Kafka:BootstrapServers")
     {
         var bootstrapServers = _configuration[configKey];
@@ -91,13 +61,7 @@ public sealed class AppHealthChecksBuilder
             new ProducerConfig
             {
                 BootstrapServers = bootstrapServers,
-
-                // Kontrolün KENDİ timeout'u, çerçevenin timeout'undan kısa.
-                //
-                // Sebep: çerçeve süresi önce dolarsa kontrolü iptal ediyor ve panele
-                // "A task was canceled." yazılıyor — Kafka'ya ulaşılamadığını değil,
-                // kontrolün içinde tuhaf bir şey olduğunu düşündürüyor. Kafka önce
-                // kendi hatasını döndürsün ki panelde okunabilir bir sebep görünsün.
+                // Kafka kapalıyken kontrol librdkafka'nın uzun varsayılanlarında takılmasın.
                 MessageTimeoutMs = 3000,
                 SocketTimeoutMs = 3000
             },
@@ -109,11 +73,6 @@ public sealed class AppHealthChecksBuilder
         return this;
     }
 
-    /// <summary>
-    /// Keycloak'ın OIDC keşif ucu. Kapalıyken önbelleklenmiş JWKS ile doğrulama bir
-    /// süre daha sürebildiği için Ready değil; ama giriş ve kullanıcı yönetimi
-    /// çalışmayacağından raporlanması önemli.
-    /// </summary>
     public AppHealthChecksBuilder AddKeycloak(string configKey = "Keycloak:Authority")
     {
         var authority = _configuration[configKey];
@@ -132,10 +91,6 @@ public sealed class AppHealthChecksBuilder
         return this;
     }
 
-    /// <summary>
-    /// MinIO'nun kendi sağlık ucu. Yalnızca görsel yükleme/servis etme etkilenir,
-    /// haber okuma çalışmaya devam eder — o yüzden Ready değil.
-    /// </summary>
     public AppHealthChecksBuilder AddStorage(string configKey = "Storage:Endpoint")
     {
         var endpoint = _configuration[configKey];
@@ -154,54 +109,7 @@ public sealed class AppHealthChecksBuilder
         return this;
     }
 
-    /// <summary>
-    /// Son N dakikadaki hata sayısı. Eşiği aşarsa Unhealthy.
-    ///
-    /// Diğer kontroller DURUM soruyor ("Postgres ayakta mı"), bu DESEN soruyor
-    /// ("hata oranı fırladı mı"). Bir bağımlılık çökmeden de sistem bozulabilir:
-    /// hatalı bir deploy'da her istek 500 dönerken bağımlılık kontrollerinin
-    /// hepsi yeşil kalır.
-    ///
-    /// Bu kontrol yalnızca HealthCheck.Api'de kayıtlı, tek tek servislerde değil:
-    /// soru sistem geneline ait, tek bir servise değil. Eşiği her serviste ayrı
-    /// uygulamak "hangi servis kaç hata verdi" sorusuna kayardı.
-    /// </summary>
-    public AppHealthChecksBuilder AddErrorRate(
-        string elasticsearchUrl,
-        string indexPattern = "logs-*",
-        int windowMinutes = 5,
-        int threshold = 10,
-        string? username = null,
-        string? password = null)
-    {
-        _builder.Add(new HealthCheckRegistration(
-            name: "hata-orani",
-            factory: sp => new ErrorRateHealthCheck(
-                sp.GetRequiredService<IHttpClientFactory>(),
-                elasticsearchUrl, indexPattern, windowMinutes, threshold, username, password),
-            failureStatus: HealthStatus.Unhealthy,
-            tags: [HealthCheckTags.Dependency],
-            timeout: CheckTimeout));
-
-        return this;
-    }
-
-    /// <summary>
-    /// Dead-letter'a düşmüş mesaj sayısı. Sıfırdan büyükse Unhealthy.
-    ///
-    /// ETİKET BİLİNÇLİ OLARAK Dependency, Ready DEĞİL:
-    ///   • /health/ready etkilenmiyor → container sağlıklı kalıyor. Ölü bir mesaj
-    ///     worker'ın bozuk olduğu anlamına gelmez; döngü çalışmaya devam ediyor ve
-    ///     onu yeniden başlatmak hiçbir şeyi düzeltmez.
-    ///   • /health Unhealthy oluyor → panel kırmızıya dönüyor ve webhook tetikleniyor.
-    ///
-    /// Ready etiketi verseydik container unhealthy olur, ona bağlı servisler
-    /// beklemeye başlar ve tek bir bozuk mesaj yüzünden çalışan bir sistem
-    /// durdurulurdu.
-    ///
-    /// Sorgu dışarıdan veriliyor: bu proje OutboxMessage/InboxMessage tiplerini
-    /// tanımıyor ve tanımamalı.
-    /// </summary>
+    // Ready değil Dependency: tek bozuk mesaj yüzünden çalışan worker durdurulmasın.
     public AppHealthChecksBuilder AddDeadLetters(
         Func<IServiceProvider, CancellationToken, Task<int>> countAsync)
     {
@@ -215,13 +123,6 @@ public sealed class AppHealthChecksBuilder
         return this;
     }
 
-    /// <summary>
-    /// Worker döngüsünün canlılığı. Worker'larda tek <c>Ready</c> etiketli kontrol bu
-    /// olmalı: container'ın sağlıksız sayılması gereken tek durum, döngünün durmasıdır.
-    ///
-    /// <paramref name="staleAfter"/> tarama aralığının birkaç katı verilmeli — tek bir
-    /// yavaş turda yanlış alarm üretmesin.
-    /// </summary>
     public AppHealthChecksBuilder AddWorkerHeartbeat(TimeSpan staleAfter)
     {
         _builder.Services.AddSingleton<WorkerHeartbeat>();
@@ -236,19 +137,7 @@ public sealed class AppHealthChecksBuilder
         return this;
     }
 
-    /// <summary>
-    /// Ayar eksikse kontrolü atlamak yerine, doğrudan Unhealthy raporlayan bir yer
-    /// tutucu kaydeder.
-    ///
-    /// Önce burada exception fırlatılıyordu; yanlıştı. Teşhis amaçlı bir özelliğin,
-    /// izlemesi gereken çalışan servisi açılışta düşürmesi ters bir takas: yanlış
-    /// yazılmış bir Redis adresi yüzünden, Redis olmadan da çalışabilecek servis hiç
-    /// başlamıyordu. Şimdi servis ayağa kalkıyor, eksiklik panelde kırmızı görünüyor
-    /// ve sebebi mesajda yazıyor.
-    ///
-    /// Sessizce atlamak da doğru değil: kontrol varmış gibi görünüp hiçbir şey
-    /// doğrulamayan bir sağlık ucu bırakırdı. Yer tutucu ikisinin arasını buluyor.
-    /// </summary>
+    // Ayar eksikse kontrol sessizce atlanmaz, panelde kırmızı görünür.
     private bool Missing(string? value, string checkName, string configKey, string tag)
     {
         if (!string.IsNullOrWhiteSpace(value))

@@ -1,19 +1,26 @@
+using HealthCheck.Api;
 using HealthCheck.Registration;
 using HealthChecks.UI.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
 
-builder.Services.AddAppHealthChecks(builder.Configuration)
-    .AddErrorRate(
+builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+    name: "hata-orani",
+    factory: sp => new ErrorRateHealthCheck(
+        sp.GetRequiredService<IHttpClientFactory>(),
         elasticsearchUrl: builder.Configuration["Elasticsearch:Url"] ?? "http://elasticsearch:9200",
         indexPattern: builder.Configuration["Alerting:ErrorRate:IndexPattern"] ?? "logs-*",
         windowMinutes: builder.Configuration.GetValue("Alerting:ErrorRate:WindowMinutes", 5),
         threshold: builder.Configuration.GetValue("Alerting:ErrorRate:Threshold", 10),
         username: builder.Configuration["Elasticsearch:Username"],
-        password: builder.Configuration["Elasticsearch:Password"]);
+        password: builder.Configuration["Elasticsearch:Password"]),
+    failureStatus: HealthStatus.Unhealthy,
+    tags: [HealthCheckTags.Dependency],
+    timeout: TimeSpan.FromSeconds(5)));
 
 builder.Services
     .AddHealthChecksUI(settings =>

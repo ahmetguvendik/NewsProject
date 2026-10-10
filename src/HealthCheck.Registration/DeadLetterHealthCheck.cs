@@ -3,16 +3,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace HealthCheck.Registration;
 
-/// <summary>
-/// Dead-letter'a düşmüş mesaj sayısını raporlar.
-///
-/// Bu kontrol olmadan bir mesajın ölmesi TAMAMEN görünmezdi: worker sağlıklı,
-/// container ayakta, log'da bir satır — ve mail hiç gitmiyor. Kullanıcı şikayet
-/// edene kadar kimsenin haberi olmuyordu.
-///
-/// SAYIM, LOG DEĞİL: "kaç mesaj ölü" bir durum sorusu, log'da aranacak bir desen
-/// değil. Bu yüzden uyarıyı log altyapısına değil sağlık kontrolüne bağladık.
-/// </summary>
 internal sealed class DeadLetterHealthCheck : IHealthCheck
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -42,8 +32,7 @@ internal sealed class DeadLetterHealthCheck : IHealthCheck
         }
         catch (Exception ex)
         {
-            // Sayım yapılamadıysa "sorun yok" demek yanlış olur — belirsizlik de
-            // görünür olmalı, sessizce yeşil kalmamalı.
+            // Sayım yapılamadıysa "sorun yok" denmez: belirsizlik de görünür olmalı.
             return HealthCheckResult.Unhealthy("Dead-letter sayısı okunamadı.", ex);
         }
     }

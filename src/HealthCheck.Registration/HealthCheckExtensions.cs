@@ -16,21 +16,9 @@ public static class HealthCheckExtensions
         IConfiguration configuration) =>
         new(services.AddHealthChecks(), configuration);
 
-    /// <summary>
-    /// Üç uç açar:
-    ///
-    /// <c>/health/live</c>  — hiçbir kontrol çalıştırmaz, yalnızca process'in cevap
-    /// verdiğini gösterir. Bağımlılık eklemek tehlikeli olurdu: Postgres bir an
-    /// takıldığında orkestratör bütün servisleri yeniden başlatır ve kesintiyi büyütür.
-    ///
-    /// <c>/health/ready</c> — yalnızca <see cref="HealthCheckTags.Ready"/> etiketli
-    /// kontroller. Trafik yönlendirme kararı buna bakar.
-    ///
-    /// <c>/health</c>       — hepsi, tek tek durumlarıyla. İnsan/panel içindir,
-    /// otomatik karar için değil.
-    /// </summary>
     public static IEndpointRouteBuilder MapAppHealthChecks(this IEndpointRouteBuilder endpoints)
     {
+        // live hiçbir kontrol çalıştırmaz: bağımlılık eklenirse Postgres takılınca orkestratör tüm servisleri yeniden başlatır.
         endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
         {
             Predicate = _ => false
@@ -44,12 +32,10 @@ public static class HealthCheckExtensions
 
         endpoints.MapHealthChecks("/health", new HealthCheckOptions
         {
-            // Özel bir format yerine UI'ın beklediği şema kullanılıyor: HealthDashboard
-            // bu ucu okuyor ve kendi şemasından başkasını çözemiyor.
+            // Panel yalnızca UI şemasını okuyabiliyor.
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse,
 
-            // Degraded'ı 200 ile dönüyoruz: tolere edilen bir bağımlılık kesintisi
-            // servisin çalışmadığı anlamına gelmiyor ve 503 yanlış alarm üretirdi.
+            // Degraded 200: tolere edilen kesinti servisin çalışmadığı anlamına gelmez.
             ResultStatusCodes =
             {
                 [HealthStatus.Healthy] = StatusCodes.Status200OK,
