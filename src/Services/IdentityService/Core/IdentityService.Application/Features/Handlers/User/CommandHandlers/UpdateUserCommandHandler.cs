@@ -1,4 +1,5 @@
 using IdentityService.Application.Caching;
+using IdentityService.Application.Exceptions;
 using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Features.Commands.User.Response;
 using IdentityService.Application.Interfaces;

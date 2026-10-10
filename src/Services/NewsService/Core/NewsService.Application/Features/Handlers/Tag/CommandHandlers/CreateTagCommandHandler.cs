@@ -2,6 +2,7 @@ using MediatR;
 using Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using NewsService.Application.Caching.Concrete;
+using NewsService.Application.Exceptions;
 using NewsService.Application.Features.Commands.Tag.Request;
 using NewsService.Application.Features.Commands.Tag.Response;
 using NewsService.Application.Interfaces;

@@ -1,5 +1,6 @@
 using MediatR;
 using NewsService.Application.Caching.Concrete;
+using NewsService.Application.Exceptions;
 using NewsService.Application.Features.Commands.Article.Request;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;

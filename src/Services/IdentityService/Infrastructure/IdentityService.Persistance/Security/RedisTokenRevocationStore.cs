@@ -1,4 +1,5 @@
 using System.Text.Json;
+using IdentityService.Application.Exceptions;
 using IdentityService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using Shared.Exceptions;

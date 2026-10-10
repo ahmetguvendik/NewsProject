@@ -1,14 +1,7 @@
 namespace Shared.Exceptions;
 
-/// <summary>
-/// Gelen isteğin doğrulama kurallarını ihlal ettiği durumlarda fırlatılır. → HTTP 400
-/// </summary>
 public class ValidationException : AppException
 {
-    /// <summary>
-    /// Alan adı → hata mesajı listesi şeklinde doğrulama hataları.
-    /// Birden fazla alan hatalıysa hepsi buraya eklenir.
-    /// </summary>
     public IReadOnlyDictionary<string, string[]> Errors { get; }
 
     public ValidationException(IDictionary<string, string[]> errors)

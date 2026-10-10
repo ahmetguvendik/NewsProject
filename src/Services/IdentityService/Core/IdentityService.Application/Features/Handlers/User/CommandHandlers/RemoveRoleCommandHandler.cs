@@ -1,4 +1,5 @@
 using System.Data;
+using IdentityService.Application.Exceptions;
 using IdentityService.Application.Features.Commands.User.Request;
 using IdentityService.Application.Interfaces;
 using IdentityService.Application.UnitOfWorks;

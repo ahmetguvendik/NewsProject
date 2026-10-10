@@ -7,6 +7,5 @@ public class ArticlePublishedEvent
     public string AuthorKeycloakId { get; set; } = string.Empty;
     public DateTime PublishedAt { get; set; }
 
-    /// <summary>true ise bülten abonelerine de bildirim gönderilir.</summary>
     public bool NotifySubscribers { get; set; }
 }

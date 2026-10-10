@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using NewsService.Application.Exceptions;
 using NewsService.Application.Features.Queries.Tag.Request;
 using NewsService.Application.Features.Queries.Tag.Response;
 using NewsService.Application.Interfaces;

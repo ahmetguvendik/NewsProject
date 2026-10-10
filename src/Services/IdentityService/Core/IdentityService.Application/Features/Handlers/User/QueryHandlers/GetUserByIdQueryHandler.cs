@@ -1,3 +1,4 @@
+using IdentityService.Application.Exceptions;
 using IdentityService.Application.Features.Queries.User.Request;
 using IdentityService.Application.Features.Queries.User.Response;
 using IdentityService.Application.Interfaces;

@@ -5,11 +5,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Shared.Extensions;
 
-/// <summary>
-/// Uygulama açılışında EF Core migration'larını uygular.
-/// Container ortamında servis, Postgres hazır olmadan ayağa kalkabildiği için
-/// bağlantı hataları belirli sayıda yeniden denenir.
-/// </summary>
 public static class HostMigrationExtensions
 {
     public static async Task<IHost> MigrateDatabaseAsync<TContext>(

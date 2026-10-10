@@ -1,6 +1,5 @@
 namespace Shared.Models;
 
-/// <summary>Sayfalanmış liste yanıtları için ortak zarf.</summary>
 public class PagedResult<T>
 {
     public List<T> Items { get; set; } = [];
