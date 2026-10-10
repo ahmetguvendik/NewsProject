@@ -22,7 +22,7 @@ builder.Services.AddHttpClient<IIdentityContactClient, IdentityContactClient>(cl
 
 builder.Services.AddHostedService<Worker>();
 
-var pollSeconds = builder.Configuration.GetValue("Inbox:PollIntervalSeconds", 5);
+var pollSeconds = builder.Configuration.GetValue("Inbox:PollIntervalSeconds", 15);
 
 builder.Services.AddAppHealthChecks(builder.Configuration)
     .AddWorkerHeartbeat(TimeSpan.FromSeconds(Math.Max(30, pollSeconds * 4)))

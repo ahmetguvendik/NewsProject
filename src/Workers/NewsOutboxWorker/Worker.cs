@@ -32,7 +32,7 @@ public class Worker : BackgroundService
         _maxRetryCount = _configuration.GetValue("Outbox:MaxRetryCount", 5);
         _retentionDays = _configuration.GetValue("Outbox:RetentionDays", 7);
         _batchSize = _configuration.GetValue("Outbox:BatchSize", 50);
-        _pollInterval = TimeSpan.FromSeconds(_configuration.GetValue("Outbox:PollIntervalSeconds", 5));
+        _pollInterval = TimeSpan.FromSeconds(_configuration.GetValue("Outbox:PollIntervalSeconds", 15));
         _cleanupInterval = TimeSpan.FromHours(_configuration.GetValue("Outbox:CleanupIntervalHours", 1));
     }
 

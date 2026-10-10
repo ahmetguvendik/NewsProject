@@ -34,7 +34,7 @@ public class Worker : BackgroundService
         _maxRetryCount = configuration.GetValue("Inbox:MaxRetryCount", 5);
         _retentionDays = configuration.GetValue("Inbox:RetentionDays", 30);
         _batchSize = configuration.GetValue("Inbox:BatchSize", 50);
-        _pollInterval = TimeSpan.FromSeconds(configuration.GetValue("Inbox:PollIntervalSeconds", 5));
+        _pollInterval = TimeSpan.FromSeconds(configuration.GetValue("Inbox:PollIntervalSeconds", 15));
         _cleanupInterval = TimeSpan.FromHours(configuration.GetValue("Inbox:CleanupIntervalHours", 1));
     }
 

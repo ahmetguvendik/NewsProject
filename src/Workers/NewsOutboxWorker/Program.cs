@@ -14,7 +14,7 @@ builder.Services.AddDbContext<OutboxWorkerDbContext>(options =>
 
 builder.Services.AddHostedService<Worker>();
 
-var pollSeconds = builder.Configuration.GetValue("Outbox:PollIntervalSeconds", 5);
+var pollSeconds = builder.Configuration.GetValue("Outbox:PollIntervalSeconds", 15);
 
 builder.Services.AddAppHealthChecks(builder.Configuration)
     .AddWorkerHeartbeat(TimeSpan.FromSeconds(Math.Max(30, pollSeconds * 4)))
