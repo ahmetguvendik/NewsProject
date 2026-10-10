@@ -7,26 +7,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IdentityService.Application.Features.Handlers.User.QueryHandlers;
 
-/// <summary>
-/// Önbelleği <see cref="ICacheService"/> üzerinden doğrudan kullanır,
-/// <c>ICacheableQuery</c> ile pipeline'a bırakmaz. Sebebi: sorgu keyfi bir ID
-/// listesi alıyor. İstek bütün olarak anahtarlansaydı (<c>ids=a,b,c</c>)
-/// anahtar uzayı kombinasyon sayısıyla büyür, isabet oranı çökerdi — akış
-/// listesinde arama sorgularının önbelleklenmeme gerekçesinin aynısı.
-///
-/// Bunun yerine önbellek <b>kullanıcı başına</b> tutuluyor: tek bir hash'in
-/// alanları. Aynı yazar yüzlerce haberde geçtiği için isabet oranı yüksek,
-/// ve bir kullanıcı değiştiğinde yalnızca onun alanı düşürülüyor.
-/// </summary>
 public class GetUserDirectoryQueryHandler : IRequestHandler<GetUserDirectoryQuery, List<UserDirectoryEntryResponse>>
 {
     private readonly IGenericRepository<Domain.Entities.User> _userRepository;
     private readonly ICacheService _cache;
 
-    /// <summary>
-    /// Ad-soyad neredeyse hiç değişmiyor ve değiştiğinde zaten geçersizleştiriliyor;
-    /// TTL yalnızca kaçırılan bir geçersizleştirmeye karşı üst sınır.
-    /// </summary>
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(6);
 
     public GetUserDirectoryQueryHandler(
@@ -53,12 +38,6 @@ public class GetUserDirectoryQueryHandler : IRequestHandler<GetUserDirectoryQuer
 
         if (missing.Count > 0)
         {
-            // Bulunamayan ID'ler (ör. silinmiş kullanıcı) sessizce atlanır — çağıran
-            // taraf eksik girişleri kendi fallback'iyle (kısaltılmış ID vb.) gösterir.
-            // Bu "yok" bilgisi önbelleğe yazılmıyor: sıcak yol makale yazarını
-            // çözmek ve yazarlar var, dolayısıyla ıska nadir. Negatif önbellek
-            // eklemek, henüz oluşturulmamış kullanıcıyı yokmuş gibi dondurma
-            // riskini karşılığında çok az kazançla getirirdi.
             var fetched = await _userRepository.GetQueryable()
                 .Where(u => missing.Contains(u.KeycloakId))
                 .Select(u => new

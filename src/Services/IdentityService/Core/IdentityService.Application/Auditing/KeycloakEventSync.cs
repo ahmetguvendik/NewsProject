@@ -3,32 +3,8 @@ using Microsoft.Extensions.Logging;
 
 namespace IdentityService.Application.Auditing;
 
-/// <summary>
-/// Keycloak'ın güvenlik olaylarını okuyup kendi log hattımıza yazar.
-///
-/// NEDEN VAR: parola sıfırlama baştan sona Keycloak'ın içinde geçiyor — istek,
-/// jeton, mail ve yeni parola formu hep orada. Servislerimiz bu akışı hiç
-/// görmüyor, dolayısıyla loglarımızda da izi yoktu. Bu sınıf o boşluğu kapatıyor.
-///
-/// NEDEN Application'DA, BackgroundService'İN İÇİNDE DEĞİL: buradaki her karar
-/// bir iş kuralı — hangi olay "yeni" sayılır, hangisi kaygı vericidir, denetim
-/// satırı hangi alan adlarını taşır. Bunlar zamanlayıcıdan bağımsız ve tek
-/// başlarına doğrulanabilir olmalı. Döngünün içine gömülüyken test etmenin tek
-/// yolu servisi çalıştırıp Kibana'ya bakmaktı; denetim kaydının doğruluğu
-/// (olay atlanmaması, çift yazılmaması) tam da test edilmesi gereken şey.
-///
-/// Ne BİLMEZ: ne sıklıkta çağrıldığını, <c>BackgroundService</c>'i, scope
-/// yönetimini. Onlar barındıran tarafın işi (bkz. KeycloakEventPollerService).
-/// Bu ayrım sayesinde iş, ilerde ayrı bir Worker'a taşınırsa bu dosyaya tek
-/// satır dokunulmaz.
-/// </summary>
 public sealed class KeycloakEventSync
 {
-    /// <summary>
-    /// İzlenen olay türleri. Yalnızca parola akışı: giriş/çıkış olayları
-    /// saniyede birkaç kez üretilip hem Keycloak'ın tablosunu hem logları
-    /// gürültüye boğardı.
-    /// </summary>
     private static readonly string[] WatchedTypes =
     [
         "SEND_RESET_PASSWORD",       // sıfırlama maili gönderildi
@@ -39,10 +15,6 @@ public sealed class KeycloakEventSync
         "UPDATE_PASSWORD_ERROR"
     ];
 
-    /// <summary>
-    /// Tek turda okunacak azami kayıt. İki tur arasında bundan fazla olay
-    /// olursa en eskileri atlanır — yoklama aralığıyla birlikte düşünülmeli.
-    /// </summary>
     private const int MaxEventsPerPoll = 100;
 
     private readonly IKeycloakAdminClient _keycloak;
@@ -62,31 +34,11 @@ public sealed class KeycloakEventSync
         _logger = logger;
     }
 
-    /// <summary>
-    /// Bir tur çalıştırır: yeni olayları okur, loglar, imleci ilerletir.
-    /// Yazılan olay sayısını döndürür.
-    /// </summary>
     public async Task<int> RunAsync(CancellationToken cancellationToken = default)
     {
         var lastSeen = await _cursor.ReadAsync(cancellationToken);
 
-        // İmleç henüz kurulmamış: "şu an"a kuruluyor, hiçbir şey yazılmıyor.
-        // Anlamı: izlemeye başladığım andan SONRA olan her şeyi yaz, öncesini
-        // geçmiş say. Aksi halde imleç her sıfırlandığında (yeniden başlatma)
-        // Keycloak'ın elindeki bütün geçmiş log'a yeniden düşerdi.
-        //
-        // ÖNCEDEN "görülen en yeni olay"a kuruluyordu ve bu bir olay yutuyordu:
-        // Keycloak'ta hiç olay yokken liste boş geliyor, imleç kurulmadan
-        // çıkılıyor, sonraki turda gelen İLK GERÇEK OLAY "geçmiş" sanılıp
-        // atlanıyordu. Keycloak olayları 7 gün sonra sildiği için bu olağan bir
-        // durum: son bir haftada kimse parola sıfırlamadıysa, servis açıldıktan
-        // sonraki ilk sıfırlama hiç loglanmıyordu. "Şu an" liste boşken de
-        // kurulabiliyor.
-        //
-        // SAAT FARKI: imleç bu servisin saatiyle, olay zamanları Keycloak'ın
-        // saatiyle. Aynı makinedeyken fark yok; ayrı makinelerde bu servisin
-        // saati ilerideyse, açılıştan hemen sonra o fark kadarlık pencerede
-        // olan olaylar atlanabilir.
+        // İlk tur: imleci şu ana kur, öncesini geçmiş say.
         if (lastSeen is null)
         {
             await _cursor.WriteAsync(_clock.GetUtcNow().ToUnixTimeMilliseconds(), cancellationToken);
@@ -113,19 +65,10 @@ public sealed class KeycloakEventSync
         return fresh.Count;
     }
 
-    /// <summary>
-    /// Olayı, diğer denetim satırlarıyla AYNI alan adlarıyla yazar: actor.id ve
-    /// client.ip. Amaç, Kibana'da "bu kullanıcı neler yaptı" sorusunun tek bir
-    /// filtreyle cevaplanabilmesi — parola olayları ayrı bir adlandırmada
-    /// olsaydı o sorgunun dışında kalırlardı.
-    /// </summary>
     private void Write(KeycloakSecurityEvent securityEvent)
     {
         var failed = securityEvent.Type.EndsWith("_ERROR", StringComparison.Ordinal);
 
-        // Boş alanlar hiç yazılmıyor: eşleşen kullanıcı bulunamadığında Keycloak
-        // userId göndermiyor ve "actor.id: null" satırı, aramayı kolaylaştırmak
-        // yerine alanı kirletirdi.
         var fields = new Dictionary<string, object> { ["event.action"] = securityEvent.Type };
 
         if (!string.IsNullOrEmpty(securityEvent.UserId))
@@ -136,9 +79,6 @@ public sealed class KeycloakEventSync
 
         using var _ = _logger.BeginScope(fields);
 
-        // Başarısızlar uyarı: sıfırlama maili gönderilememesi ya da jetonun
-        // reddedilmesi, kullanıcının takıldığı ve müdahale gerekebilecek bir
-        // durum. Başarılılar bilgi seviyesinde, normal akışın parçası.
         if (failed)
         {
             _logger.LogWarning("Keycloak parola olayı başarısız: {EventType}", securityEvent.Type);

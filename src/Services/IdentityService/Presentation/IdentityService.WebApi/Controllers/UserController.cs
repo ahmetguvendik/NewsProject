@@ -8,11 +8,6 @@ using Shared.Exceptions;
 
 namespace IdentityService.WebApi.Controllers;
 
-// Sınıf seviyesinde yalnızca "giriş yapmış olma" şartı var; rol kısıtı her
-// action'da ayrı ayrı belirtiliyor. Böylece kullanıcının kendi hesabını
-// yönettiği uçlar (/me) admin olmadan da çalışabiliyor.
-// Bir action'da yetki attribute'u unutulursa uç açıkta kalmaz, en azından
-// kimlik doğrulaması ister.
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
@@ -46,11 +41,6 @@ public class UserController : ControllerBase
         return Ok(result);
     }
 
-    // ─── Kullanıcının kendi hesabı ──────────────────────────────────
-    // Rol şartı yok: giriş yapmış her kullanıcı yalnızca KENDİ kaydına
-    // erişir — hedef kullanıcı body'den değil, token'ın "sub" claim'inden
-    // belirlenir, dolayısıyla başkasının kaydına dokunulamaz.
-
     [HttpGet("me")]
     public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
     {
@@ -58,7 +48,6 @@ public class UserController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Bülten aboneliğini açar/kapatır (opt-in).</summary>
     [HttpPut("me/subscription")]
     public async Task<IActionResult> UpdateMySubscription(
         [FromBody] UpdateSubscriptionCommand command,
@@ -71,11 +60,6 @@ public class UserController : ControllerBase
 
     // ─── Herkese açık / servisler arası ─────────────────────────────
 
-    /// <summary>
-    /// Diğer servislerin elindeki Keycloak ID'lerini görünen isme çevirir
-    /// (ör. NewsService'in makale yazarını göstermesi için).
-    /// Bilerek admin dışına açık — yalnızca ad-soyad döner, hassas alan yok.
-    /// </summary>
     [AllowAnonymous]
     [HttpGet("directory")]
     public async Task<IActionResult> GetDirectory([FromQuery] string ids, CancellationToken cancellationToken)
@@ -89,12 +73,6 @@ public class UserController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Servisler arası dahili çağrı — e-posta gibi hassas veri döndürdüğü için JWT
-    /// yerine paylaşılan bir anahtarla (Internal:ApiKey) korunuyor. Şu an yalnızca
-    /// notification-inbox-worker'ın yayın bildirimi için yazarın gerçek e-postasını
-    /// çözmesinde kullanılıyor; bilerek /directory'den ayrı tutuldu.
-    /// </summary>
     [AllowAnonymous]
     [HttpGet("internal/contact")]
     public async Task<IActionResult> GetContact(
@@ -108,10 +86,6 @@ public class UserController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
-    /// <summary>
-    /// Bültene abone, aktif kullanıcıların iletişim bilgileri. Yayın bildirimi
-    /// gönderilirken notification-inbox-worker tarafından çağrılır.
-    /// </summary>
     [AllowAnonymous]
     [HttpGet("internal/subscribers")]
     public async Task<IActionResult> GetSubscribers(
@@ -158,10 +132,6 @@ public class UserController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir
-    /// (Keycloak enabled=false). Reversible — bkz. Activate.
-    /// </summary>
     [Authorize(Roles = "admin")]
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)

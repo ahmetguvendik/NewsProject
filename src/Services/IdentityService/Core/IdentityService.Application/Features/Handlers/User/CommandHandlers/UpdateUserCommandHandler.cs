@@ -37,9 +37,6 @@ public class UpdateUserCommandHandler : IRequestHandler<UpdateUserCommand, Updat
         await _userRepository.UpdateAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // Ad-soyad hem dizinde hem profilde görünüyor. Dizinde tüm hash yerine
-        // yalnızca bu kullanıcının alanı düşürülür — tamamını silmek, tek bir
-        // isim değişikliği için bütün isabeti çöpe atmak olurdu.
         await _cache.RemoveHashFieldAsync(CacheKeys.Directory, user.KeycloakId, cancellationToken);
         await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
 

@@ -38,9 +38,6 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, C
 
     public async Task<CreateUserResponse> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
-        // 1. Keycloak'ta user oluştur.
-        // Bu noktadan sonraki HER hata Keycloak'ta yetim bir kullanıcı bırakır,
-        // bu yüzden geri kalan tüm adımlar telafi bloğunun içinde çalışır.
         var keycloakId = await _keycloakAdminClient.CreateUserAsync(
             request.Email,
             request.Password,
@@ -80,20 +77,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, C
                 RegisteredAt = user.CreatedAt
             }, cancellationToken);
 
-            // 6. Doğrulama bağlantısını yolla.
-            //
-            // Realm'de verifyEmail açık: doğrulanmamış hesap giriş YAPAMIYOR
-            // (direct grant "invalid_grant / Account is not fully set up" döner).
-            // Yani bu adım isteğe bağlı değil — atlanırsa kullanıcı hesabını
-            // hiçbir zaman kullanamaz. Mektup gidemezse kayıt hiç olmamış
-            // sayılıyor ve kullanıcı tekrar deneyebiliyor; sessizce devam etmek
-            // "kaydoldum ama giremiyorum" gibi teşhisi zor bir durum bırakırdı.
-            //
-            // SaveChangesAsync'ten ÖNCE, bilerek: telafi bloğu yalnızca Keycloak
-            // kullanıcısını siliyor. Sonraya konsaydı ve mektup gidemeseydi DB
-            // satırı çoktan commit'lenmiş olur, Keycloak'ta karşılığı olmayan
-            // yerel bir kullanıcı kalırdı — yetim Keycloak kaydından daha kötü.
-            // Burada ise kaydedilmemiş değişiklikler kendiliğinden atılıyor.
+            // 6. Doğrulama maili — SaveChanges'ten ÖNCE: gidemezse DB'ye hiçbir şey yazılmasın.
             await _keycloakAdminClient.SendVerificationEmailAsync(keycloakId, cancellationToken);
 
             // 7. User + UserRole + OutboxMessage tek transaction'da kaydedilir
@@ -117,10 +101,6 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, C
         }
     }
 
-    /// <summary>
-    /// Kayıt yarıda kaldığında Keycloak'ta oluşturulmuş kullanıcıyı temizler.
-    /// Temizliğin kendisi başarısız olursa asıl hatayı gizlememek için yalnızca loglanır.
-    /// </summary>
     private async Task CompensateAsync(string keycloakId)
     {
         try

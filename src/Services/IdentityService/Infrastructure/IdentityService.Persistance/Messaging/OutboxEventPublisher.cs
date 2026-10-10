@@ -22,10 +22,6 @@ public class OutboxEventPublisher : IEventPublisher
             Topic = topic,
             Payload = JsonSerializer.Serialize(message),
 
-            // İsteğin trace bağlamı satırla birlikte kaydediliyor. Worker saniyeler
-            // sonra ayrı bir process'te uyandığında Activity çoktan ölmüş oluyor;
-            // taşımanın tek yolu satırın kendisi. Activity.Current?.Id, W3C
-            // traceparent biçiminde ("00-{trace}-{span}-{flags}").
             TraceParent = Activity.Current?.Id
         };
 

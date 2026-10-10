@@ -57,12 +57,6 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Kaldırma ile SİMETRİK. Burada güvenlik sorunu yok — yeni rol
-            // token'da olmadığı için kullanıcı fazladan bir şey yapamaz. Damga
-            // yine de yazılıyor çünkü alternatifi sessiz bir tutarsızlık:
-            // "seni admin yaptım" denen kullanıcı menüyü 1 saat boyunca
-            // göremez ve neden olduğunu anlayamazdı. Bedeli bir kez tekrar
-            // giriş yapmak; karşılığı yetkinin hemen geçerli olması.
             await _cache.SetAsync(
                 TokenRevocation.Key(user.KeycloakId),
                 TokenRevocation.Now(TokenRevocation.ReasonRoleChange),

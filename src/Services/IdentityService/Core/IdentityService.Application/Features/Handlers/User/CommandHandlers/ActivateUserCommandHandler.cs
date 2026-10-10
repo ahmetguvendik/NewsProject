@@ -32,15 +32,6 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
         var user = await _userRepository.GetByIdAsync(request.UserId.ToString(), cancellationToken)
             ?? throw NotFoundException.User(request.UserId);
 
-        // Keycloak HER ZAMAN etkinleştiriliyor, IsActive'e bakılmadan.
-        //
-        // Önce "zaten aktif" ise hemen dönülüyordu. Bu, veritabanı ile Keycloak
-        // ayrıştığında kullanıcıyı kurtarılamaz hale getiriyordu: IsActive=true
-        // ama Keycloak devre dışıysa, "Aktif et" hiçbir şey yapmadan dönüyor ve
-        // giriş engeli kalkmıyordu. Ayrışma normal akışta oluşmamalı ama Keycloak
-        // elle de yönetilebiliyor.
-        //
-        // Çağrı idempotent: zaten etkin bir kullanıcıyı etkinleştirmek zararsız.
         await _keycloakAdminClient.EnableUserAsync(user.KeycloakId, cancellationToken);
 
         if (user.IsActive)
@@ -56,10 +47,6 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
 
-            // Damgayı kaldır; aksi halde kullanıcı yeniden aktif edilse bile
-            // kaydın TTL'i dolana kadar reddedilmeye devam ederdi. Damga
-            // silinmese de yeni girişte üretilen token damgadan sonra doğduğu
-            // için geçerli sayılırdı, ama o ana kadarki istekler boşa giderdi.
             await _cache.RemoveAsync(TokenRevocation.Key(user.KeycloakId), cancellationToken);
         }
         catch

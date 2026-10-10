@@ -173,19 +173,6 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         }
     }
 
-    /// <summary>
-    /// <c>execute-actions-email</c> ile VERIFY_EMAIL eylemini tetikler: Keycloak
-    /// kullanıcıya tek kullanımlık bir doğrulama bağlantısı yollar.
-    ///
-    /// Mektubu Keycloak'ın kendisi hazırlayıp gönderiyor — şablon, bağlantı ömrü
-    /// ve SMTP ayarı realm'de duruyor (bkz. docker/setup-keycloak-mail.sh). Aynı
-    /// mektubu biz üretseydik jeton üretimini ve doğrulamasını da üstlenmemiz
-    /// gerekirdi; burada o iş zaten çözülmüş halde.
-    ///
-    /// <c>redirect_uri</c> BİLEREK verilmiyor: doğrulama sonrası Keycloak kendi
-    /// onay sayfasını gösteriyor. Adres verilseydi istemcinin redirectUris
-    /// listesiyle birebir uyması gerekirdi ve her ortam için ayrı ayar demekti.
-    /// </summary>
     public async Task SendVerificationEmailAsync(string keycloakId, CancellationToken cancellationToken = default)
     {
         var token = await GetAdminTokenAsync(cancellationToken);
@@ -273,10 +260,6 @@ public class KeycloakAdminClient : IKeycloakAdminClient
         var token = await GetAdminTokenAsync(cancellationToken);
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        // dateFrom/dateTo BİLEREK KULLANILMIYOR: Keycloak bu parametreleri gün
-        // hassasiyetinde alıyor, dolayısıyla "son yoklamadan beri" demeye yetmiyor
-        // ve her seferinde o günün tamamı dönerdi. Bunun yerine en yeni kayıtlar
-        // çekilip çağıran taraf zamana göre süzüyor.
         var query = new StringBuilder($"?max={max}");
 
         foreach (var type in types)
@@ -321,9 +304,6 @@ public class KeycloakAdminClient : IKeycloakAdminClient
 
     private async Task<string> GetAdminTokenAsync(CancellationToken cancellationToken)
     {
-        // admin-cli is a public client in Keycloak's master realm — it only supports
-        // the password grant. client_credentials requires a confidential client with
-        // service accounts enabled, which admin-cli is not by default.
         var formData = new Dictionary<string, string>
         {
             ["grant_type"] = "password",
@@ -354,11 +334,6 @@ public class KeycloakAdminClient : IKeycloakAdminClient
                 "Yanıtta 'access_token' alanı bulunamadı.");
     }
 
-    /// <summary>
-    /// Keycloak hata yanıtından okunabilir mesajı çıkarır.
-    /// Keycloak duruma göre 'errorMessage', 'error_description' veya 'error' alanını döner;
-    /// hiçbiri yoksa ham gövde kullanılır.
-    /// </summary>
     private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         var body = await response.Content.ReadAsStringAsync(cancellationToken);

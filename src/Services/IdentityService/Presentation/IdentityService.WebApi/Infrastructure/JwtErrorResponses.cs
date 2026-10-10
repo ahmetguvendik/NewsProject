@@ -5,7 +5,6 @@ using Shared.Models;
 
 namespace IdentityService.WebApi.Infrastructure;
 
-
 public static class JwtErrorResponses
 {
     public static JwtBearerEvents Create() => new()

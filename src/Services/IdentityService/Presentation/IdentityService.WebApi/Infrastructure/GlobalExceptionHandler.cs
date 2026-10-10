@@ -74,9 +74,6 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
             return (app.StatusCode, response);
         }
 
-        // Eş zamanlı iki işlem çakıştı (Serializable transaction). Bu bir arıza
-        // değil, korumanın çalışması: yarışı kaybeden işlem iptal edildi, veri
-        // tutarlı. Kullanıcıya 500 değil "tekrar deneyin" dönülüyor.
         if (IsConcurrencyConflict(exception))
         {
             var response = new ErrorResponse
@@ -100,18 +97,6 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
         return (500, fallback);
     }
 
-    /// <summary>
-    /// Hata zincirinde SQLSTATE 40001 (serialization_failure) ya da 40P01
-    /// (deadlock_detected) var mı? İkisi de "eş zamanlı bir işlemle çakıştın,
-    /// tekrar dene" demek.
-    ///
-    /// Zincir yürünüyor çünkü EF hatayı sarmalıyor: SaveChanges sırasında
-    /// çıkarsa DbUpdateException'ın içinde, commit sırasında çıkarsa doğrudan
-    /// geliyor.
-    ///
-    /// Npgsql'e referans vermeden: DbException.SqlState standart bir alan ve
-    /// kodlar SQL standardından. Sunum katmanı veritabanı sağlayıcısını bilmiyor.
-    /// </summary>
     private static bool IsConcurrencyConflict(Exception? exception)
     {
         for (var e = exception; e is not null; e = e.InnerException)

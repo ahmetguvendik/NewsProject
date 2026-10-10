@@ -25,20 +25,6 @@ public static class ServiceRegistration
         // Sıra önemli: doğrulama önce çalışsın ki geçersiz istekler önbelleğe ulaşmasın.
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(CachingBehavior<,>));
 
-        // Keycloak parola olaylarını kendi log hattımıza taşıyan senkronizasyon.
-        // Tetikleyicisi Presentation'da (KeycloakEventPollerService); iş burada.
-        //
-        // İmleç SINGLETON olmak zorunda: turlar arasında yaşamazsa her tur
-        // "ilk tur" sayılır ve hiçbir olay loglanmaz.
-        //
-        // Sync ise scoped ve her turda yeni scope'tan alınıyor, çünkü taşıdığı
-        // IKeycloakAdminClient bir typed HttpClient (AddHttpClient → transient).
-        // Uzun ömürlü bir nesnede tutulsaydı IHttpClientFactory'nin handler
-        // yenilemesi devre dışı kalırdı.
-        //
-        // TimeProvider: Sync imleci "şu an"a kuruyor; saat enjekte edilince bu
-        // davranış sahte bir saatle test edilebiliyor. TryAdd, başka bir yerde
-        // zaten kayıtlıysa üzerine yazmasın diye.
         services.AddSingleton<IKeycloakEventCursor, InMemoryKeycloakEventCursor>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<KeycloakEventSync>();

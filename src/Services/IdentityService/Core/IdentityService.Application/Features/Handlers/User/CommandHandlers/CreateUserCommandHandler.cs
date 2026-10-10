@@ -53,9 +53,6 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Creat
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // KeycloakId'yi burada çağıran belirliyor (RegisterUser'daki gibi Keycloak
-        // üretmiyor). Aynı ID daha önce silinmiş bir kullanıcıya aitse dizinde
-        // eski adı kalmış olabilir; yeni kaydın üstüne binmemesi için düşürülür.
         await _cache.RemoveHashFieldAsync(CacheKeys.Directory, user.KeycloakId, cancellationToken);
 
         return new CreateUserResponse

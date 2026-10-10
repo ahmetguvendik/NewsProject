@@ -8,11 +8,6 @@ using Shared.Security;
 
 namespace IdentityService.Application.Features.Handlers.User.CommandHandlers;
 
-/// <summary>
-/// Delete'ten farklı: kullanıcı listede görünmeye devam eder (soft-delete değil),
-/// yalnızca IsActive=false olur ve Keycloak'ta login edemez hale gelir. Reversible —
-/// bkz. ActivateUserCommandHandler.
-/// </summary>
 public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserCommand>
 {
     private readonly IGenericRepository<Domain.Entities.User> _userRepository;
@@ -40,9 +35,6 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
         if (!user.IsActive)
             return; // zaten pasif — idempotent
 
-        // Keycloak'ta önce devre dışı bırak — login engeli asıl burada oluşuyor.
-        // DB güncellemesi Keycloak hatasını sessizce yutmuyor (Delete'in aksine):
-        // bu komutun tek amacı login'i engellemek, o yüzden yarım kalırsa hata dönmeli.
         await _keycloakAdminClient.DisableUserAsync(user.KeycloakId, cancellationToken);
 
         try
@@ -51,15 +43,10 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
             await _userRepository.UpdateAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-
             // IsActive profilde dönüyor. Telafi bloğunun içinde: DB yazması
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
 
-            // Kullanıcının ELİNDEKİ token süresi dolana kadar geçerli kalıyor ve
-            // yalnızca Keycloak'ta devre dışı bırakmak onu durdurmuyordu: pasife
-            // alınan bir admin kendi token'ıyla kendini yeniden aktif edebiliyordu.
-            // Bu damga, servislerin o token'ları reddetmesini sağlıyor.
             await _cache.SetAsync(
                 TokenRevocation.Key(user.KeycloakId),
                 TokenRevocation.Now(TokenRevocation.ReasonAccountDisabled),
