@@ -63,6 +63,12 @@ namespace NotificationService.Persistance.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MessageId")
+                        .IsUnique();
+
+                    b.HasIndex("ReceivedAt")
+                        .HasFilter("\"IsProcessed\" = false AND \"IsDeadLettered\" = false");
+
                     b.ToTable("InboxMessages");
                 });
 
@@ -110,6 +116,8 @@ namespace NotificationService.Persistance.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ReferenceId", "Type");
 
                     b.ToTable("Notifications");
                 });

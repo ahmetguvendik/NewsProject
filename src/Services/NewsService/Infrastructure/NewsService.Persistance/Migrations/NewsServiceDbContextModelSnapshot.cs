@@ -156,6 +156,9 @@ namespace NewsService.Persistance.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt")
+                        .HasFilter("\"IsProcessed\" = false AND \"IsDeadLettered\" = false");
+
                     b.ToTable("OutboxMessages");
                 });
 

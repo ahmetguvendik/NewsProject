@@ -31,5 +31,9 @@ public class NewsServiceDbContext : DbContext
 
         modelBuilder.Entity<Tag>()
             .HasIndex(t => t.Name).IsUnique();
+
+        modelBuilder.Entity<OutboxMessage>()
+            .HasIndex(m => m.CreatedAt)
+            .HasFilter("\"IsProcessed\" = false AND \"IsDeadLettered\" = false");
     }
 }

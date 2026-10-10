@@ -41,6 +41,10 @@ public class IdentityServiceDbContext : DbContext
             .HasIndex(r => r.Name)
             .IsUnique();
 
+        modelBuilder.Entity<OutboxMessage>()
+            .HasIndex(m => m.CreatedAt)
+            .HasFilter("\"IsProcessed\" = false AND \"IsDeadLettered\" = false");
+
         // Rol seed verisi
         modelBuilder.Entity<Role>().HasData(
             new Role
