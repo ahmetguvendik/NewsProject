@@ -6,15 +6,10 @@ public class GetArticleByIdResponse
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public string? Summary { get; set; }
-    /// <summary>Görüntüleme için çözümlenmiş tam adres.</summary>
     public string? ImageUrl { get; set; }
 
-    /// <summary>
-    /// Veritabanındaki ham değer (depo anahtarı veya dış URL). Düzenleme formu
-    /// bunu geri gönderir; aksi halde her kayıtta anahtar tam URL'e dönüşürdü.
-    /// </summary>
+    // Ham değer: düzenleme formu bunu geri gönderir, yoksa anahtar tam URL'e dönüşür.
     public string? ImageKey { get; set; }
-    /// <summary>Tarayıcının ekran boyutuna göre seçmesi için boy listesi; dış adreslerde null.</summary>
     public string? ImageSrcset { get; set; }
 
     public string AuthorKeycloakId { get; set; } = string.Empty;
@@ -24,9 +19,7 @@ public class GetArticleByIdResponse
     public DateTime? PublishedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 
-    /// <summary>Okuma ekranında gösterilen etiket adları.</summary>
     public List<string> Tags { get; set; } = [];
 
-    /// <summary>Düzenleme formunun mevcut etiketleri işaretleyebilmesi için ID'ler.</summary>
     public List<Guid> TagIds { get; set; } = [];
 }

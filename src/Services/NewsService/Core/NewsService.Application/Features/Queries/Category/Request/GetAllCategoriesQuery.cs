@@ -4,10 +4,6 @@ using NewsService.Application.Features.Queries.Category.Response;
 
 namespace NewsService.Application.Features.Queries.Category.Request;
 
-/// <summary>
-/// Kategori listesi her akış sayfasında isteniyor ama neredeyse hiç değişmiyor —
-/// önbelleklemeye en uygun sorgu. Parametresi olmadığı için anahtar sabit.
-/// </summary>
 public class GetAllCategoriesQuery : IRequest<List<GetAllCategoriesResponse>>, ICacheableQuery
 {
     public string CacheKey => CacheKeys.Categories;

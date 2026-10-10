@@ -19,7 +19,6 @@ public class Worker : BackgroundService
     private readonly int _batchSize;
     private readonly TimeSpan _pollInterval;
 
-    /// <summary>Temizlik her turda değil, bu aralıkta bir çalışır.</summary>
     private readonly TimeSpan _cleanupInterval;
 
     private readonly WorkerHeartbeat _heartbeat;
@@ -82,10 +81,6 @@ public class Worker : BackgroundService
 
         foreach (var message in messages)
         {
-            // Satırla birlikte kaydedilen trace bağlamı geri kuruluyor: mail gönderimi
-            // sırasındaki loglar, haberi yayınlayan isteğin trace'i altında görünsün.
-            // Zincirin son halkası burası — yayın isteğinden mailin gitmesine kadar
-            // hepsi tek bir trace.id ile aranabilir hale geliyor.
             using var activity = AppTracing.StartLinked(
                 "inbox.process", message.TraceParent, ActivityKind.Consumer);
 
@@ -147,10 +142,6 @@ public class Worker : BackgroundService
         {
             var evt = JsonSerializer.Deserialize<ArticlePublishedEvent>(message.Payload)!;
 
-            // Abone gönderimi yarıda kalırsa TÜM mesaj yeniden denenir ve bu blok baştan
-            // çalışır; yazara ikinci kez mail gitmemesi için abone döngüsündeki kontrolün
-            // aynısı burada da yapılıyor. Kontrol IdentityService çağrısından önce, çünkü
-            // mail zaten gitmişse yazarın iletişim bilgisini çözmeye de gerek yok.
             var authorAlreadyNotified = await db.Notifications.AnyAsync(
                 n => n.ReferenceId == evt.ArticleId && n.Type == "article_published" && n.IsSent,
                 cancellationToken);
@@ -162,9 +153,6 @@ public class Worker : BackgroundService
             }
             else
             {
-                // Event'te yalnızca AuthorKeycloakId var — gerçek e-posta IdentityService'ten
-                // canlı çözülüyor. Kullanıcı bulunamazsa (silinmiş vb.) exception fırlatılır,
-                // mesaj retry/dead-letter mekanizmasına düşer.
                 var contact = await identityContactClient.GetContactAsync(evt.AuthorKeycloakId, cancellationToken)
                     ?? throw new InvalidOperationException($"Yazarın iletişim bilgisi bulunamadı: {evt.AuthorKeycloakId}");
 
@@ -196,23 +184,6 @@ public class Worker : BackgroundService
         }
     }
 
-    /// <summary>
-    /// İşlenmiş inbox satırları birikirse her turdaki "işlenmemişleri getir" sorgusu
-    /// giderek daha fazla ölü satırın üzerinden geçer.
-    ///
-    /// Yalnızca InboxMessages temizlenir. Notifications tablosuna DOKUNULMAZ: gönderilen
-    /// maillerin kalıcı kaydı olmasının yanı sıra, yazar ve abone mailleri için mükerrer
-    /// gönderim kontrolü de o tabloya bakıyor.
-    ///
-    /// Dead-letter satırları da korunur — incelenmeleri gerekiyor.
-    ///
-    /// RetentionDays, Kafka'nın topic saklama süresinden (varsayılan 7 gün) BÜYÜK
-    /// olmalı. Consumer'ın mükerrer kontrolü bu tablodaki MessageId'ye bakıyor; satır
-    /// Kafka'daki mesajdan önce silinirse, mesaj yeniden teslim edildiğinde kontrol
-    /// boşa düşer ve aynı mail ikinci kez gider. Yeniden teslim uzak bir ihtimal değil:
-    /// grup 7 gün boyunca (offsets.retention.minutes) tamamen kapalı kalırsa offset'ler
-    /// düşer ve AutoOffsetReset.Earliest ile topic baştan okunur.
-    /// </summary>
     private async Task CleanupProcessedMessagesAsync(CancellationToken cancellationToken)
     {
         if (DateTime.UtcNow - _lastCleanupAt < _cleanupInterval)
@@ -233,15 +204,6 @@ public class Worker : BackgroundService
             _logger.LogInformation("Cleaned up {Count} processed inbox messages older than {Cutoff:u}.", deleted, cutoff);
     }
 
-    /// <summary>
-    /// Bülten abonelerine yayın duyurusu gönderir.
-    ///
-    /// Tek bir aboneye gönderim patlarsa exception yukarı taşınır ve tüm mesaj
-    /// yeniden denenir; bu durumda daha önce mail gitmiş abonelere TEKRAR
-    /// gönderilmemesi için her alıcı öncesinde Notifications tablosu kontrol
-    /// edilir (ReferenceId = ArticleId). Başarılı gönderimler, mesaj yarıda
-    /// kalsa bile döngü sonundaki SaveChanges ile kalıcı oluyor.
-    /// </summary>
     private async Task NotifySubscribersAsync(
         ArticlePublishedEvent evt,
         IEmailService emailService,
@@ -293,11 +255,6 @@ public class Worker : BackgroundService
         }
     }
 
-    /// <summary>
-    /// DB ve event'lerde her zaman UTC tutulur; dönüştürme yalnızca insana gösterilecek
-    /// noktada (mail metni) yapılır. Türkiye 2016'dan beri yaz saati uygulamadığı için
-    /// sabit +3 offset yeterli — TimeZoneInfo/tzdata bağımlılığı gerektirmiyor.
-    /// </summary>
     private static DateTime ToTurkeyLocalTime(DateTime utc) => utc.AddHours(3);
 
     private async Task SendAndSaveAsync(IEmailService emailService, InboxWorkerDbContext db,
@@ -319,10 +276,6 @@ public class Worker : BackgroundService
 
         db.Notifications.Add(notification);
 
-        // Log'a adres DEĞİL kimlik yazılıyor. E-posta kişisel veri; Elasticsearch'te
-        // aranabilir halde ve 7 gün saklanıyor. Adrese gerçekten ihtiyaç olduğunda
-        // Notifications tablosundaki RecipientEmail alanından bakılır — o kayıt
-        // uygulamanın kendi verisi, log değil.
         _logger.LogInformation("Mail gönderildi: alıcı {RecipientKeycloakId}, tür '{Type}'.",
             recipientKeycloakId, type);
     }

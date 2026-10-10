@@ -65,13 +65,6 @@ public class ArticleController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>
-    /// Rol kapıyı açıyor, asıl kural handler'da: admin her haberi düzenleyebilir,
-    /// editör yalnızca KENDİ yazdığı ve HENÜZ YAYINLANMAMIŞ haberi.
-    ///
-    /// Kuralın burada değil handler'da olmasının sebebi, kaydın kendisine bakmayı
-    /// gerektirmesi — yazar kim, yayında mı. [Authorize] yalnızca token'a bakabilir.
-    /// </summary>
     [Authorize(Roles = "editor,admin")]
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] UpdateArticleCommand command, CancellationToken cancellationToken)
@@ -85,14 +78,6 @@ public class ArticleController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Silme yalnızca admin'de.
-    ///
-    /// Editörde değil, çünkü yayına alma kararı zaten admin'in — yayından
-    /// kaldırmak da en az o kadar ağır bir karar. Ayrıca silme yumuşak olsa da
-    /// (IsDeleted) geri getirecek bir ekran yok; yanlışlıkla silinen bir haber
-    /// pratikte veritabanına elle girmeyi gerektiriyor.
-    /// </summary>
     [Authorize(Roles = "admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)

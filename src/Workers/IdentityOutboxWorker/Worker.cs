@@ -16,7 +16,6 @@ public class Worker : BackgroundService
     private readonly int _batchSize;
     private readonly TimeSpan _pollInterval;
 
-    /// <summary>Temizlik her turda değil, bu aralıkta bir çalışır.</summary>
     private readonly TimeSpan _cleanupInterval;
 
     private readonly WorkerHeartbeat _heartbeat;
@@ -45,13 +44,7 @@ public class Worker : BackgroundService
         {
             BootstrapServers = _configuration["Kafka:BootstrapServers"] ?? "localhost:9092",
 
-            // Ayarlanmazsa librdkafka varsayılanı 5 DAKİKA: Kafka çöktüğünde
-            // ProduceAsync o kadar süre teslim bekler ve döngü tek bir mesajda
-            // asılı kalır. Bu sürede tabloda başka mesajlar birikir ve hiçbiri
-            // işlenmez; worker-loop kontrolü de 30 sn'de sağlıksıza döner.
-            //
-            // Kısa timeout ile başarısızlık hızlı anlaşılıyor, RetryCount artıyor
-            // ve döngü akmaya devam ediyor — retry mekanizması zaten bunun için var.
+            // librdkafka varsayılanı 5 dk: Kafka çökünce döngü tek mesajda asılı kalmasın.
             MessageTimeoutMs = _configuration.GetValue("Outbox:ProduceTimeoutSeconds", 30) * 1000
         };
 
@@ -97,12 +90,6 @@ public class Worker : BackgroundService
 
         foreach (var message in messages)
         {
-            // Olayı üreten isteğin trace bağlamı geri kuruluyor: bundan sonraki loglar
-            // isteği başlatan trace ile aynı kimliği taşıyor. Kafka bağlamı kendisi
-            // taşımadığı için traceparent ayrıca mesaj başlığına da konuyor.
-            //
-            // Producer: bu bölüm bir mesaj üretiyor ve tüketen tarafla trace üzerinden
-            // eşleşiyor — APM arayüzü bu türü bilerek ikisini bağlıyor.
             using var activity = AppTracing.StartLinked(
                 "outbox.publish", message.TraceParent, ActivityKind.Producer);
 
@@ -152,11 +139,6 @@ public class Worker : BackgroundService
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Kafka'ya iletilmiş satırların tabloda kalması için bir sebep yok; birikirlerse
-    /// her turdaki "işlenmemişleri getir" sorgusu giderek daha fazla ölü satırın
-    /// üzerinden geçer. Dead-letter satırları KORUNUR — incelenmeleri gerekiyor.
-    /// </summary>
     private async Task CleanupProcessedMessagesAsync(CancellationToken cancellationToken)
     {
         if (DateTime.UtcNow - _lastCleanupAt < _cleanupInterval)

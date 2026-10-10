@@ -5,12 +5,6 @@ using Shared.Models;
 
 namespace NewsService.WebApi.Infrastructure;
 
-/// <summary>
-/// JWT katmanının ürettiği 401/403 yanıtları varsayılan olarak gövdesizdir;
-/// client elinde yalnızca status kodu kaldığı için kullanıcıya "İstek başarısız
-/// oldu (HTTP 401)" demekten öteye gidemez. Bu olaylar yanıtı diğer tüm
-/// hatalarla aynı <see cref="ErrorResponse"/> şekline çevirir.
-/// </summary>
 public static class JwtErrorResponses
 {
     public static JwtBearerEvents Create() => new()

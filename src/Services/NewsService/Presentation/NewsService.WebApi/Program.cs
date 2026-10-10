@@ -17,16 +17,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("news-service");
 
-// Elastic APM: HTTP istekleri, EF Core sorguları ve HttpClient çağrıları
-// kendiliğinden enstrümante ediliyor.
-//
-// Loglarla bağlantıyı trace.id kuruyor: loglarımız zaten ECS formatında ve bu
-// alanı taşıyor, agent da aynısını yazıyor. Kibana'da bir trace'ten onun
-// loglarına geçmek bu sayede doğrudan çalışıyor.
-//
-// Ayarlar ortam değişkeninden (bkz. docker-compose.yml): sunucu adresi, servis
-// adı ve ortam. Servis adı loglardaki service.name ile AYNI olmalı, yoksa iki
-// taraf birbirini tanımaz.
 builder.Services.AddAllElasticApm();
 
 builder.Services.AddControllers()
@@ -109,13 +99,7 @@ app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Geçersiz kılınmış token'la gelen istekleri reddeder (hesap pasife alındı ya da
-// rol değişti).
-//
-// UseAuthorization'dan SONRA: yetkilendirmenin yerine geçmiyor, ona ek — sıra bu
-// olunca context.User dolu geliyor. Token geri alınamadığı için Keycloak tarafında
-// yapılan değişiklik tek başına yetmiyordu: pasife alınan admin kendini yeniden
-// aktif edebiliyor, rolü kaldırılan kullanıcı kendine rolü geri verebiliyordu.
+// UseAuthorization'dan sonra: context.User dolu olmalı.
 app.UseMiddleware<RevokedTokenGuard>();
 app.MapControllers();
 app.MapAppHealthChecks();

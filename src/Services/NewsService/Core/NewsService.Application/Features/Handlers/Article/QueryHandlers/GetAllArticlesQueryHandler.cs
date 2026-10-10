@@ -31,13 +31,6 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
             .Include(a => a.Category)
             .Where(a => !a.IsDeleted && (request.IncludeUnpublished || a.IsPublished));
 
-        // Tazelik penceresi — gerekçesi FeedOptions'ta.
-        //
-        // Yalnızca herkese açık görünüme uygulanıyor: IncludeUnpublished editör
-        // ve admin için true, onların tam listeye erişmesi gerekiyor.
-        //
-        // Kategori ve arama filtrelerinden ÖNCE: amaç eski haberin aranıp
-        // bulunmaması, dolayısıyla pencere tüm sorguların tabanı.
         if (!request.IncludeUnpublished && _feed.FreshnessDays > 0)
         {
             var cutoff = DateTime.UtcNow.AddDays(-_feed.FreshnessDays);
@@ -49,19 +42,12 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            // ToLower().Contains() → standart EF Core çevirisiyle Postgres'te
-            // case-insensitive alt-dize eşleşmesi; Npgsql'e özel bir fonksiyon
-            // (EF.Functions.ILike) kullanmadığı için Application katmanı
-            // veritabanı sağlayıcısından bağımsız kalıyor.
             var needle = request.Search.Trim().ToLower();
             query = query.Where(a =>
                 a.Title.ToLower().Contains(needle) ||
                 (a.Summary != null && a.Summary.ToLower().Contains(needle)));
         }
 
-        // Skip/Take'in sayfalar arasında tutarlı sonuç vermesi için deterministik
-        // bir sıralama şart. Client'ın önceden kendi yaptığı sıralamayla aynı
-        // mantık: yayınlanmışsa yayın tarihi, taslaksa oluşturulma tarihi.
         query = query.OrderByDescending(a => a.PublishedAt ?? a.CreatedAt);
 
         var totalCount = await query.CountAsync(cancellationToken);

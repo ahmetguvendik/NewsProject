@@ -5,11 +5,6 @@ using System.Text.Json;
 
 namespace NotificationService.WebApi.Infrastructure;
 
-/// <summary>
-/// Tüm işlenmeyen exception'ları yakalar ve standart <see cref="ErrorResponse"/>
-/// formatında JSON döner. Geliştiriciye yönelik stack trace yalnızca Development
-/// ortamında eklenir.
-/// </summary>
 internal sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private static readonly JsonSerializerOptions _jsonOptions = new()
@@ -33,17 +28,6 @@ internal sealed class GlobalExceptionHandler : IExceptionHandler
     {
         var (statusCode, response) = BuildResponse(exception);
 
-        // Seviye ve yığın izi, hatanın TÜRÜNE göre ayrılıyor.
-        //
-        // Beklenmeyen hata (5xx) gerçek bir arıza: yığın izi olmadan teşhis edilemez.
-        //
-        // İş kuralı ihlali (4xx) ise normal bir sonuç — "bu haber zaten yayında"
-        // demek sistemde bir şey bozuk demek değil. Exception NESNESİ bilerek
-        // geçilmiyor: geçilseydi her rutin 409 için belgenin yarısını kaplayan bir
-        // yığın izi yazılır, gerçek hatalar bu gürültünün altında kalırdı.
-        //
-        // Yetkilendirme hataları ayrı tutuluyor: tek tek normal olsalar da
-        // tekrarlandıklarında saldırı işareti olabilirler.
         if (statusCode >= 500)
         {
             _logger.LogError(exception, "Beklenmeyen hata. TraceId={TraceId}", httpContext.TraceIdentifier);

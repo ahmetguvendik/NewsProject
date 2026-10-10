@@ -10,16 +10,10 @@ using Shared.Exceptions;
 
 namespace NewsService.Persistance.Storage;
 
-/// <summary>
-/// S3 API'si üzerinden çalışan depo. Yerelde MinIO, üretimde AWS S3 —
-/// aradaki fark yalnızca yapılandırma.
-/// </summary>
 public sealed class S3StorageService : IStorageService, IDisposable
 {
-    /// <summary>Henüz bir makaleye bağlanmamış yüklemeler. Lifecycle kuralı burayı 1 gün sonra temizler.</summary>
     private const string StagingPrefix = "staging/";
 
-    /// <summary>Doğrulanmış ve kalıcılaşmış medya.</summary>
     private const string ArticlesPrefix = "articles/";
 
     private readonly StorageOptions _options;
@@ -39,9 +33,6 @@ public sealed class S3StorageService : IStorageService, IDisposable
         new AmazonS3Config
         {
             ServiceURL = serviceUrl,
-            // ServiceURL http olsa bile SDK, UseHttp açıkça verilmezse adresi
-            // https'e çevirir; MinIO yerelde TLS konuşmadığı için imzalı URL
-            // tarayıcıda bağlantı hatasına düşer.
             UseHttp = serviceUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase),
             // MinIO "host/bucket" biçimini kullanır; AWS'in varsayılanı olan
             // "bucket.host" alt alan adı biçimi MinIO'da çözümlenemez.
@@ -193,13 +184,6 @@ public sealed class S3StorageService : IStorageService, IDisposable
 
     private string PublicBase => $"{_options.PublicEndpoint.TrimEnd('/')}/{_options.Bucket}";
 
-    /// <summary>
-    /// SDK, ServiceURL http olsa bile imzalı adresi https olarak üretebiliyor;
-    /// MinIO yerelde TLS konuşmadığı için bu adres tarayıcıda bağlantı hatasına düşer.
-    /// Şemayı yapılandırmadaki değere sabitlemek güvenli: SigV4 imzası host, path,
-    /// query ve başlıkları kapsar — şema imzanın parçası değildir, host değişmediği
-    /// sürece imza geçerli kalır.
-    /// </summary>
     private string MatchEndpointScheme(string url)
     {
         var wantsHttp = _options.PublicEndpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
@@ -210,14 +194,6 @@ public sealed class S3StorageService : IStorageService, IDisposable
         return url;
     }
 
-    /// <summary>
-    /// Yüklenen görseli her hedef genişlikte WebP olarak yeniden üretip depoya yazar.
-    ///
-    /// Kaynak hedeften darsa büyütülmez — büyütmek dosyayı şişirir, kaliteyi
-    /// artırmaz. Bu durumda dosya istenen adla ama kaynak boyutunda kaydedilir;
-    /// tarayıcı geniş ekranda onu seçerse bugünkü davranışın aynısı olur, yani
-    /// bir gerileme yaratmaz.
-    /// </summary>
     private async Task WriteVariantsAsync(string sourceKey, string baseKey, CancellationToken cancellationToken)
     {
         using var source = await _internalClient.GetObjectAsync(_options.Bucket, sourceKey, cancellationToken);
@@ -255,7 +231,6 @@ public sealed class S3StorageService : IStorageService, IDisposable
         }
     }
 
-    /// <summary>İlk baytları okuyup dosyanın gerçekten iddia edilen türde olduğunu doğrular.</summary>
     private async Task<bool> HasMatchingSignatureAsync(string key, string contentType, CancellationToken cancellationToken)
     {
         using var response = await _internalClient.GetObjectAsync(new GetObjectRequest

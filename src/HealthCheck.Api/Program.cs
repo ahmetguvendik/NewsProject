@@ -2,28 +2,10 @@ using HealthCheck.Registration;
 using HealthChecks.UI.Data;
 using Microsoft.EntityFrameworkCore;
 
-// Altı process'in (üç servis, üç worker) sağlığını toplayan servis.
-//
-// Neden ayrı bir container: izlediği servislerden birinin içinde koşsaydı, o servis
-// çöktüğünde panel de erişilemez olurdu — tam ihtiyaç duyulduğu anda.
-//
-// Kontrolleri KENDİSİ yapmıyor, servislerin /health uçlarını yokluyor. Kontrol,
-// ölçtüğü process'in içinde olmak zorunda: buradan Postgres'e bağlanabilmek
-// "news-service Postgres'e ulaşabiliyor" demek değil — o servisin bağlantı havuzu
-// tükenmiş ya da parolası yanlış olabilir. Ayrıca compose'un service_healthy'si
-// container başına sinyal istiyor, dışarıdan üretilemez.
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
 
-// Bu servisin KENDİ sağlık ucu. İçindeki tek kontrol sistem geneline ait bir
-// soruyu soruyor: son 5 dakikada hata oranı fırladı mı?
-//
-// Tek tek servislere değil buraya konuldu çünkü soru global. Ayrıca bu servis
-// kendini de izlenen uçlar listesine ekliyor (bkz. docker-compose.yml): kontrol
-// Unhealthy olduğunda panel kırmızıya döner ve mevcut webhook Slack'e yollar —
-// yani hata oranı uyarısı diğer uyarılarla AYNI yoldan çıkıyor.
 builder.Services.AddAppHealthChecks(builder.Configuration)
     .AddErrorRate(
         elasticsearchUrl: builder.Configuration["Elasticsearch:Url"] ?? "http://elasticsearch:9200",
@@ -36,24 +18,10 @@ builder.Services.AddAppHealthChecks(builder.Configuration)
 builder.Services
     .AddHealthChecksUI(settings =>
     {
-        // Varsayılan 100 sn. Panel yedi ucu birden yokluyor; daha sık yoklamak
-        // (eskiden 15 sn) dakikada 28 istek üretiyor ve bu trafik loglara da
-        // yansıyordu. Bedeli, arızanın en geç bu süre kadar geç fark edilmesi.
         settings.SetEvaluationTimeInSeconds(
             builder.Configuration.GetValue("HealthChecksUI:EvaluationSeconds", 100));
 
         settings.SetApiMaxActiveRequests(1);
-
-        // İzlenen uçlar ayardan geliyor (HealthChecksUI:HealthChecks). Kodda gömülü
-        // olsaydı yeni bir servis eklendiğinde bu projeyi yeniden derlemek gerekirdi.
-        //
-        // Bildirimler de aynı şekilde ayardan (HealthChecksUI:Webhooks): bir process
-        // Unhealthy'ye DÜŞTÜĞÜNDE tetikleniyor, her yoklamada değil. Düzeldiğinde de
-        // ayrı bir "restored" bildirimi gidiyor.
-        //
-        // Varsayılan boş: hedef adres olmadan kurulamaz. Slack/Discord webhook URL'i
-        // compose ortam değişkeniyle verilir (bkz. docker-compose.yml). Adres gizli
-        // bilgi olduğu için repoya yazılmıyor.
     })
     // In-memory: panel yeniden başladığında geçmiş sıfırlanır. Anlık durum için
     // yeterli; kalıcı geçmiş isteniyorsa Postgres sağlayıcısına geçilir.
@@ -67,12 +35,6 @@ app.MapHealthChecksUI(options => options.UIPath = "/");
 // Kendi sağlık uçları: /health, /health/live, /health/ready.
 app.MapAppHealthChecks();
 
-// Toplu durum, makine tarafından okunabilir biçimde. Panel bir insan arayüzü;
-// bu uç script'ler, izleme araçları ve Grafana gibi tüketiciler için.
-//
-// Kritik nokta HTTP kodu: herhangi bir process Unhealthy ise 503 dönüyor, böylece
-// tüketicinin gövdeyi ayrıştırmasına gerek kalmadan "sistemde sorun var" sinyali
-// alınabiliyor.
 app.MapGet("/api/health", async (HealthChecksDb db, CancellationToken cancellationToken) =>
 {
     var configurations = await db.Configurations.ToListAsync(cancellationToken);

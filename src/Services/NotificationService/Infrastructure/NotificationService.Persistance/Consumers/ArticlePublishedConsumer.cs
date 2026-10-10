@@ -55,10 +55,6 @@ public class ArticlePublishedConsumer : BackgroundService
                 var result = consumer.Consume(pollTimeout);
                 if (result is null) continue;
 
-                // Outbox worker'ın mesaja koyduğu traceparent okunuyor ve Activity
-                // geri kuruluyor; bu bloktaki loglar isteği başlatan trace ile aynı
-                // kimliği taşısın diye. Değer ayrıca InboxMessage'a yazılıyor, çünkü
-                // asıl işi yapan worker ayrı bir process ve saniyeler sonra çalışıyor.
                 var traceParent = ReadTraceParent(result.Message.Headers);
 
                 using var activity = AppTracing.StartLinked(
@@ -96,12 +92,6 @@ public class ArticlePublishedConsumer : BackgroundService
             }
             catch (ConsumeException ex) when (ex.Error.Code == ErrorCode.UnknownTopicOrPart)
             {
-                // Kafka topic'leri ilk mesaj üretildiğinde oluşuyor; henüz hiç olay
-                // yayınlanmadıysa topic de yok. Bu bir arıza değil, bekleme durumu —
-                // ilk üretimle birlikte kendiliğinden düzeliyor.
-                //
-                // Bir kez loglanıyor: her turda yazılsaydı 3 saniyede bir Error üretir
-                // ve "log.level: Error" araması gerçek hataları gösteremez hale gelirdi.
                 if (!topicMissingLogged)
                 {
                     _logger.LogInformation(
@@ -122,10 +112,6 @@ public class ArticlePublishedConsumer : BackgroundService
         consumer.Close();
     }
 
-    /// <summary>
-    /// Kafka başlığındaki traceparent. Yoksa null döner — outbox'ta TraceParent
-    /// boş olan eski satırlar için normal.
-    /// </summary>
     private static string? ReadTraceParent(Headers? headers)
     {
         if (headers is null || !headers.TryGetLastBytes("traceparent", out var bytes))

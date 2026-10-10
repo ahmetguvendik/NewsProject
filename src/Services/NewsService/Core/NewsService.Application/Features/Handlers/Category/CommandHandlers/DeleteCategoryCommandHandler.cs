@@ -31,16 +31,7 @@ public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryComman
         var category = await _categoryRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Category(request.Id);
 
-        // Bağlı haber varsa silme ENGELLENİYOR.
-        //
-        // Etiketten farklı davranıyoruz çünkü kategori ZORUNLU ve bire-çok:
-        // silindiğinde haberin categoryId'si artık var olmayan bir satırı
-        // gösteriyor. Boş bırakılamaz, rastgele başka bir kategoriye taşımak da
-        // sessizce yanlış veri üretir — yani "doğru" bir otomatik davranış yok.
-        //
-        // Önceden serbestti ve sonucu şuydu: haber yayında kalıyor, okuyucuya
-        // artık var olmayan kategorinin adını gösteriyor, editör de kategorisini
-        // değiştirmeden kaydedemiyordu (404 CATEGORY_NOT_FOUND).
+        // Kategori zorunlu: bağlı haber varsa silme engellenir.
         var articleCount = await _articleRepository.GetQueryable()
             .CountAsync(a => a.CategoryId == category.Id && !a.IsDeleted, cancellationToken);
 

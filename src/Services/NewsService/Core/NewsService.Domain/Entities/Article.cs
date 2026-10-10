@@ -9,10 +9,6 @@ public class Article : BaseEntity
     public string? ImageUrl { get; set; }
     public string AuthorKeycloakId { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Editör haberi oluştururken işaretler. Haber YAYINLANDIĞINDA bültene
-    /// abone kullanıcılara bildirim gönderilip gönderilmeyeceğini belirler.
-    /// </summary>
     public bool NotifySubscribers { get; set; }
 
     public bool IsPublished { get; set; }

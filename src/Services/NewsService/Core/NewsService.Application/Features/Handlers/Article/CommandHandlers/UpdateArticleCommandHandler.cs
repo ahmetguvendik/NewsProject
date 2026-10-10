@@ -38,12 +38,7 @@ public class UpdateArticleCommandHandler : IRequestHandler<UpdateArticleCommand,
         var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Article(request.Id);
 
-        // ── Yetki: admin her haberi, editör yalnızca kendi taslağını ──────
-        //
-        // Sıra önemli: önce "senin mi", sonra "yayında mı". Tersi olsaydı bir
-        // editör başkasının yayınlanmış haberini düzenlemeye çalıştığında
-        // "yayındaki haber düzenlenemez" cevabını alır ve haberin kendisine ait
-        // olmadığını değil, yalnızca yayında olduğunu öğrenirdi — yanıltıcı olurdu.
+        // Sıra önemli: önce sahiplik, sonra yayın durumu.
         if (!request.EditorIsAdmin)
         {
             if (!string.Equals(article.AuthorKeycloakId, request.EditorKeycloakId, StringComparison.Ordinal))
@@ -94,10 +89,6 @@ public class UpdateArticleCommandHandler : IRequestHandler<UpdateArticleCommand,
         };
     }
 
-    /// <summary>
-    /// Mevcut etiketlerle istenen kümeyi karşılaştırıp yalnızca farkı uygular:
-    /// hepsini silip yeniden eklemek yerine, değişmeyen bağlantılara dokunulmaz.
-    /// </summary>
     private async Task SyncTagsAsync(Guid articleId, List<Guid> requestedTagIds, CancellationToken cancellationToken)
     {
         var existing = await _articleTagRepository.GetByArticleIdAsync(articleId, cancellationToken);

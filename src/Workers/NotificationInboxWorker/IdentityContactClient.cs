@@ -8,18 +8,11 @@ public record UserContact(string KeycloakId, string Email, string FirstName, str
 
 public interface IIdentityContactClient
 {
-    /// <summary>Kullanıcı bulunamazsa null döner. Diğer her hata (401, timeout, 5xx) fırlatılır.</summary>
     Task<UserContact?> GetContactAsync(string keycloakId, CancellationToken cancellationToken = default);
 
-    /// <summary>Bültene abone, aktif kullanıcılar. Hiç abone yoksa boş liste döner.</summary>
     Task<List<UserContact>> GetSubscribersAsync(CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// IdentityService'in Internal:ApiKey ile korunan dahili uçlarını çağırır.
-/// Yayın bildiriminde hem yazarın hem de bülten abonelerinin gerçek e-posta
-/// adreslerini çözmek için kullanılır.
-/// </summary>
 public class IdentityContactClient : IIdentityContactClient
 {
     private readonly HttpClient _httpClient;

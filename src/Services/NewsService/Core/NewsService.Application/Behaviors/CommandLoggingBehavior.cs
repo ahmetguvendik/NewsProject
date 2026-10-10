@@ -8,24 +8,6 @@ using Serilog.Events;
 
 namespace NewsService.Application.Behaviors;
 
-/// <summary>
-/// Her komutun çalıştığını ve ne kadar sürdüğünü kaydeder.
-///
-/// Handler'lara tek tek logger enjekte etmek yerine buraya konuldu: 19 handler'ın
-/// hepsini kapsıyor ve yirmincisi yazıldığında kendiliğinden kapsayacak. Aynı
-/// gerekçeyle ValidationBehavior ve CachingBehavior da pipeline'da.
-///
-/// SORGULAR KAPSAM DIŞI. Okuma uçları saniyede defalarca çağrılıyor; hepsini
-/// loglamak, bu iş asıl çözmeye çalıştığımız gürültü sorununu geri getirirdi.
-/// Ayrım isim sonekiyle yapılıyor (projede tutarlı: ...Command / ...Query).
-///
-/// İSTEK İÇERİĞİ LOGLANMIYOR, yalnızca komutun adı. Nesneyi olduğu gibi yazmak
-/// pratik görünürdü ama RegisterUserCommand parola taşıyor — genel bir
-/// serileştirme onu da log'a düşürürdü.
-///
-/// Hatalar burada yakalanmıyor: GlobalExceptionHandler zaten detayıyla
-/// kaydediyor ve aynı trace altında göründüğü için ikinci bir satıra gerek yok.
-/// </summary>
 public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
@@ -54,15 +36,6 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
         var response = await next();
         stopwatch.Stop();
 
-        // Kimlik alanları log'a ayrı ayrı yazılıyor: aksi halde eylemin HEDEFİ
-        // yalnızca url.path içine gömülü kalıyor ve aranamıyor. "Kim kimi pasife
-        // aldı" sorusu, aktörü ekleyen UserEnricher ile birlikte cevaplanabiliyor.
-
-        // Veri değişiklikleri komutun KENDİ satırına yazılıyor, ayrı satırlara değil.
-        // ChangeAuditInterceptor bunları kaydetme sırasında topladı; handler bitmiş
-        // olduğu için toplayıcı artık dolu. Ayrı satırlar yazıldığında tek bir
-        // güncelleme loglarda üçe bölünüyor ve okuyan kişi parçaları trace.id ile
-        // birleştirmek zorunda kalıyordu.
         var changes = _changes.Drain();
 
         using (LogContext.Push(new TargetFieldsEnricher(request, response, name)))
@@ -83,26 +56,6 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
         return response;
     }
 
-    /// <summary>
-    /// Eylemin hedefini <c>target.*</c> öneki altında log'a ekler.
-    ///
-    /// İSİMLENDİRME BİLİNÇLİ:
-    ///   actor.id         → eylemi YAPAN   (UserEnricher, token'dan)
-    ///   target.user.id   → eylemin HEDEFİ (burada, komut ve yanıttan)
-    ///
-    /// HEM KOMUT HEM YANIT OKUNUYOR. Yalnızca komut okunduğunda oluşturma
-    /// işlemleri kimliksiz kalıyordu: CreateCategoryCommand'da yeni kategorinin
-    /// Id'si henüz yok, handler çalıştıktan sonra oluşuyor. Log "bir kategori
-    /// eklendi" diyor ama hangisi olduğunu söylemiyordu.
-    ///
-    /// GÜVENLİK — beyaz liste, kara liste değil:
-    ///   • adı "Id" ile biten her alan (UserId, ArticleId, ...)
-    ///   • TAM eşleşen birkaç adlandırma alanı: Name, Title, RoleName
-    ///
-    /// "Name" bilerek TAM eşleşme: FirstName ve LastName böylece dışarıda kalıyor.
-    /// RegisterUserCommand ayrıca Email ve Password taşıyor — beyaz liste bunları
-    /// da, yarın eklenecek hassas bir alanı da kendiliğinden dışarıda tutuyor.
-    /// </summary>
     private sealed class TargetFieldsEnricher : ILogEventEnricher
     {
         private readonly object?[] _sources;
@@ -115,14 +68,6 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
             _entity = EntityFromCommandName(commandName);
         }
 
-        /// <summary>
-        /// Komut adından varlık türünü çıkarır: DeleteArticleCommand → "article".
-        ///
-        /// Gerekli çünkü bazı komutlarda alan adı yalın: DeleteArticleCommand'ın
-        /// tek alanı "Id". Tür bilgisi olmadan log'a target.id yazılıyordu ve
-        /// karışık bir akışta bunun haber mi kategori mi kullanıcı mı olduğu
-        /// anlaşılmıyordu. Tür komut adında zaten var, oradan alınıyor.
-        /// </summary>
         private static string EntityFromCommandName(string commandName)
         {
             var name = commandName.EndsWith("Command", StringComparison.Ordinal)
@@ -162,24 +107,14 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
             }
         }
 
-        /// <summary>
-        /// UserId → target.user.id, ArticleId → target.article.id, Id → target.id,
-        /// Name → target.name. Beyaz listede olmayan her şey için null döner.
-        /// </summary>
         private string? MapName(string propertyName) => propertyName switch
         {
-            // EYLEMİ YAPAN kişi hedef DEĞİL. Bu alanlar isteği yapanın kimliğini
-            // taşıyor ve "Id" ile bittikleri için aşağıdaki kural onları
-            // target.editorkeycloak.id gibi adlarla hedef sanıyordu — hem gürültü
-            // hem yanıltıcı. Yapanın kimliği zaten actor.id'de (UserEnricher).
             "EditorKeycloakId" or "AuthorKeycloakId" => null,
 
             // Alan adı varlığı zaten söylüyor (UserId, RoleName) → doğrudan kullanılır.
             "RoleName" => "target.role.name",
 
-            // Yalın adlar: tür komut adından tamamlanıyor.
-            //   DeleteArticleCommand.Id   → target.article.id
-            //   CreateCategoryCommand.Name → target.category.name
+            // Tam eşleşme bilinçli: FirstName/LastName log'a düşmesin.
             "Name" => $"target.{_entity}.name",
             "Title" => $"target.{_entity}.title",
 

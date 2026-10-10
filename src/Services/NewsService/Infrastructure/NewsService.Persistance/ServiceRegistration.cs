@@ -21,11 +21,6 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddPersistanceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Denetim kaydedicisi: her kaydetmede hangi alanın hangi değere geçtiğini
-        // yazıyor. Singleton değil scoped — ILogger enjekte ediyor ve DbContext
-        // ile aynı ömrü paylaşması gerekiyor.
-        // Toplayıcı interceptor ile CommandLoggingBehavior arasında paylaşılıyor;
-        // ikisi de aynı isteğin scope'unda olduğu için aynı örneği görüyor.
         services.AddScoped<IChangeAuditCollector, ChangeAuditCollector>();
         services.AddScoped<ChangeAuditInterceptor>();
 
@@ -39,18 +34,10 @@ public static class ServiceRegistration
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IEventPublisher, OutboxEventPublisher>();
 
-        // Redis bağlantısı uygulama ömrü boyunca tektir (multiplexer thread-safe).
-        // AbortOnConnectFail=false: Redis kapalıyken de servis ayağa kalkar ve
-        // bağlantı geri geldiğinde kendiliğinden toparlar — önbellek erişilemez
-        // olduğunda uygulamanın açılmaması kabul edilemez.
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
             var options = ConfigurationOptions.Parse(configuration["Redis:Connection"] ?? "redis:6379");
             options.AbortOnConnectFail = false;
-            // ConnectRetry varsayılanı 3: Redis kapalıyken her istek
-            // 3 x ConnectTimeout kadar bekler ve site fiilen durur. Hızlı vazgeçip
-            // veritabanına düşmek doğru davranış — RedisCacheService'teki devre
-            // kesici de tekrar tekrar denenmesini engelliyor.
             options.ConnectRetry = 1;
             options.ConnectTimeout = 500;
             options.SyncTimeout = 500;
@@ -59,7 +46,7 @@ public static class ServiceRegistration
         });
         services.AddSingleton<ICacheService, RedisCacheService>();
 
-        // Herkese açık akışın tazelik penceresi — gerekçesi FeedOptions'ta.
+        // Herkese açık akışın tazelik penceresi.
         services.Configure<FeedOptions>(configuration.GetSection(FeedOptions.SectionName));
 
         // Dış servis: yanıt önbelleklendiği için nadiren çağrılıyor; yine de

@@ -4,12 +4,6 @@ namespace NewsService.Application.Validators;
 
 public static class ArticleImageRules
 {
-    /// <summary>
-    /// Görsel alanı iki farklı değer taşıyabilir: depo anahtarı (<c>articles/2026/08/…</c>)
-    /// veya dışarıdan yapıştırılmış mutlak adres. İkisi de kabul edilir, ama
-    /// <c>javascript:</c> ve <c>data:</c> gibi şemalar reddedilir — bu değer
-    /// doğrudan <c>img src</c> olarak render ediliyor.
-    /// </summary>
     public static IRuleBuilderOptions<T, string?> ValidImageReference<T>(this IRuleBuilder<T, string?> rule) =>
         rule.Must(BeKeyOrHttpUrl)
             .WithMessage("Görsel adresi yalnızca http(s) ile başlayabilir veya yüklenen bir dosyanın anahtarı olmalıdır.")

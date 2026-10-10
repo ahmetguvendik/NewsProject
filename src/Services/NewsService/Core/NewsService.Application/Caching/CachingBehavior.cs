@@ -4,13 +4,6 @@ using NewsService.Application.Interfaces;
 
 namespace NewsService.Application.Caching;
 
-/// <summary>
-/// <see cref="ICacheableQuery"/> uygulayan sorgular için cache-aside uygular:
-/// önbellekte varsa oradan döner, yoksa handler'ı çalıştırıp sonucu yazar.
-///
-/// Pipeline'da <c>ValidationBehavior</c>'dan <b>sonra</b> kaydedilir; böylece
-/// geçersiz istekler önbelleğe hiç ulaşmaz.
-/// </summary>
 public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
     where TResponse : class

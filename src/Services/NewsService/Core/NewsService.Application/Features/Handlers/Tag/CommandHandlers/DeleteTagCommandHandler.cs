@@ -28,19 +28,6 @@ public class DeleteTagCommandHandler : IRequestHandler<DeleteTagCommand>
         var tag = await _tagRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Tag(request.Id);
 
-        // Haberlerle olan bağlar da siliniyor.
-        //
-        // Kategoriden farklı davranıyoruz çünkü etiket İSTEĞE BAĞLI ve çoka-çok:
-        // bağı koparmanın haber açısından bir bedeli yok, haber yalnızca o
-        // etiketi taşımaz olur. Silmeyi engellemek ise admin'i, etiketi kaldırmak
-        // için haberleri tek tek düzenlemeye zorlardı.
-        //
-        // Önceden bağlar KALIYORDU ve sonucu şuydu: haber katalogda olmayan bir
-        // etiketi okuyucuya göstermeye devam ediyordu. Gerçek veride üç yayınlanmış
-        // haber böyle bir "hayalet" etiket taşıyordu.
-        //
-        // Aynı SaveChanges içinde: etiket silinip bağlar kalırsa durum, düzelttiğimiz
-        // hatanın aynısı olur.
         var links = await _articleTagRepository.GetQueryable()
             .Where(link => link.TagId == tag.Id)
             .ToListAsync(cancellationToken);

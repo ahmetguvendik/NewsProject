@@ -6,21 +6,6 @@ using StackExchange.Redis;
 
 namespace NewsService.Persistance.Caching;
 
-/// <summary>
-/// Redis tabanlı önbellek.
-///
-/// Tüm işlemler hataya karşı yutucudur: Redis erişilemezse okuma <c>null</c>
-/// döner ve çağıran taraf veritabanına düşer, yazma sessizce atlanır. Önbellek
-/// bir hızlandırıcı olduğu için erişilemez olması siteyi düşürmemeli.
-///
-/// <b>IdentityService.Persistance/Caching/RedisCacheService.cs bunun ikizidir.</b>
-/// Metot listeleri farklı (her servis yalnızca kullandığını tanımlıyor) ama
-/// hata karşısındaki davranış — istisna yutma, devre kesici, hash TTL'inin
-/// yalnızca ilk oluşturmada kurulması — aynı olmak zorunda. Bu davranışı
-/// değiştiren bir düzeltme yaparken diğer dosyaya da bakılmalı; tek tarafta
-/// kalırsa "Redis kapalıyken servis ayakta kalır" garantisi orada sessizce
-/// bozulur.
-/// </summary>
 public sealed class RedisCacheService : ICacheService
 {
     private readonly IConnectionMultiplexer _redis;
@@ -28,12 +13,6 @@ public sealed class RedisCacheService : ICacheService
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
-    /// <summary>
-    /// Redis erişilemez olduğunda her istekte yeniden bağlanmayı denemek, bağlantı
-    /// zaman aşımı kadar gecikme ekler ve site fiilen kullanılamaz hale gelir.
-    /// Bir hata alındıktan sonra bu süre boyunca Redis'e hiç dokunulmaz; istekler
-    /// doğrudan veritabanına gider.
-    /// </summary>
     private readonly TimeSpan _circuitOpenDuration;
 
     private static long _skipUntilTicks;
@@ -133,9 +112,7 @@ public sealed class RedisCacheService : ICacheService
             var database = _redis.GetDatabase();
             await database.HashSetAsync(key, field, JsonSerializer.Serialize(value, SerializerOptions));
 
-            // Redis'te alan bazlı TTL yok; süre tüm hash'e uygulanır. HasNoExpiry
-            // sayesinde süre yalnızca hash ilk oluşturulduğunda kurulur — her yeni
-            // alanda tazelenseydi, sürekli trafik altında hash hiç sona ermezdi.
+            // Süre yalnızca ilk oluşturmada: her alanda tazelenseydi hash hiç sona ermezdi.
             await database.KeyExpireAsync(key, duration, ExpireWhen.HasNoExpiry);
         }
         catch (Exception ex) when (ex is RedisException or JsonException)

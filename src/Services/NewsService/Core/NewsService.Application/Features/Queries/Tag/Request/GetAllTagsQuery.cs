@@ -4,7 +4,6 @@ using NewsService.Application.Features.Queries.Tag.Response;
 
 namespace NewsService.Application.Features.Queries.Tag.Request;
 
-/// <summary>Etiket listesi de kategoriler gibi: sık okunuyor, nadiren değişiyor.</summary>
 public class GetAllTagsQuery : IRequest<List<GetAllTagsResponse>>, ICacheableQuery
 {
     public string CacheKey => CacheKeys.Tags;

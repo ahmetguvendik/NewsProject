@@ -5,14 +5,6 @@ using NewsService.Application.Media;
 
 namespace NewsService.WebApi.Controllers;
 
-/// <summary>
-/// Medya yükleme akışı iki adımdır:
-/// <list type="number">
-/// <item><c>upload-url</c> — izin verilirse imzalı bir yükleme adresi döner.</item>
-/// <item><c>commit</c> — client doğrudan depoya yükledikten sonra dosya doğrulanıp kalıcılaştırılır.</item>
-/// </list>
-/// Dosyanın kendisi bu servise hiç uğramaz.
-/// </summary>
 [ApiController]
 [Authorize(Roles = "editor,admin")]
 [Route("api/media")]
@@ -22,15 +14,10 @@ public class MediaController : ControllerBase
 
     public MediaController(IStorageService storage) => _storage = storage;
 
-    /// <summary>İzinli tip/boyut için kısa ömürlü imzalı yükleme adresi üretir.</summary>
     [HttpPost("upload-url")]
     public ActionResult<PresignedUpload> CreateUploadUrl([FromBody] UploadUrlRequest request)
         => Ok(_storage.CreateUploadUrl(request.ContentType, request.SizeBytes));
 
-    /// <summary>
-    /// Yüklenen dosyayı gerçek içeriğine bakarak doğrular ve kalıcı alana taşır.
-    /// Dönen <c>key</c> makalenin görsel alanına yazılacak değerdir.
-    /// </summary>
     [HttpPost("commit")]
     public async Task<ActionResult<CommitUploadResponse>> Commit(
         [FromBody] CommitUploadRequest request,
@@ -45,7 +32,6 @@ public class MediaController : ControllerBase
         });
     }
 
-    /// <summary>Client'ın yükleme öncesi kuralları gösterebilmesi için politika.</summary>
     [HttpGet("policy")]
     [AllowAnonymous]
     public ActionResult<MediaPolicyResponse> GetPolicy() => Ok(new MediaPolicyResponse

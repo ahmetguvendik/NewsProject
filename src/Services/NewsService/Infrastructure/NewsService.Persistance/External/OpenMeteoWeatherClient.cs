@@ -7,10 +7,6 @@ using Shared.Exceptions;
 
 namespace NewsService.Persistance.External;
 
-/// <summary>
-/// Open-Meteo istemcisi — API anahtarı gerektirmiyor. Şehir ve koordinatlar
-/// "Weather" ayar bölümünden gelir.
-/// </summary>
 public sealed class OpenMeteoWeatherClient : IWeatherClient
 {
     private readonly HttpClient _httpClient;
@@ -65,11 +61,6 @@ public sealed class OpenMeteoWeatherClient : IWeatherClient
         };
     }
 
-    /// <summary>
-    /// WMO hava kodunu emojiye çevirir. Açık ve az bulutlu hallerde gündüz/gece
-    /// ayrımı yapılır — kapalı, yağışlı ve sisli havalarda gökyüzü zaten görünmediği
-    /// için ikon her iki durumda da aynı.
-    /// </summary>
     private static string Icon(int code, bool isDay) => code switch
     {
         0 => isDay ? "☀️" : "🌙",

@@ -13,7 +13,6 @@ public class CreateArticleCommand : IRequest<CreateArticleResponse>
     public Guid CategoryId { get; set; }
     public List<Guid> TagIds { get; set; } = [];
 
-    /// <summary>Yayınlandığında bülten abonelerine bildirim gönderilsin mi?</summary>
     public bool NotifySubscribers { get; set; }
 
     // Body'den gelmez — controller JWT'den set eder

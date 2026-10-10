@@ -5,28 +5,11 @@ using NewsService.Application.Interfaces;
 
 namespace NewsService.Persistance.External;
 
-/// <summary>
-/// Piyasa değerlerini Yahoo Finance'ten okur.
-///
-/// RESMÎ BİR API DEĞİL. query1.finance.yahoo.com belgelenmemiş bir uç; anahtar
-/// istemiyor ama Yahoo haber vermeden değiştirebilir ya da kapatabilir. Bu
-/// yüzden hiçbir hata yukarı taşınmıyor: veri alınamazsa boş liste dönüyor ve
-/// şerit arayüzde sessizce gizleniyor. Piyasa şeridi süs; yokluğu sayfayı
-/// bozmamalı.
-///
-/// User-Agent ZORUNLU: başlıksız isteklere Yahoo 403 dönüyor.
-/// </summary>
+// Resmî olmayan uç: hata yukarı taşınmaz, veri yoksa boş liste döner.
 public class YahooMarketClient : IMarketClient
 {
-    /// <summary>Bir ons altının gram karşılığı — gram altın bu oranla hesaplanıyor.</summary>
     private const decimal GramsPerOunce = 31.1035m;
 
-    /// <summary>
-    /// Çekilecek semboller ve ekranda görünecek adları.
-    ///
-    /// Gram altın burada YOK çünkü Yahoo onu yayınlamıyor: ons altın (GC=F)
-    /// dolar cinsinden geliyor ve dolar kuruyla çarpılıp grama bölünüyor.
-    /// </summary>
     private static readonly (string Symbol, string Label)[] Symbols =
     [
         ("XU100.IS", "BIST 100"),
@@ -52,10 +35,6 @@ public class YahooMarketClient : IMarketClient
 
         try
         {
-            // Dört sembol PARALEL çekiliyor. Sırayla gitseydi her biri ~200 ms'den
-            // toplam gecikme kullanıcının gördüğü ilk isteğe biniyordu; sonuç zaten
-            // bir dakika önbelleklendiği için maliyet tek seferlik ama yine de
-            // ilk ziyaretçiyi bekletmenin anlamı yok.
             var wanted = Symbols.Select(s => s.Symbol).Append(GoldSymbol).ToArray();
 
             var results = await Task.WhenAll(
@@ -72,9 +51,6 @@ public class YahooMarketClient : IMarketClient
                     response.Quotes.Add(Build(label, quote.Price, quote.PreviousClose));
             }
 
-            // Gram altın: ons fiyatı dolar cinsinden, dolar kuruyla çarpılıp
-            // grama bölünüyor. İkisinden biri alınamadıysa hiç gösterilmiyor —
-            // yarım veriyle yanlış bir rakam üretmektense eksik göstermek yeğ.
             if (bySymbol.TryGetValue(GoldSymbol, out var gold) &&
                 bySymbol.TryGetValue(UsdSymbol, out var usd))
             {
