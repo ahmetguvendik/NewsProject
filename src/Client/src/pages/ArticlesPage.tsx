@@ -82,9 +82,11 @@ export function ArticlesPage() {
     }
   }, [activeCategory, query, page])
 
+  // Oturum değişince yeniden yüklenir: çıkışta taslaklar ekranda kalmasın, girişte görünsün.
+  const sessionToken = session?.token
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, sessionToken])
 
   // Listedeki tüm yazarlar TEK dizin isteğiyle çözülüyor — kart başına ayrı
   // istek atılsaydı bir sayfa 20 çağrı üretirdi. Yalnızca içeriği yönetenler

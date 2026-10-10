@@ -23,10 +23,14 @@ export function ArticleDetailPage() {
   const [article, setArticle] = useState<ArticleDetail | null>(null)
   const [error, setError] = useState<unknown>(null)
 
+  // Oturum değişince yeniden yüklenir: çıkışta taslak ekranda kalmasın.
+  const sessionToken = session?.token
   useEffect(() => {
     if (!validId) return
+    setArticle(null)
+    setError(null)
     newsApi.getArticle(id).then(setArticle).catch(setError)
-  }, [id, validId])
+  }, [id, validId, sessionToken])
 
   const authorNames = useAuthorNames(article ? [article.authorKeycloakId] : [])
 
