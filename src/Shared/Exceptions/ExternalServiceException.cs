@@ -21,4 +21,9 @@ public class ExternalServiceException : AppException
         errorCode,
         "Kimlik sağlayıcısıyla iletişim kurulamadı.",
         $"Keycloak '{operation}' işlemi başarısız oldu: {detail}");
+
+    public static ExternalServiceException TokenRevocationStore() => new(
+        ErrorCodes.Auth.RevocationUnavailable,
+        "İşlem güvenlik nedeniyle tamamlanamadı.",
+        "Oturum iptal kaydı yazılamadı. Biraz sonra tekrar deneyin.");
 }

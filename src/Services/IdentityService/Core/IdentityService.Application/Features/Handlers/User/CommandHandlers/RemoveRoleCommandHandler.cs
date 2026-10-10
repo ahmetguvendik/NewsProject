@@ -16,20 +16,20 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IKeycloakAdminClient _keycloakAdminClient;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ICacheService _cache;
+    private readonly ITokenRevocationStore _revocations;
 
     public RemoveRoleCommandHandler(
         IGenericRepository<Domain.Entities.User> userRepository,
         IUserRoleRepository userRoleRepository,
         IKeycloakAdminClient keycloakAdminClient,
         IUnitOfWork unitOfWork,
-        ICacheService cache)
+        ITokenRevocationStore revocations)
     {
         _userRepository = userRepository;
         _userRoleRepository = userRoleRepository;
         _keycloakAdminClient = keycloakAdminClient;
         _unitOfWork = unitOfWork;
-        _cache = cache;
+        _revocations = revocations;
     }
 
     public async Task Handle(RemoveRoleCommand request, CancellationToken cancellationToken)
@@ -70,8 +70,9 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
             await _userRoleRepository.DeleteAsync(existing, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Serializable çakışması çoğunlukla burada çıkıyor: yarışı kaybeden
-            // işlem commit anında iptal ediliyor.
+            // Commit'ten önce: iptal kaydı yazılamazsa rol de kalkmasın.
+            await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
+
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
         }
         catch
@@ -86,12 +87,5 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
 
             throw;
         }
-
-        // Commit'ten sonra: işlem iptal olursa kullanıcı boşuna oturumdan atılmasın.
-        await _cache.SetAsync(
-            TokenRevocation.Key(user.KeycloakId),
-            TokenRevocation.Now(TokenRevocation.ReasonRoleChange),
-            TokenRevocation.Retention,
-            cancellationToken);
     }
 }

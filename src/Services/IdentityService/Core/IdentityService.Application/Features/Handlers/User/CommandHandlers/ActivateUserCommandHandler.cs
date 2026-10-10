@@ -14,17 +14,20 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
     private readonly IKeycloakAdminClient _keycloakAdminClient;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICacheService _cache;
+    private readonly ITokenRevocationStore _revocations;
 
     public ActivateUserCommandHandler(
         IGenericRepository<Domain.Entities.User> userRepository,
         IKeycloakAdminClient keycloakAdminClient,
         IUnitOfWork unitOfWork,
-        ICacheService cache)
+        ICacheService cache,
+        ITokenRevocationStore revocations)
     {
         _userRepository = userRepository;
         _keycloakAdminClient = keycloakAdminClient;
         _unitOfWork = unitOfWork;
         _cache = cache;
+        _revocations = revocations;
     }
 
     public async Task Handle(ActivateUserCommand request, CancellationToken cancellationToken)
@@ -47,7 +50,7 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
 
-            await _cache.RemoveAsync(TokenRevocation.Key(user.KeycloakId), cancellationToken);
+            await _revocations.ClearAsync(user.KeycloakId, cancellationToken);
         }
         catch
         {

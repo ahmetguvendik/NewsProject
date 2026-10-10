@@ -5,6 +5,7 @@ using IdentityService.Persistance.Contexts;
 using IdentityService.Persistance.Keycloak;
 using IdentityService.Persistance.Messaging;
 using IdentityService.Persistance.Repositories;
+using IdentityService.Persistance.Security;
 using IdentityService.Persistance.UnitOfWorks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,7 @@ public static class ServiceRegistration
             return ConnectionMultiplexer.Connect(options);
         });
         services.AddSingleton<ICacheService, RedisCacheService>();
+        services.AddSingleton<ITokenRevocationStore, RedisTokenRevocationStore>();
 
         return services;
     }

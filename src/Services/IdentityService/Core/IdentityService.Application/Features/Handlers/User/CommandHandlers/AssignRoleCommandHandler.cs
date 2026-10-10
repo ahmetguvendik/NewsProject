@@ -15,20 +15,20 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IKeycloakAdminClient _keycloakAdminClient;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ICacheService _cache;
+    private readonly ITokenRevocationStore _revocations;
 
     public AssignRoleCommandHandler(
         IGenericRepository<Domain.Entities.User> userRepository,
         IUserRoleRepository userRoleRepository,
         IKeycloakAdminClient keycloakAdminClient,
         IUnitOfWork unitOfWork,
-        ICacheService cache)
+        ITokenRevocationStore revocations)
     {
         _userRepository = userRepository;
         _userRoleRepository = userRoleRepository;
         _keycloakAdminClient = keycloakAdminClient;
         _unitOfWork = unitOfWork;
-        _cache = cache;
+        _revocations = revocations;
     }
 
     public async Task Handle(AssignRoleCommand request, CancellationToken cancellationToken)
@@ -56,17 +56,20 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
                 cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            await _cache.SetAsync(
-                TokenRevocation.Key(user.KeycloakId),
-                TokenRevocation.Now(TokenRevocation.ReasonRoleChange),
-                TokenRevocation.Retention,
-                cancellationToken);
         }
         catch
         {
             await _keycloakAdminClient.RemoveRoleAsync(user.KeycloakId, request.RoleName, cancellationToken);
             throw;
+        }
+
+        // Rol vermek kritik değil: kayıt yazılamazsa kullanıcı yeni rolü bir sonraki girişte görür.
+        try
+        {
+            await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
+        }
+        catch (ExternalServiceException)
+        {
         }
     }
 }

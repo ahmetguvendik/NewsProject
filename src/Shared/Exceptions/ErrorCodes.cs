@@ -66,6 +66,7 @@ public static class ErrorCodes
         /// token'ı silip giriş ekranına yönlendiriyor.
         /// </summary>
         public const string TokenStale       = "AUTH_TOKEN_STALE";
+        public const string RevocationUnavailable = "AUTH_REVOCATION_UNAVAILABLE";
     }
 
     // ─── Keycloak ─────────────────────────────────────────────────
