@@ -17,8 +17,6 @@
 
     <ItemGroup>
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
-        <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="5.0.0" />
 
         <!-- ECS: alan adları Elastic APM'in beklediği şemada olsun (trace.id, service.name…) -->
         <PackageReference Include="Elastic.CommonSchema.Serilog" Version="9.0.0" />
