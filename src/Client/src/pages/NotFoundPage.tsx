@@ -16,7 +16,7 @@ export function NotFoundPage() {
 
   return (
     <div className="empty">
-      <p className="empty__title">Sayfa bulunamadı</p>
+      <h1 className="empty__title">Sayfa bulunamadı</h1>
       <p>
         <code>{location.pathname}</code> adresinde bir sayfa yok. Bağlantı eskimiş
         ya da adres yanlış yazılmış olabilir.

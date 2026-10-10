@@ -38,7 +38,7 @@ export function RegisterPage() {
     return (
       <div className="auth-shell">
         <div className="card">
-          <h2 className="card__title">Hesabınız oluşturuldu</h2>
+          <h1 className="card__title">Hesabınız oluşturuldu</h1>
           <p className="card__sub">
             <strong>{registeredEmail}</strong> adresine bir doğrulama bağlantısı gönderdik.
             Giriş yapabilmek için önce o bağlantıya tıklamanız gerekiyor.
@@ -59,7 +59,7 @@ export function RegisterPage() {
   return (
     <div className="auth-shell">
       <div className="card">
-        <h2 className="card__title">Kayıt ol</h2>
+        <h1 className="card__title">Kayıt ol</h1>
         <p className="card__sub">
           Kayıt olan herkese otomatik <strong>okuyucu</strong> rolü atanır.
         </p>

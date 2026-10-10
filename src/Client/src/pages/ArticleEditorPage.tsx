@@ -173,7 +173,7 @@ export function ArticleEditorPage() {
     <>
       <div className="page__head">
         <div>
-          <h2 className="page__title">{isEdit ? 'Haberi düzenle' : 'Yeni haber'}</h2>
+          <h1 className="page__title">{isEdit ? 'Haberi düzenle' : 'Yeni haber'}</h1>
           <p className="page__sub">
             {isEdit
               ? 'Kaydedince makale güncellenir — yayın durumu değişmez.'
@@ -323,6 +323,7 @@ export function ArticleEditorPage() {
               setImageValue(event.target.value)
               setImagePreview(event.target.value || null)
             }}
+            aria-label="Görsel adresi"
             placeholder="veya bir adres yapıştırın: https://…"
           />
 

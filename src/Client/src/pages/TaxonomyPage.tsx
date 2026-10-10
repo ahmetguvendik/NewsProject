@@ -64,7 +64,7 @@ export function TaxonomyPage() {
     <>
       <div className="page__head">
         <div>
-          <h2 className="page__title">Kategori & Etiket</h2>
+          <h1 className="page__title">Kategori & Etiket</h1>
           <p className="page__sub">
             Kategori ve etiket adları benzersizdir; aynı ad ikinci kez eklenemez.
           </p>

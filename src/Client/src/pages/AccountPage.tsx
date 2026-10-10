@@ -38,7 +38,7 @@ export function AccountPage() {
     <>
       <div className="page__head">
         <div>
-          <h2 className="page__title">Hesabım</h2>
+          <h1 className="page__title">Hesabım</h1>
           <p className="page__sub">Profil bilgileriniz ve bildirim tercihleriniz</p>
         </div>
       </div>

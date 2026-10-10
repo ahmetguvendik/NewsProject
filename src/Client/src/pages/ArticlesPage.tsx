@@ -202,7 +202,7 @@ export function ArticlesPage() {
       <div className="page__head">
         <div>
           <div className="feed-head">
-            <h2 className="page__title">Akış</h2>
+            <h1 className="page__title">Akış</h1>
 
             {query.trim() ? (
               <button className="filter is-active" onClick={() => setSearchParams({})}>

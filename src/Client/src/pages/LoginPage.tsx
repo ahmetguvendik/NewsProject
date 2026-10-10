@@ -33,7 +33,7 @@ export function LoginPage() {
   return (
     <div className="auth-shell">
       <div className="card">
-        <h2 className="card__title">Giriş yap</h2>
+        <h1 className="card__title">Giriş yap</h1>
         <p className="card__sub">Telgraf hesabınızla giriş yapın.</p>
 
         <ErrorAlert error={error} />

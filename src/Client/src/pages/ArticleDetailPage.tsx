@@ -69,7 +69,7 @@ export function ArticleDetailPage() {
         )}
       </div>
 
-      <h2 className="reader__title">{article.title}</h2>
+      <h1 className="reader__title">{article.title}</h1>
 
       {article.summary && <p className="reader__summary">{article.summary}</p>}
 

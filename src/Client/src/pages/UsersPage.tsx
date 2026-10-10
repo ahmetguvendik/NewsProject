@@ -82,7 +82,7 @@ export function UsersPage() {
     <>
       <div className="page__head">
         <div>
-          <h2 className="page__title">Kullanıcılar</h2>
+          <h1 className="page__title">Kullanıcılar</h1>
           <p className="page__sub">{totalCount} kullanıcı</p>
         </div>
       </div>

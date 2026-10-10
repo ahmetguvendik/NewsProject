@@ -18,7 +18,7 @@ export function Guard({ roles, children }: { roles?: Role[]; children: ReactNode
   if (roles && !hasRole(...roles)) {
     return (
       <div className="empty">
-        <p className="empty__title">Bu sayfa için yetkiniz yok</p>
+        <h1 className="empty__title">Bu sayfa için yetkiniz yok</h1>
         <p>
           Gerekli rol: <strong>{roles.join(' veya ')}</strong>. Mevcut rolleriniz:{' '}
           <strong>{session.roles.join(', ') || 'yok'}</strong>.
