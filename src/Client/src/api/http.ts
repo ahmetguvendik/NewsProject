@@ -66,14 +66,13 @@ async function request<T>(
     },
   })
 
-  // Token süresi dolmuş veya geçersiz → oturumu düşür.
+  // Token geçersiz ya da hesap pasife alınmış → oturumu düşür.
   // AuthContext bu değişikliği tokenStore olayı üzerinden dinliyor.
-  if (response.status === 401) {
-    clearToken()
-    throw await ApiError.fromResponse(response)
+  if (!response.ok) {
+    const error = await ApiError.fromResponse(response)
+    if (response.status === 401 || error.errorCode === 'AUTH_ACCOUNT_DISABLED') clearToken()
+    throw error
   }
-
-  if (!response.ok) throw await ApiError.fromResponse(response)
 
   // 204 No Content
   if (response.status === 204) return undefined as T

@@ -43,6 +43,7 @@ public static class ErrorCodes
     {
         public const string Unauthorized          = "AUTH_UNAUTHORIZED";
         public const string Forbidden             = "AUTH_FORBIDDEN";
+        public const string AccountDisabled       = "AUTH_ACCOUNT_DISABLED";
         public const string TokenExpired          = "AUTH_TOKEN_EXPIRED";
         public const string TokenInvalid          = "AUTH_TOKEN_INVALID";
         public const string TokenStale            = "AUTH_TOKEN_STALE";

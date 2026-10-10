@@ -10,7 +10,7 @@ public sealed class RevokedTokenGuard
 {
     private static readonly string DisabledBody =
         $$"""
-        {"status":403,"errorCode":"{{ErrorCodes.Auth.Forbidden}}","message":"Hesabınız pasife alınmış.","description":"Bu işlem için yetkiniz kaldırıldı. Devam etmek için bir yöneticiyle görüşün.","errors":null}
+        {"status":403,"errorCode":"{{ErrorCodes.Auth.AccountDisabled}}","message":"Hesabınız pasife alınmış.","description":"Bu işlem için yetkiniz kaldırıldı. Devam etmek için bir yöneticiyle görüşün.","errors":null}
         """;
 
     private static readonly string RolesBody =
