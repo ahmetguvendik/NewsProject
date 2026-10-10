@@ -1,8 +1,9 @@
+using IdentityService.Application.Caching;
 using IdentityService.Application.Interfaces;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace IdentityService.Application.Caching;
+namespace IdentityService.Application.Behaviors;
 
 public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull

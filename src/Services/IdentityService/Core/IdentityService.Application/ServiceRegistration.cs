@@ -1,7 +1,6 @@
 using FluentValidation;
 using IdentityService.Application.Auditing;
 using IdentityService.Application.Behaviors;
-using IdentityService.Application.Caching;
 using IdentityService.Application.Interfaces;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
