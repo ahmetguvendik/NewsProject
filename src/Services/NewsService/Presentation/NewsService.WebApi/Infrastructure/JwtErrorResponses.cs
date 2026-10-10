@@ -14,20 +14,19 @@ public static class JwtErrorResponses
             // Varsayılan gövdesiz yanıtın yazılmasını engelle.
             context.HandleResponse();
 
-            // Süresi dolmuş token ile hiç gönderilmemiş token kullanıcı için
-            // farklı durumlar: ilki "tekrar giriş yap", ikincisi "giriş yap".
-            var expired = context.AuthenticateFailure is SecurityTokenExpiredException;
+            var (code, message, description) = context.AuthenticateFailure switch
+            {
+                SecurityTokenExpiredException => (ErrorCodes.Auth.TokenExpired, "Oturumunuzun süresi doldu.", "Lütfen tekrar giriş yapın."),
+                not null => (ErrorCodes.Auth.TokenInvalid, "Oturum bilgisi geçersiz.", "Lütfen tekrar giriş yapın."),
+                null => (ErrorCodes.Auth.Unauthorized, "Bu işlem için giriş yapmalısınız.", "Giriş yaptıktan sonra tekrar deneyin.")
+            };
 
             return WriteAsync(context.Response, new ErrorResponse
             {
                 Status = StatusCodes.Status401Unauthorized,
-                ErrorCode = expired ? ErrorCodes.Auth.TokenExpired : ErrorCodes.Auth.Unauthorized,
-                Message = expired
-                    ? "Oturumunuzun süresi doldu."
-                    : "Bu işlem için giriş yapmalısınız.",
-                Description = expired
-                    ? "Lütfen tekrar giriş yapın."
-                    : "Giriş yaptıktan sonra tekrar deneyin."
+                ErrorCode = code,
+                Message = message,
+                Description = description
             });
         },
 
