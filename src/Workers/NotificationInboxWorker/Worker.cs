@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Logging.Registration;
 using Microsoft.EntityFrameworkCore;
-using NotificationService.Application.Interfaces;
+using NotificationInboxWorker.Email;
 using NotificationService.Domain.Entities;
 using HealthCheck.Registration;
 using Shared.Messaging.Events;
@@ -127,15 +127,7 @@ public class Worker : BackgroundService
                 type: "welcome",
                 recipient: evt.Email,
                 recipientKeycloakId: evt.KeycloakId,
-                subject: "Telgraf'a Hoşgeldiniz! 🎉",
-                body: $"""
-                    <html><body style="font-family:Arial,sans-serif;padding:20px">
-                        <h2>Merhaba {evt.FirstName} {evt.LastName},</h2>
-                        <p>Telgraf'a hoşgeldiniz! Hesabınız başarıyla oluşturuldu.</p>
-                        <p>Artık haberleri okuyabilir ve daha fazlasını keşfedebilirsiniz.</p>
-                        <br/><p>İyi okumalar,</p><p><strong>Telgraf Ekibi</strong></p>
-                    </body></html>
-                    """,
+                mail: EmailTemplates.Welcome(evt.FirstName, evt.LastName),
                 cancellationToken);
         }
         else if (message.Topic == Topics.Article.Published)
@@ -160,15 +152,7 @@ public class Worker : BackgroundService
                     type: "article_published",
                     recipient: contact.Email,
                     recipientKeycloakId: contact.KeycloakId,
-                    subject: $"Haberiniz Yayınlandı: {evt.Title}",
-                    body: $"""
-                        <html><body style="font-family:Arial,sans-serif;padding:20px">
-                            <h2>Merhaba {contact.FirstName},</h2>
-                            <p>"<strong>{evt.Title}</strong>" başlıklı haberiniz yayına alındı! 📰</p>
-                            <p><strong>Yayın Tarihi:</strong> {ToTurkeyLocalTime(evt.PublishedAt):dd MMMM yyyy HH:mm}</p>
-                            <br/><p><strong>Telgraf Ekibi</strong></p>
-                        </body></html>
-                        """,
+                    mail: EmailTemplates.ArticlePublished(contact.FirstName, evt.Title, evt.PublishedAt),
                     cancellationToken,
                     referenceId: evt.ArticleId);
             }
@@ -235,42 +219,26 @@ public class Worker : BackgroundService
                 type: "article_broadcast",
                 recipient: subscriber.Email,
                 recipientKeycloakId: subscriber.KeycloakId,
-                subject: $"Yeni haber: {evt.Title}",
-                body: $"""
-                    <html><body style="font-family:Arial,sans-serif;padding:20px">
-                        <h2>Merhaba {subscriber.FirstName},</h2>
-                        <p>Telgraf'ta yeni bir haber yayınlandı:</p>
-                        <p style="font-size:18px"><strong>{evt.Title}</strong></p>
-                        <p><strong>Yayın Tarihi:</strong> {ToTurkeyLocalTime(evt.PublishedAt):dd MMMM yyyy HH:mm}</p>
-                        <br/><p>İyi okumalar,</p><p><strong>Telgraf Ekibi</strong></p>
-                        <hr/>
-                        <p style="font-size:12px;color:#888">
-                            Bu e-postayı bülten aboneliğiniz olduğu için aldınız.
-                            Hesabım sayfasından aboneliğinizi kapatabilirsiniz.
-                        </p>
-                    </body></html>
-                    """,
+                mail: EmailTemplates.ArticleBroadcast(subscriber.FirstName, evt.Title, evt.PublishedAt),
                 cancellationToken,
                 referenceId: evt.ArticleId);
         }
     }
 
-    private static DateTime ToTurkeyLocalTime(DateTime utc) => utc.AddHours(3);
-
     private async Task SendAndSaveAsync(IEmailService emailService, InboxWorkerDbContext db,
-        string type, string recipient, string recipientKeycloakId, string subject, string body,
+        string type, string recipient, string recipientKeycloakId, (string Subject, string Body) mail,
         CancellationToken cancellationToken, Guid? referenceId = null)
     {
         var notification = new Notification
         {
             Type = type,
             RecipientEmail = recipient,
-            Subject = subject,
-            Body = body,
+            Subject = mail.Subject,
+            Body = mail.Body,
             ReferenceId = referenceId
         };
 
-        await emailService.SendAsync(recipient, subject, body, cancellationToken);
+        await emailService.SendAsync(recipient, mail.Subject, mail.Body, cancellationToken);
         notification.IsSent = true;
         notification.SentAt = DateTime.UtcNow;
 

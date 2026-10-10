@@ -2,9 +2,8 @@ using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using NotificationService.Application.Interfaces;
 
-namespace NotificationService.Persistance.Email;
+namespace NotificationInboxWorker.Email;
 
 public class EmailService : IEmailService
 {

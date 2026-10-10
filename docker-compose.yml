@@ -315,12 +315,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=NotificationServiceDb;Username=ahmet;Password=Ahmet.123
       - Kafka__BootstrapServers=kafka:9092
-      - Smtp__Host=smtp.gmail.com
-      - Smtp__Port=587
-      - Smtp__Username=${SMTP_USERNAME:-}
-      - Smtp__Password=${SMTP_PASSWORD:-}
-      - Smtp__FromName=Telgraf
-      - Notification__AdminEmail=${SMTP_USERNAME:-}
     depends_on:
       postgres:
         condition: service_healthy

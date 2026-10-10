@@ -1,8 +1,7 @@
 using Logging.Registration;
 using Microsoft.EntityFrameworkCore;
 using NotificationInboxWorker;
-using NotificationService.Application.Interfaces;
-using NotificationService.Persistance.Email;
+using NotificationInboxWorker.Email;
 using HealthCheck.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
