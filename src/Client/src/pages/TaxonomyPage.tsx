@@ -143,7 +143,7 @@ export function TaxonomyPage() {
 
         <section className="card">
           <h3 className="card__title">Etiketler</h3>
-          <p className="card__sub">Haberlere yalnızca oluşturma sırasında iliştirilebilir.</p>
+          <p className="card__sub">Haber oluşturulurken ya da düzenlenirken eklenip çıkarılabilir.</p>
 
           <form onSubmit={addTag}>
             <label className="field">
