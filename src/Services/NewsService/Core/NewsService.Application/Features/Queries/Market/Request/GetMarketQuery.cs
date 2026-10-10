@@ -1,5 +1,6 @@
 using MediatR;
-using NewsService.Application.Caching;
+using NewsService.Application.Caching.Abstract;
+using NewsService.Application.Caching.Concrete;
 using NewsService.Application.Features.Queries.Market.Response;
 
 namespace NewsService.Application.Features.Queries.Market.Request;

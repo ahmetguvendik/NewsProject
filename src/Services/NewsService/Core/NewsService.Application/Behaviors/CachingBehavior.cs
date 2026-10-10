@@ -1,8 +1,9 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
+using NewsService.Application.Caching.Abstract;
 using NewsService.Application.Interfaces;
 
-namespace NewsService.Application.Caching;
+namespace NewsService.Application.Behaviors;
 
 public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull

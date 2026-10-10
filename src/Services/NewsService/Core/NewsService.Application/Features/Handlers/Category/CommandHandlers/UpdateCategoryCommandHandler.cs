@@ -1,6 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using NewsService.Application.Caching;
+using NewsService.Application.Caching.Concrete;
 using NewsService.Application.Features.Commands.Category.Request;
 using NewsService.Application.Features.Commands.Category.Response;
 using NewsService.Application.Interfaces;

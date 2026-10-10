@@ -2,7 +2,6 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using NewsService.Application.Behaviors;
-using NewsService.Application.Caching;
 
 namespace NewsService.Application;
 

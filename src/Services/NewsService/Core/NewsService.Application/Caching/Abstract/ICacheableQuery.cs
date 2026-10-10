@@ -1,4 +1,4 @@
-namespace NewsService.Application.Caching;
+namespace NewsService.Application.Caching.Abstract;
 
 public interface ICacheableQuery
 {
