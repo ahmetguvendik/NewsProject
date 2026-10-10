@@ -8,26 +8,26 @@ public static class NewsErrors
     {
         public static NotFoundException Article(object id) => new(
             ErrorCodes.Article.NotFound,
-            "Makale bulunamadı.",
-            $"'{id}' ID'sine sahip makale sistemde mevcut değil veya silinmiş olabilir.");
+            "Haber bulunamadı.",
+            "Haber kaldırılmış ya da bağlantı hatalı olabilir.");
 
         public static NotFoundException Category(object id) => new(
             ErrorCodes.Category.NotFound,
             "Kategori bulunamadı.",
-            $"'{id}' ID'sine sahip kategori sistemde mevcut değil.");
+            "Kategori kaldırılmış olabilir. Sayfayı yenileyip tekrar deneyin.");
 
         public static NotFoundException Tag(object id) => new(
             ErrorCodes.Tag.NotFound,
             "Etiket bulunamadı.",
-            $"'{id}' ID'sine sahip etiket sistemde mevcut değil.");
+            "Etiket kaldırılmış olabilir. Sayfayı yenileyip tekrar deneyin.");
     }
 
     extension(ConflictException)
     {
         public static ConflictException ArticleAlreadyPublished(object id) => new(
             ErrorCodes.Article.AlreadyPublished,
-            "Makale zaten yayınlanmış.",
-            $"'{id}' ID'li makale daha önce yayınlanmış, tekrar yayınlanamaz.");
+            "Haber zaten yayınlanmış.",
+            "Bu haber daha önce yayınlanmış; tekrar yayınlanamaz.");
 
         public static ConflictException CategoryAlreadyExists(string name) => new(
             ErrorCodes.Category.AlreadyExists,

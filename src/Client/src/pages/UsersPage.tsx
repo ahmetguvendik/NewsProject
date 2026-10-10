@@ -90,7 +90,7 @@ export function UsersPage() {
       <ErrorAlert error={error} />
 
       <div className="alert alert--info">
-        Rol atama ve geri alma hem Keycloak'a hem local veritabanına yazılır.
+        Rol değişikliği hemen geçerli olur; kullanıcının yeniden giriş yapması gerekir.
       </div>
 
       {loading ? (

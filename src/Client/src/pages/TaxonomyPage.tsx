@@ -66,7 +66,7 @@ export function TaxonomyPage() {
         <div>
           <h2 className="page__title">Kategori & Etiket</h2>
           <p className="page__sub">
-            Her ikisi de benzersiz ada sahip — aynı isim ikinci kez eklenirse backend 409 döner.
+            Kategori ve etiket adları benzersizdir; aynı ad ikinci kez eklenemez.
           </p>
         </div>
       </div>

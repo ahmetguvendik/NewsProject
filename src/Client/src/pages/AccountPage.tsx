@@ -75,7 +75,7 @@ export function AccountPage() {
           <div className="account-grid">
             <section className="card">
               <h3 className="card__title">Hesap bilgileri</h3>
-              <p className="card__sub">Bu bilgiler Keycloak ve IdentityService'ten geliyor.</p>
+              <p className="card__sub">Hesabınıza ait temel bilgiler.</p>
 
               <div className="info-row">
                 <span className="info-row__label">Ad Soyad</span>

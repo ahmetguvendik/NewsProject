@@ -8,7 +8,7 @@ public class UpdateArticleCommandValidator : AbstractValidator<UpdateArticleComm
     public UpdateArticleCommandValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("Makale ID'si gereklidir.");
+            .NotEmpty().WithMessage("Haber ID'si gereklidir.");
 
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Başlık gereklidir.")

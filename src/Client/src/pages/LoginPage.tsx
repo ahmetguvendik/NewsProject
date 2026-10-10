@@ -34,7 +34,7 @@ export function LoginPage() {
     <div className="auth-shell">
       <div className="card">
         <h2 className="card__title">Giriş yap</h2>
-        <p className="card__sub">Kimlik doğrulama Keycloak üzerinden yapılır.</p>
+        <p className="card__sub">Telgraf hesabınızla giriş yapın.</p>
 
         <ErrorAlert error={error} />
 

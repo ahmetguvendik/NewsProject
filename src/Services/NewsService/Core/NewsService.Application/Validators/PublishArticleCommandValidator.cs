@@ -8,6 +8,6 @@ public class PublishArticleCommandValidator : AbstractValidator<PublishArticleCo
     public PublishArticleCommandValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("Makale ID'si gereklidir.");
+            .NotEmpty().WithMessage("Haber ID'si gereklidir.");
     }
 }

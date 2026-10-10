@@ -19,7 +19,8 @@ export function ErrorAlert({ error }: { error: unknown }) {
     const isStackTrace = error.status >= 500 && error.description.includes('\n')
 
     return (
-      <div className="alert alert--error">
+      // Kod kullanıcıya gösterilmez; hata ayıklarken üzerine gelince görünür.
+      <div className="alert alert--error" title={`HTTP ${error.status} · ${error.errorCode}`}>
         <strong>{error.message}</strong>
         {error.description && !isStackTrace && <p className="alert__hint">{error.description}</p>}
         {error.fieldErrors && (
@@ -31,9 +32,6 @@ export function ErrorAlert({ error }: { error: unknown }) {
             ))}
           </ul>
         )}
-        <span className="alert__code">
-          HTTP {error.status} · {error.errorCode}
-        </span>
         {isStackTrace && (
           <details className="alert__trace">
             <summary>Yığın izi</summary>

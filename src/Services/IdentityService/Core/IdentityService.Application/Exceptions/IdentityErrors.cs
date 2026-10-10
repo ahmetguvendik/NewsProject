@@ -9,12 +9,12 @@ public static class IdentityErrors
         public static NotFoundException User(Guid id) => new(
             ErrorCodes.User.NotFound,
             "Kullanıcı bulunamadı.",
-            $"'{id}' ID'sine sahip kullanıcı sistemde mevcut değil veya silinmiş olabilir.");
+            "Kullanıcı silinmiş olabilir. Listeyi yenileyip tekrar deneyin.");
 
         public static NotFoundException UserRole(Guid userId, string roleName) => new(
             ErrorCodes.User.RoleNotFound,
             "Kullanıcı rolü bulunamadı.",
-            $"'{userId}' ID'li kullanıcıya atanmış '{roleName}' rolü bulunamadı.");
+            $"Kullanıcının '{roleName}' rolü yok. Listeyi yenileyip tekrar deneyin.");
     }
 
     extension(ConflictException)
@@ -27,7 +27,7 @@ public static class IdentityErrors
         public static ConflictException RoleAlreadyAssigned(Guid userId, string roleName) => new(
             ErrorCodes.User.RoleAlreadyAssigned,
             "Rol zaten atanmış.",
-            $"'{roleName}' rolü '{userId}' ID'li kullanıcıya daha önce atanmış.");
+            $"Kullanıcıda '{roleName}' rolü zaten var.");
     }
 
     extension(ExternalServiceException)

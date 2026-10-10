@@ -8,6 +8,6 @@ public class DeleteArticleCommandValidator : AbstractValidator<DeleteArticleComm
     public DeleteArticleCommandValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("Makale ID'si gereklidir.");
+            .NotEmpty().WithMessage("Haber ID'si gereklidir.");
     }
 }
