@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using NewsService.Application.Auditing;
+using NewsService.Application.Auditing.Abstract;
 using NewsService.Domain.Entities;
 
 namespace NewsService.Persistance.Auditing;

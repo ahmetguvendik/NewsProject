@@ -1,11 +1,6 @@
-namespace NewsService.Application.Auditing;
+using NewsService.Application.Auditing.Abstract;
 
-public interface IChangeAuditCollector
-{
-    void Add(string change);
-
-    IReadOnlyList<string> Drain();
-}
+namespace NewsService.Application.Auditing.Concrete;
 
 public sealed class ChangeAuditCollector : IChangeAuditCollector
 {

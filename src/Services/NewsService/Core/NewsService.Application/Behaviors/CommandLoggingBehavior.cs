@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using MediatR;
-using NewsService.Application.Auditing;
+using NewsService.Application.Auditing.Abstract;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using Serilog.Core;

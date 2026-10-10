@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NewsService.Application.Auditing;
+using NewsService.Application.Auditing.Abstract;
+using NewsService.Application.Auditing.Concrete;
 using NewsService.Application.Features.Queries.Article;
 using NewsService.Application.Interfaces;
 using NewsService.Application.UnitOfWorks;
