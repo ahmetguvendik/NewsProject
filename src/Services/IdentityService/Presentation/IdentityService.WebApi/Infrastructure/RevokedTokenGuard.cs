@@ -18,6 +18,13 @@ public sealed class RevokedTokenGuard
         {"status":401,"errorCode":"{{ErrorCodes.Auth.TokenStale}}","message":"Yetkileriniz değişti.","description":"Oturumunuz güncel değil. Lütfen tekrar giriş yapın.","errors":null}
         """;
 
+    private static readonly string UnverifiableBody =
+        $$"""
+        {"status":503,"errorCode":"{{ErrorCodes.Auth.RevocationUnavailable}}","message":"Oturumunuz şu an doğrulanamıyor.","description":"Yetkileriniz kontrol edilemedi. Biraz sonra tekrar deneyin.","errors":null}
+        """;
+
+    private const string Unverifiable = "unverifiable";
+
     private readonly RequestDelegate _next;
     private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<RevokedTokenGuard> _logger;
@@ -41,18 +48,19 @@ public sealed class RevokedTokenGuard
             return;
         }
 
-        var disabled = reason == TokenRevocation.ReasonAccountDisabled;
+        var (status, body) = reason switch
+        {
+            TokenRevocation.ReasonAccountDisabled => (StatusCodes.Status403Forbidden, DisabledBody),
+            Unverifiable => (StatusCodes.Status503ServiceUnavailable, UnverifiableBody),
+            _ => (StatusCodes.Status401Unauthorized, RolesBody)
+        };
 
-        _logger.LogWarning(
-            "Geçersiz kılınmış token ile istek reddedildi [{Reason}]: {Path}",
-            reason, context.Request.Path);
+        _logger.LogWarning("Token ile gelen istek reddedildi [{Reason}]: {Path}", reason, context.Request.Path);
 
-        context.Response.StatusCode = disabled
-            ? StatusCodes.Status403Forbidden
-            : StatusCodes.Status401Unauthorized;
+        context.Response.StatusCode = status;
         context.Response.ContentType = "application/json; charset=utf-8";
 
-        await context.Response.WriteAsync(disabled ? DisabledBody : RolesBody, context.RequestAborted);
+        await context.Response.WriteAsync(body, context.RequestAborted);
     }
 
     private async Task<string?> RevocationReasonAsync(HttpContext context)
@@ -60,11 +68,7 @@ public sealed class RevokedTokenGuard
         var keycloakId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(keycloakId)) return null;
 
-        if (!_redis.IsConnected)
-        {
-            _logger.LogWarning("İptal kaydı okunamadı (Redis bağlı değil); istek geçirildi.");
-            return null;
-        }
+        if (!_redis.IsConnected) return Unreadable(context, null);
 
         string? raw;
         try
@@ -73,8 +77,7 @@ public sealed class RevokedTokenGuard
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "İptal kaydı okunamadı; istek geçirildi.");
-            return null;
+            return Unreadable(context, ex);
         }
 
         var revocation = TokenRevocation.Parse(raw);
@@ -83,14 +86,21 @@ public sealed class RevokedTokenGuard
         var issuedAt = IssuedAtUnix(context);
         if (issuedAt is null)
         {
-            _logger.LogError(
-                "Token'ın iat değeri okunamadı; geçersiz kılma kontrolü atlandı. KullanıcıId={KeycloakId}",
-                keycloakId);
-            return null;
+            _logger.LogError("Token'ın iat değeri okunamadı; istek reddedildi. KullanıcıId={KeycloakId}", keycloakId);
+            return revocation.Reason;
         }
 
         // Kayıttan SONRA üretilmiş token geçerli: kullanıcı tekrar giriş yapmış.
         return revocation.Covers(issuedAt.Value) ? revocation.Reason : null;
+    }
+
+    // Kayıt okunamazsa yetkili token geçirilmez; okur geçer ki Redis kesintisi siteyi düşürmesin.
+    private string? Unreadable(HttpContext context, Exception? ex)
+    {
+        if (context.User.IsInRole("admin") || context.User.IsInRole("editor")) return Unverifiable;
+
+        _logger.LogWarning(ex, "İptal kaydı okunamadı; istek geçirildi.");
+        return null;
     }
 
     private static long? IssuedAtUnix(HttpContext context)
