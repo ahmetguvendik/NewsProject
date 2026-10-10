@@ -42,10 +42,12 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var needle = request.Search.Trim().ToLower();
+            // i'nin dört biçimi (İ, I, ı, i) iki tarafta da "i"ye indirilir: .NET 'İ'yi küçültmüyor,
+            // Postgres ise 'I'yı 'i' yapıyor; aksi halde "İklim" araması "İklim" başlığını bulmuyordu.
+            var needle = request.Search.Trim().Replace('İ', 'i').ToLowerInvariant().Replace('ı', 'i');
             query = query.Where(a =>
-                a.Title.ToLower().Contains(needle) ||
-                (a.Summary != null && a.Summary.ToLower().Contains(needle)));
+                a.Title.ToLower().Replace("ı", "i").Contains(needle) ||
+                (a.Summary != null && a.Summary.ToLower().Replace("ı", "i").Contains(needle)));
         }
 
         query = query.OrderByDescending(a => a.PublishedAt ?? a.CreatedAt);
