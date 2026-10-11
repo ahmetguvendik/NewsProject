@@ -1,7 +1,8 @@
 using Logging.Registration;
 using IdentityService.Application;
-using IdentityService.Persistance;
-using IdentityService.Persistance.Contexts;
+using IdentityService.Infrastructure;
+using IdentityService.Persistence;
+using IdentityService.Persistence.Contexts;
 using IdentityService.WebApi.BackgroundServices;
 using IdentityService.WebApi.Infrastructure;
 using IdentityService.WebApi.Middlewares;
@@ -81,7 +82,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
 
 builder.Services.AddApplicationServices();
-builder.Services.AddPersistanceServices(builder.Configuration);
+builder.Services.AddPersistenceServices(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // Kafka eklenmedi: WebApi Kafka'ya hiç bağlanmıyor, olayları outbox tablosuna yazıyor.
 builder.Services.AddAppHealthChecks(builder.Configuration)

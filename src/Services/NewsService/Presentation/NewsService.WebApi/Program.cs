@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using NewsService.Application;
-using NewsService.Persistance;
-using NewsService.Persistance.Contexts;
+using NewsService.Infrastructure;
+using NewsService.Persistence;
+using NewsService.Persistence.Contexts;
 using NewsService.WebApi.Infrastructure;
 using NewsService.WebApi.Middlewares;
 using Shared.Extensions;
@@ -74,7 +75,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
 
 builder.Services.AddApplicationServices(builder.Configuration);
-builder.Services.AddPersistanceServices(builder.Configuration);
+builder.Services.AddPersistenceServices(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 // Kafka eklenmedi: WebApi Kafka'ya hiç bağlanmıyor, olayları outbox tablosuna yazıyor.
 // Kafka'yı burada raporlamak olmayan bir bağımlılık varmış izlenimi verirdi.

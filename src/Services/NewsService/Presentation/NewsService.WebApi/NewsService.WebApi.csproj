@@ -18,7 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Infrastructure\NewsService.Persistance\NewsService.Persistance.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\NewsService.Infrastructure\NewsService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\NewsService.Persistence\NewsService.Persistence.csproj" />
     <ProjectReference Include="..\..\..\..\HealthCheck.Registration\HealthCheck.Registration.csproj" />
     <ProjectReference Include="..\..\..\..\Logging.Registration\Logging.Registration.csproj" />
   </ItemGroup>

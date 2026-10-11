@@ -1,0 +1,31 @@
+using NewsService.Application.Interfaces;
+using NewsService.Domain.Entities;
+using NewsService.Persistence.Contexts;
+using System.Diagnostics;
+using System.Text.Json;
+
+namespace NewsService.Persistence.Messaging;
+
+public class OutboxEventPublisher : IEventPublisher
+{
+    private readonly NewsServiceDbContext _context;
+
+    public OutboxEventPublisher(NewsServiceDbContext context)
+    {
+        _context = context;
+    }
+
+    public Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
+    {
+        _context.OutboxMessages.Add(new OutboxMessage
+        {
+            Topic = topic,
+            Payload = JsonSerializer.Serialize(message),
+
+            TraceParent = Activity.Current?.Id
+        });
+
+        // SaveChanges YOK — handler'daki UnitOfWork.SaveChangesAsync() entity ile birlikte kaydeder
+        return Task.CompletedTask;
+    }
+}

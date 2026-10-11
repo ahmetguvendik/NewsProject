@@ -11,7 +11,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY ["src/Services/NotificationService/Presentation/NotificationService.WebApi/NotificationService.WebApi.csproj", "src/Services/NotificationService/Presentation/NotificationService.WebApi/"]
-COPY ["src/Services/NotificationService/Infrastructure/NotificationService.Persistance/NotificationService.Persistance.csproj", "src/Services/NotificationService/Infrastructure/NotificationService.Persistance/"]
+COPY ["src/Services/NotificationService/Infrastructure/NotificationService.Infrastructure/NotificationService.Infrastructure.csproj", "src/Services/NotificationService/Infrastructure/NotificationService.Infrastructure/"]
+COPY ["src/Services/NotificationService/Infrastructure/NotificationService.Persistence/NotificationService.Persistence.csproj", "src/Services/NotificationService/Infrastructure/NotificationService.Persistence/"]
 COPY ["src/Services/NotificationService/Core/NotificationService.Application/NotificationService.Application.csproj", "src/Services/NotificationService/Core/NotificationService.Application/"]
 COPY ["src/Services/NotificationService/Core/NotificationService.Domain/NotificationService.Domain.csproj", "src/Services/NotificationService/Core/NotificationService.Domain/"]
 COPY ["src/Shared/Shared.csproj", "src/Shared/"]

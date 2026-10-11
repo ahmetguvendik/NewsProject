@@ -146,7 +146,17 @@ Aynı haberi iki admin aynı anda yayınlarsa yalnızca biri başarılı olur, d
 ## Tasarım kararları
 
 ### Katmanlı servis yapısı
-Her servis Clean Architecture ile dört projeye ayrılır: **Domain**, **Application**, **Persistance** ve **WebApi**. İş mantığı MediatR handler'larında durur. Doğrulama FluentValidation ile yapılır ve hata mesajları Türkçedir. Bir pipeline behavior her komutu süresi ve hedefiyle birlikte loglar. `Shared` projesi yalnızca servis sınırını geçen sözleşmeleri taşır: olaylar, topic adları ve hata kodları.
+Her servis Clean Architecture ile beş projeye ayrılır:
+
+| Proje | İçerik |
+|---|---|
+| **Domain** | Varlıklar ve sabitler |
+| **Application** | Komutlar, sorgular, handler'lar, doğrulama ve arayüzler |
+| **Persistence** | EF Core: DbContext, migration'lar, repository'ler, unit of work, outbox yazımı |
+| **Infrastructure** | Dış sistemler: Keycloak, Redis, Kafka consumer'ları, MinIO, hava durumu ve piyasa istemcileri |
+| **WebApi** | Controller'lar, middleware'ler, kimlik doğrulama ve hata işleme |
+
+Persistence yalnızca EF Core ve PostgreSQL paketlerine bağlıdır; Kafka, Redis ve AWS SDK gibi paketler Infrastructure'da kalır. İş mantığı MediatR handler'larında durur. Doğrulama FluentValidation ile yapılır ve hata mesajları Türkçedir. Bir pipeline behavior her komutu süresi ve hedefiyle birlikte loglar. `Shared` projesi yalnızca servis sınırını geçen sözleşmeleri taşır: olaylar, topic adları ve hata kodları.
 
 ### Güvenilir mesajlaşma
 - **Transactional Outbox:** İş verisi ve olay aynı transaction'da yazılır, sonra ayrı bir worker Kafka'ya taşır. Bu sayede veritabanına yazılıp Kafka'ya gitmeyen olay kalmaz.
@@ -397,7 +407,7 @@ Tüm uçlar gateway üzerinden `http://localhost:9080` adresiyle çağrılır. Y
 └── src/
     ├── Client/                   # React SPA
     ├── Services/
-    │   ├── IdentityService/      # Domain · Application · Persistance · WebApi
+    │   ├── IdentityService/      # Domain · Application · Persistence · Infrastructure · WebApi
     │   ├── NewsService/
     │   └── NotificationService/
     ├── Workers/
@@ -423,7 +433,7 @@ docker compose up -d --build news-service
 Yeni migration ekleyin (örnek: News Service):
 
 ```bash
-dotnet ef migrations add MigrationAdi --project src/Services/NewsService/Infrastructure/NewsService.Persistance --startup-project src/Services/NewsService/Presentation/NewsService.WebApi
+dotnet ef migrations add MigrationAdi --project src/Services/NewsService/Infrastructure/NewsService.Persistence --startup-project src/Services/NewsService/Presentation/NewsService.WebApi
 ```
 
 Migration'lar servis açılırken otomatik uygulanır.
