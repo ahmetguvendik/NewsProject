@@ -1,10 +1,5 @@
+import { ROLE_LABELS } from '../lib/roles'
 import type { Role } from '../types'
-
-const LABELS: Record<Role, string> = {
-  admin: 'admin',
-  editor: 'editör',
-  user: 'okuyucu',
-}
 
 export function RoleBadges({ roles }: { roles: Role[] }) {
   // "user" rolü kayıt olan herkese otomatik atanır; ayrıca göstermek gürültü
@@ -17,7 +12,7 @@ export function RoleBadges({ roles }: { roles: Role[] }) {
     <span className="row" style={{ gap: 5 }}>
       {notable.map((role) => (
         <span key={role} className={`badge badge--${role}`}>
-          {LABELS[role]}
+          {ROLE_LABELS[role]}
         </span>
       ))}
     </span>

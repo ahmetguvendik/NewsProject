@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { ROLE_LABELS } from '../lib/roles'
 import type { Role } from '../types'
 
 /**
@@ -20,8 +21,8 @@ export function Guard({ roles, children }: { roles?: Role[]; children: ReactNode
       <div className="empty">
         <h1 className="empty__title">Bu sayfa için yetkiniz yok</h1>
         <p>
-          Gerekli rol: <strong>{roles.join(' veya ')}</strong>. Mevcut rolleriniz:{' '}
-          <strong>{session.roles.join(', ') || 'yok'}</strong>.
+          Gerekli rol: <strong>{roles.map((role) => ROLE_LABELS[role]).join(' veya ')}</strong>. Mevcut rolleriniz:{' '}
+          <strong>{session.roles.map((role) => ROLE_LABELS[role]).join(', ') || 'yok'}</strong>.
         </p>
       </div>
     )
