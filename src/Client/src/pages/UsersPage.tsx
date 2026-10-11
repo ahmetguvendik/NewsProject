@@ -8,10 +8,14 @@ import { initials } from '../lib/format'
 import { ROLE_LABELS } from '../lib/roles'
 import type { AppUser, Role } from '../types'
 
-const ASSIGNABLE: Role[] = ['editor', 'admin']
+// Yetki tek kademe: admin editörün yapabildiği her şeyi zaten yapabiliyor.
+const LEVELS: Role[] = ['user', 'editor', 'admin']
 const PAGE_SIZE = 20
 
 const fullName = (user: AppUser) => `${user.firstName} ${user.lastName}`
+
+const levelOf = (user: AppUser): Role =>
+  user.roles.includes('admin') ? 'admin' : user.roles.includes('editor') ? 'editor' : 'user'
 
 export function UsersPage() {
   const { session } = useAuth()
@@ -52,20 +56,20 @@ export function UsersPage() {
     }
   }
 
-  const toggleRole = (user: AppUser, role: Role, isSelf: boolean) => {
-    const label = ROLE_LABELS[role]
+  const changeRole = (user: AppUser, role: Role, isSelf: boolean) => {
+    const current = levelOf(user)
+    if (role === current) return
 
-    if (!user.roles.includes(role)) {
-      if (role === 'admin' && !confirm(`${fullName(user)} kullanıcısına admin yetkisi verilsin mi? Kullanıcıları ve tüm içeriği yönetebilir.`)) return
-      void run(user, () => identityApi.assignRole(user.id, role))
-      return
+    if (role === 'admin') {
+      if (!confirm(`${fullName(user)} kullanıcısına admin yetkisi verilsin mi? Kullanıcıları ve tüm içeriği yönetebilir.`)) return
+    } else if (LEVELS.indexOf(role) < LEVELS.indexOf(current)) {
+      const selfAdmin = current === 'admin' && isSelf
+        ? '\n\nKendi admin yetkinizi kaldırıyorsunuz; bu sayfaya bir daha erişemezsiniz.'
+        : ''
+      if (!confirm(`${fullName(user)} kullanıcısının yetkisi ${ROLE_LABELS[current]} → ${ROLE_LABELS[role]} olarak düşürülsün mü?${selfAdmin}`)) return
     }
 
-    const selfAdmin = role === 'admin' && isSelf
-      ? '\n\nKendi admin yetkinizi kaldırıyorsunuz; bu sayfaya bir daha erişemezsiniz.'
-      : ''
-    if (!confirm(`${fullName(user)} kullanıcısından ${label} rolü kaldırılsın mı?${selfAdmin}`)) return
-    void run(user, () => identityApi.removeRole(user.id, role))
+    void run(user, () => identityApi.setRole(user.id, role))
   }
 
   const toggleActive = (user: AppUser) => {
@@ -101,7 +105,7 @@ export function UsersPage() {
               <thead>
                 <tr>
                   <th>Kullanıcı</th>
-                  <th>Yetkiler</th>
+                  <th>Yetki</th>
                   <th>Durum</th>
                 </tr>
               </thead>
@@ -109,6 +113,7 @@ export function UsersPage() {
                 {users.map((user) => {
                   const isSelf = user.email === session?.email
                   const busy = busyId === user.id
+                  const level = levelOf(user)
 
                   return (
                     <tr key={user.id} className={user.isActive ? undefined : 'is-inactive'}>
@@ -128,24 +133,19 @@ export function UsersPage() {
                       </td>
 
                       <td>
-                        <div className="role-toggles" role="group" aria-label={`${fullName(user)} yetkileri`}>
-                          {ASSIGNABLE.map((role) => {
-                            const has = user.roles.includes(role)
-                            return (
-                              <button
-                                key={role}
-                                type="button"
-                                className={`role-toggle role-toggle--${role}`}
-                                aria-pressed={has}
-                                disabled={busy}
-                                onClick={() => toggleRole(user, role, isSelf)}
-                                title={has ? `${ROLE_LABELS[role]} rolünü kaldır` : `${ROLE_LABELS[role]} rolü ver`}
-                              >
-                                {has ? <CheckIcon /> : <PlusIcon />}
-                                {ROLE_LABELS[role]}
-                              </button>
-                            )
-                          })}
+                        <div className="role-seg" role="group" aria-label={`${fullName(user)} yetkisi`}>
+                          {LEVELS.map((role) => (
+                            <button
+                              key={role}
+                              type="button"
+                              className={`role-seg__opt role-seg__opt--${role}`}
+                              aria-pressed={level === role}
+                              disabled={busy}
+                              onClick={() => changeRole(user, role, isSelf)}
+                            >
+                              {ROLE_LABELS[role]}
+                            </button>
+                          ))}
                         </div>
                       </td>
 
@@ -180,15 +180,3 @@ export function UsersPage() {
     </>
   )
 }
-
-const CheckIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-)
-
-const PlusIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
-    <path d="M12 5v14M5 12h14" />
-  </svg>
-)

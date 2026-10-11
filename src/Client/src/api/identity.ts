@@ -24,13 +24,9 @@ export const identityApi = {
   updateUser: (input: { id: string; firstName: string; lastName: string; avatarUrl?: string | null }) =>
     api.put<AppUser>('/api/user', input),
 
-  /** Rolü hem Keycloak'a hem local DB'ye yazar */
-  assignRole: (userId: string, roleName: Role) =>
-    api.post<void>('/api/user/roles', { userId, roleName }),
-
-  /** Rolü hem Keycloak'tan hem local DB'den kaldırır */
-  removeRole: (userId: string, roleName: Role) =>
-    api.del<void>(`/api/user/${userId}/roles/${roleName}`),
+  /** Yetkiyi tek kademe olarak ayarlar (okuyucu/editör/admin); Keycloak ve local DB birlikte güncellenir */
+  setRole: (userId: string, roleName: Role) =>
+    api.put<void>(`/api/user/${userId}/role`, { roleName }),
 
   /**
    * NewsService yazar için yalnızca keycloakId tutuyor; görünen adı bu

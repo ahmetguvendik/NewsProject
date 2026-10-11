@@ -10,11 +10,6 @@ public static class IdentityErrors
             ErrorCodes.User.NotFound,
             "Kullanıcı bulunamadı.",
             "Kullanıcı silinmiş olabilir. Listeyi yenileyip tekrar deneyin.");
-
-        public static NotFoundException UserRole(Guid userId, string roleName) => new(
-            ErrorCodes.User.RoleNotFound,
-            "Kullanıcı rolü bulunamadı.",
-            $"Kullanıcının '{roleName}' rolü yok. Listeyi yenileyip tekrar deneyin.");
     }
 
     extension(ConflictException)
@@ -23,18 +18,13 @@ public static class IdentityErrors
             ErrorCodes.User.AlreadyExists,
             "Bu e-posta adresi zaten kayıtlı.",
             $"'{email}' adresiyle bir kullanıcı zaten mevcut. Farklı bir e-posta deneyin veya giriş yapın.");
-
-        public static ConflictException RoleAlreadyAssigned(Guid userId, string roleName) => new(
-            ErrorCodes.User.RoleAlreadyAssigned,
-            "Rol zaten atanmış.",
-            $"Kullanıcıda '{roleName}' rolü zaten var.");
     }
 
     extension(BusinessException)
     {
         public static BusinessException LastAdminRoleRemoval() => new(
             ErrorCodes.User.LastAdminCannotBeRemoved,
-            "Son aktif adminin rolü kaldırılamaz.",
+            "Son aktif adminin yetkisi düşürülemez.",
             "Sistemde en az bir aktif admin kalmalı. Önce başka bir kullanıcıya admin rolü atayın.");
 
         public static BusinessException LastAdminDeactivation() => new(

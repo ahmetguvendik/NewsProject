@@ -613,31 +613,38 @@ button, input, textarea, select { font: inherit; }
 
 .badge--self { background: var(--accent-wash); color: var(--accent); }
 
-.role-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.role-toggle {
+/* Yetki seçici: okuyucu / editör / admin, aynı anda yalnızca biri seçili */
+.role-seg {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px 5px 10px;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.role-seg__opt {
+  padding: 5px 13px;
   font-size: 12.5px;
   font-weight: 600;
   text-transform: capitalize;
   color: var(--text-faint);
   background: transparent;
-  border: 1px dashed var(--border);
+  border: 1px solid transparent;
   border-radius: 999px;
   cursor: pointer;
   transition: background .14s, border-color .14s, color .14s;
 }
 
-.role-toggle:hover:not(:disabled) { color: var(--text); border-color: var(--text-faint); }
-.role-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.role-toggle:disabled { opacity: .45; cursor: not-allowed; }
-.role-toggle[aria-pressed='true'] { border-style: solid; }
+.role-seg__opt:hover:not(:disabled) { color: var(--text); }
+.role-seg__opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.role-seg__opt:disabled { cursor: not-allowed; }
+.role-seg:has(:disabled) { opacity: .55; }
+.role-seg__opt[aria-pressed='true'] { cursor: default; }
 
-.role-toggle--editor[aria-pressed='true'] { background: var(--violet-wash); border-color: rgba(167, 139, 250, .35); color: var(--violet); }
-.role-toggle--admin[aria-pressed='true'] { background: var(--danger-wash); border-color: rgba(248, 113, 113, .35); color: var(--danger); }
+.role-seg__opt--user[aria-pressed='true'] { background: var(--surface-3); color: var(--text); }
+.role-seg__opt--editor[aria-pressed='true'] { background: var(--violet-wash); border-color: rgba(167, 139, 250, .35); color: var(--violet); }
+.role-seg__opt--admin[aria-pressed='true'] { background: var(--danger-wash); border-color: rgba(248, 113, 113, .35); color: var(--danger); }
 
 /* ── Hesap sayfası ────────────────────────────────────────────── */
 

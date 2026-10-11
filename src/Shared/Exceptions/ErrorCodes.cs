@@ -6,8 +6,6 @@ public static class ErrorCodes
     {
         public const string NotFound                     = "USER_NOT_FOUND";
         public const string AlreadyExists                = "USER_ALREADY_EXISTS";
-        public const string RoleAlreadyAssigned          = "USER_ROLE_ALREADY_ASSIGNED";
-        public const string RoleNotFound                 = "USER_ROLE_NOT_FOUND";
         public const string LastAdminCannotBeRemoved     = "USER_LAST_ADMIN_CANNOT_BE_REMOVED";
         public const string LastAdminCannotBeDeactivated = "USER_LAST_ADMIN_CANNOT_BE_DEACTIVATED";
         public const string CannotDeactivateSelf         = "USER_CANNOT_DEACTIVATE_SELF";

@@ -117,18 +117,14 @@ public class UserController : ControllerBase
     }
 
     [Authorize(Roles = "admin")]
-    [HttpPost("roles")]
-    public async Task<IActionResult> AssignRole([FromBody] AssignRoleCommand command, CancellationToken cancellationToken)
+    [HttpPut("{id:guid}/role")]
+    public async Task<IActionResult> UpdateRole(
+        Guid id,
+        [FromBody] UpdateUserRoleCommand command,
+        CancellationToken cancellationToken)
     {
+        command.UserId = id;
         await _mediator.Send(command, cancellationToken);
-        return NoContent();
-    }
-
-    [Authorize(Roles = "admin")]
-    [HttpDelete("{userId:guid}/roles/{roleName}")]
-    public async Task<IActionResult> RemoveRole(Guid userId, string roleName, CancellationToken cancellationToken)
-    {
-        await _mediator.Send(new RemoveRoleCommand { UserId = userId, RoleName = roleName }, cancellationToken);
         return NoContent();
     }
 

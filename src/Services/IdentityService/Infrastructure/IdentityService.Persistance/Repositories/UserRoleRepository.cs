@@ -33,7 +33,4 @@ public class UserRoleRepository : IUserRoleRepository
     public async Task<int> CountActiveAdminsAsync(CancellationToken cancellationToken = default)
         => await _context.UserRoles.CountAsync(
             ur => ur.RoleId == RoleConstants.AdminId && ur.User.IsActive && !ur.User.IsDeleted, cancellationToken);
-
-    public IQueryable<UserRole> GetQueryable()
-        => _context.UserRoles.AsQueryable();
 }
