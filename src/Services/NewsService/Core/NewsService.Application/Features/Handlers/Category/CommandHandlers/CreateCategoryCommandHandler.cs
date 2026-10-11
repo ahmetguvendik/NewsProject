@@ -6,6 +6,7 @@ using NewsService.Application.Exceptions;
 using NewsService.Application.Features.Commands.Category.Request;
 using NewsService.Application.Features.Commands.Category.Response;
 using NewsService.Application.Interfaces;
+using NewsService.Application.Text;
 using NewsService.Application.UnitOfWorks;
 
 namespace NewsService.Application.Features.Handlers.Category.CommandHandlers;
@@ -25,15 +26,18 @@ public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryComman
 
     public async Task<CreateCategoryResponse> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
     {
+        var name = request.Name.Trim();
+        var key = TextKey.Lower(name);
+
         var exists = await _categoryRepository.GetQueryable()
-            .AnyAsync(c => c.Name == request.Name, cancellationToken);
+            .AnyAsync(c => !c.IsDeleted && c.Name.ToLower() == key, cancellationToken);
 
         if (exists)
-            throw ConflictException.CategoryAlreadyExists(request.Name);
+            throw ConflictException.CategoryAlreadyExists(name);
 
         var category = new Domain.Entities.Category
         {
-            Name = request.Name,
+            Name = name,
             Description = request.Description
         };
 

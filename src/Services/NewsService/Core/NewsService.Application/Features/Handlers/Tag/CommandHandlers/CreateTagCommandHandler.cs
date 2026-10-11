@@ -6,6 +6,7 @@ using NewsService.Application.Exceptions;
 using NewsService.Application.Features.Commands.Tag.Request;
 using NewsService.Application.Features.Commands.Tag.Response;
 using NewsService.Application.Interfaces;
+using NewsService.Application.Text;
 using NewsService.Application.UnitOfWorks;
 
 namespace NewsService.Application.Features.Handlers.Tag.CommandHandlers;
@@ -25,13 +26,16 @@ public class CreateTagCommandHandler : IRequestHandler<CreateTagCommand, CreateT
 
     public async Task<CreateTagResponse> Handle(CreateTagCommand request, CancellationToken cancellationToken)
     {
+        var name = request.Name.Trim();
+        var key = TextKey.Lower(name);
+
         var exists = await _tagRepository.GetQueryable()
-            .AnyAsync(t => t.Name == request.Name, cancellationToken);
+            .AnyAsync(t => !t.IsDeleted && t.Name.ToLower() == key, cancellationToken);
 
         if (exists)
-            throw ConflictException.TagAlreadyExists(request.Name);
+            throw ConflictException.TagAlreadyExists(name);
 
-        var tag = new Domain.Entities.Tag { Name = request.Name };
+        var tag = new Domain.Entities.Tag { Name = name };
         await _tagRepository.CreateAsync(tag, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

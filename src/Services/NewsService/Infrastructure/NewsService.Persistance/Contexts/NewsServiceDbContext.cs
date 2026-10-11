@@ -26,11 +26,8 @@ public class NewsServiceDbContext : DbContext
         modelBuilder.Entity<Article>()
             .HasOne(a => a.Category).WithMany(c => c.Articles).HasForeignKey(a => a.CategoryId);
 
-        modelBuilder.Entity<Category>()
-            .HasIndex(c => c.Name).IsUnique();
-
-        modelBuilder.Entity<Tag>()
-            .HasIndex(t => t.Name).IsUnique();
+        // Kategori ve etiket adı benzersizliği lower("Name") üzerinde, silinmişler hariç:
+        // ifade indeksi EF modeliyle tanımlanamadığı için migration'da SQL ile kuruluyor.
 
         modelBuilder.Entity<OutboxMessage>()
             .HasIndex(m => m.CreatedAt)

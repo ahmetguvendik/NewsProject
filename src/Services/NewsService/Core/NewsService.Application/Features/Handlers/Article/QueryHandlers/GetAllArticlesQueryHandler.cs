@@ -5,6 +5,7 @@ using NewsService.Application.Features.Queries.Article;
 using NewsService.Application.Features.Queries.Article.Request;
 using NewsService.Application.Features.Queries.Article.Response;
 using NewsService.Application.Interfaces;
+using NewsService.Application.Text;
 using Shared.Models;
 
 namespace NewsService.Application.Features.Handlers.Article.QueryHandlers;
@@ -42,9 +43,8 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, P
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            // i'nin dört biçimi (İ, I, ı, i) iki tarafta da "i"ye indirilir: .NET 'İ'yi küçültmüyor,
-            // Postgres ise 'I'yı 'i' yapıyor; aksi halde "İklim" araması "İklim" başlığını bulmuyordu.
-            var needle = request.Search.Trim().Replace('İ', 'i').ToLowerInvariant().Replace('ı', 'i');
+            // Aramada ı da i sayılır: "kuraklik" ve "KURAKLIK" da "Kuraklık"ı bulsun.
+            var needle = TextKey.Lower(request.Search).Replace('ı', 'i');
             query = query.Where(a =>
                 a.Title.ToLower().Replace("ı", "i").Contains(needle) ||
                 (a.Summary != null && a.Summary.ToLower().Replace("ı", "i").Contains(needle)));

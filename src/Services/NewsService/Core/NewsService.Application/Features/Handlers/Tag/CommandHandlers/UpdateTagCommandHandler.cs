@@ -5,6 +5,7 @@ using NewsService.Application.Exceptions;
 using NewsService.Application.Features.Commands.Tag.Request;
 using NewsService.Application.Features.Commands.Tag.Response;
 using NewsService.Application.Interfaces;
+using NewsService.Application.Text;
 using NewsService.Application.UnitOfWorks;
 using Shared.Exceptions;
 
@@ -28,13 +29,16 @@ public class UpdateTagCommandHandler : IRequestHandler<UpdateTagCommand, UpdateT
         var tag = await _tagRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw NotFoundException.Tag(request.Id);
 
+        var name = request.Name.Trim();
+        var key = TextKey.Lower(name);
+
         var nameTaken = await _tagRepository.GetQueryable()
-            .AnyAsync(t => t.Id != request.Id && t.Name == request.Name, cancellationToken);
+            .AnyAsync(t => t.Id != request.Id && !t.IsDeleted && t.Name.ToLower() == key, cancellationToken);
 
         if (nameTaken)
-            throw ConflictException.TagAlreadyExists(request.Name);
+            throw ConflictException.TagAlreadyExists(name);
 
-        tag.Name = request.Name;
+        tag.Name = name;
         tag.UpdatedAt = DateTime.UtcNow;
 
         await _tagRepository.UpdateAsync(tag, cancellationToken);

@@ -5,6 +5,7 @@ using NewsService.Application.Exceptions;
 using NewsService.Application.Features.Commands.Category.Request;
 using NewsService.Application.Features.Commands.Category.Response;
 using NewsService.Application.Interfaces;
+using NewsService.Application.Text;
 using NewsService.Application.UnitOfWorks;
 using Shared.Exceptions;
 
@@ -29,13 +30,16 @@ public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryComman
             ?? throw NotFoundException.Category(request.Id);
 
         // Başka bir kategori bu adı kullanıyorsa çakışma; kendi adını korumak serbest.
+        var name = request.Name.Trim();
+        var key = TextKey.Lower(name);
+
         var nameTaken = await _categoryRepository.GetQueryable()
-            .AnyAsync(c => c.Id != request.Id && c.Name == request.Name, cancellationToken);
+            .AnyAsync(c => c.Id != request.Id && !c.IsDeleted && c.Name.ToLower() == key, cancellationToken);
 
         if (nameTaken)
-            throw ConflictException.CategoryAlreadyExists(request.Name);
+            throw ConflictException.CategoryAlreadyExists(name);
 
-        category.Name = request.Name;
+        category.Name = name;
         category.Description = request.Description;
         category.UpdatedAt = DateTime.UtcNow;
 

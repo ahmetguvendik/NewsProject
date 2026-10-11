@@ -113,9 +113,6 @@ namespace NewsService.Persistance.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
                     b.ToTable("Categories");
                 });
 
@@ -182,9 +179,6 @@ namespace NewsService.Persistance.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Tags");
                 });
