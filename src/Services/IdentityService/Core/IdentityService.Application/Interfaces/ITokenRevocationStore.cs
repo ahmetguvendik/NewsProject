@@ -1,6 +1,6 @@
 namespace IdentityService.Application.Interfaces;
 
-// Önbellek değil güvenlik kaydı: RevokeAsync yazamazsa hata fırlatır.
+// Yazamazsa hata fırlatmaz, loglar: Redis kesintisi yönetim işlemlerini durdurmasın.
 public interface ITokenRevocationStore
 {
     Task RevokeAsync(string keycloakId, string reason, CancellationToken cancellationToken = default);

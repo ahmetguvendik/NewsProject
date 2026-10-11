@@ -46,7 +46,6 @@ public class DeactivateUserCommandHandler : IRequestHandler<DeactivateUserComman
             user.IsActive = false;
             await _userRepository.UpdateAsync(user, cancellationToken);
 
-            // Kayıttan önce: iptal kaydı yazılamazsa hesap da pasife alınmasın.
             await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonAccountDisabled, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

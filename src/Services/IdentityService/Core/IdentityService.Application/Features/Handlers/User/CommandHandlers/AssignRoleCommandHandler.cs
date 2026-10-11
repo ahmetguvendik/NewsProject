@@ -64,13 +64,6 @@ public class AssignRoleCommandHandler : IRequestHandler<AssignRoleCommand>
             throw;
         }
 
-        // Rol vermek kritik değil: kayıt yazılamazsa kullanıcı yeni rolü bir sonraki girişte görür.
-        try
-        {
-            await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
-        }
-        catch (ExternalServiceException)
-        {
-        }
+        await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
     }
 }

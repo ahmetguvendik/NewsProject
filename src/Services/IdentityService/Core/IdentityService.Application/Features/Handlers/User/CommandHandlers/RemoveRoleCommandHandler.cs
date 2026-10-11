@@ -71,7 +71,6 @@ public class RemoveRoleCommandHandler : IRequestHandler<RemoveRoleCommand>
             await _userRoleRepository.DeleteAsync(existing, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Commit'ten önce: iptal kaydı yazılamazsa rol de kalkmasın.
             await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
 
             await _unitOfWork.CommitTransactionAsync(cancellationToken);

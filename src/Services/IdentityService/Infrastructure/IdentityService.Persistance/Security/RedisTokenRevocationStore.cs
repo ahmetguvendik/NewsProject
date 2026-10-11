@@ -1,8 +1,6 @@
 using System.Text.Json;
-using IdentityService.Application.Exceptions;
 using IdentityService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
-using Shared.Exceptions;
 using Shared.Security;
 using StackExchange.Redis;
 
@@ -29,8 +27,7 @@ public sealed class RedisTokenRevocationStore : ITokenRevocationStore
         }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
-            _logger.LogError(ex, "Token iptal kaydı yazılamadı. KullanıcıId={KeycloakId}", keycloakId);
-            throw ExternalServiceException.TokenRevocationStore();
+            _logger.LogError(ex, "Token iptal kaydı yazılamadı; eski token süresi dolana kadar geçerli kalacak. KullanıcıId={KeycloakId}", keycloakId);
         }
     }
 }

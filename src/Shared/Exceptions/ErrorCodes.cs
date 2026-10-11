@@ -47,7 +47,6 @@ public static class ErrorCodes
         public const string TokenExpired          = "AUTH_TOKEN_EXPIRED";
         public const string TokenInvalid          = "AUTH_TOKEN_INVALID";
         public const string TokenStale            = "AUTH_TOKEN_STALE";
-        public const string RevocationUnavailable = "AUTH_REVOCATION_UNAVAILABLE";
     }
 
     public static class Keycloak

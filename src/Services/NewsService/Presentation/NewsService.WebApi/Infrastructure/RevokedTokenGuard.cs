@@ -18,13 +18,6 @@ public sealed class RevokedTokenGuard
         {"status":401,"errorCode":"{{ErrorCodes.Auth.TokenStale}}","message":"Yetkileriniz değişti.","description":"Oturumunuz güncel değil. Lütfen tekrar giriş yapın.","errors":null}
         """;
 
-    private static readonly string UnverifiableBody =
-        $$"""
-        {"status":503,"errorCode":"{{ErrorCodes.Auth.RevocationUnavailable}}","message":"Oturumunuz şu an doğrulanamıyor.","description":"Yetkileriniz kontrol edilemedi. Biraz sonra tekrar deneyin.","errors":null}
-        """;
-
-    private const string Unverifiable = "unverifiable";
-
     private readonly RequestDelegate _next;
     private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<RevokedTokenGuard> _logger;
@@ -51,7 +44,6 @@ public sealed class RevokedTokenGuard
         var (status, body) = reason switch
         {
             TokenRevocation.ReasonAccountDisabled => (StatusCodes.Status403Forbidden, DisabledBody),
-            Unverifiable => (StatusCodes.Status503ServiceUnavailable, UnverifiableBody),
             _ => (StatusCodes.Status401Unauthorized, RolesBody)
         };
 
@@ -68,7 +60,7 @@ public sealed class RevokedTokenGuard
         var keycloakId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(keycloakId)) return null;
 
-        if (!_redis.IsConnected) return Unreadable(context, null);
+        if (!_redis.IsConnected) return Unreadable(null);
 
         string? raw;
         try
@@ -77,7 +69,7 @@ public sealed class RevokedTokenGuard
         }
         catch (Exception ex)
         {
-            return Unreadable(context, ex);
+            return Unreadable(ex);
         }
 
         var revocation = TokenRevocation.Parse(raw);
@@ -94,11 +86,10 @@ public sealed class RevokedTokenGuard
         return revocation.Covers(issuedAt.Value) ? revocation.Reason : null;
     }
 
-    // Kayıt okunamazsa yetkili token geçirilmez; okur geçer ki Redis kesintisi siteyi düşürmesin.
-    private string? Unreadable(HttpContext context, Exception? ex)
+    // Kayıt okunamazsa istek geçer: Redis kesintisi sistemi durdurmasın. İptal edilmiş token
+    // bu sürede, kendi süresi (en fazla 1 saat) dolana kadar geçerli kalır.
+    private string? Unreadable(Exception? ex)
     {
-        if (context.User.IsInRole("admin") || context.User.IsInRole("editor")) return Unverifiable;
-
         _logger.LogWarning(ex, "İptal kaydı okunamadı; istek geçirildi.");
         return null;
     }

@@ -59,13 +59,7 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
         }
 
         // Kayıt silinmez, yenilenir: silinseydi pasife almadan önceki token'lar (eski rolleriyle)
-        // yeniden geçerli olurdu. Yazılamazsa sorun değil, pasife almadan kalan kayıt zaten duruyor.
-        try
-        {
-            await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
-        }
-        catch (ExternalServiceException)
-        {
-        }
+        // yeniden geçerli olurdu.
+        await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
     }
 }
