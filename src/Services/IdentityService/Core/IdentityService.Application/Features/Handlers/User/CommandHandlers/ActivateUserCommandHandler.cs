@@ -50,14 +50,22 @@ public class ActivateUserCommandHandler : IRequestHandler<ActivateUserCommand>
             // IsActive profilde dönüyor. Telafi bloğunun içinde: DB yazması
             // başarısız olursa zaten geri alınıyor ve düşürülecek bir şey yok.
             await _cache.RemoveAsync(CacheKeys.Profile(user.KeycloakId), cancellationToken);
-
-            await _revocations.ClearAsync(user.KeycloakId, cancellationToken);
         }
         catch
         {
             // DB başarısız olursa Keycloak'taki değişikliği geri al (compensating transaction)
             await _keycloakAdminClient.DisableUserAsync(user.KeycloakId, cancellationToken);
             throw;
+        }
+
+        // Kayıt silinmez, yenilenir: silinseydi pasife almadan önceki token'lar (eski rolleriyle)
+        // yeniden geçerli olurdu. Yazılamazsa sorun değil, pasife almadan kalan kayıt zaten duruyor.
+        try
+        {
+            await _revocations.RevokeAsync(user.KeycloakId, TokenRevocation.ReasonRoleChange, cancellationToken);
+        }
+        catch (ExternalServiceException)
+        {
         }
     }
 }

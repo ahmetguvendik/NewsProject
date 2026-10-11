@@ -4,5 +4,4 @@ namespace IdentityService.Application.Interfaces;
 public interface ITokenRevocationStore
 {
     Task RevokeAsync(string keycloakId, string reason, CancellationToken cancellationToken = default);
-    Task ClearAsync(string keycloakId, CancellationToken cancellationToken = default);
 }

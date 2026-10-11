@@ -33,17 +33,4 @@ public sealed class RedisTokenRevocationStore : ITokenRevocationStore
             throw ExternalServiceException.TokenRevocationStore();
         }
     }
-
-    // Silinemezse sorun değil: yeni girişte alınan token kayıttan sonra doğduğu için zaten geçerli.
-    public async Task ClearAsync(string keycloakId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await _redis.GetDatabase().KeyDeleteAsync(TokenRevocation.Key(keycloakId));
-        }
-        catch (Exception ex) when (ex is RedisException or TimeoutException)
-        {
-            _logger.LogWarning(ex, "Token iptal kaydı silinemedi. KullanıcıId={KeycloakId}", keycloakId);
-        }
-    }
 }
