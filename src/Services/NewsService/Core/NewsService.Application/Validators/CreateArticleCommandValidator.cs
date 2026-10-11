@@ -9,13 +9,13 @@ public class CreateArticleCommandValidator : AbstractValidator<CreateArticleComm
     {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Başlık gereklidir.")
-            .MaximumLength(300);
+            .MaximumLength(300).WithMessage("Başlık en fazla 300 karakter olabilir.");
 
         RuleFor(x => x.Content)
             .NotEmpty().WithMessage("İçerik gereklidir.");
 
         RuleFor(x => x.Summary)
-            .MaximumLength(500);
+            .MaximumLength(500).WithMessage("Özet en fazla 500 karakter olabilir.");
 
         RuleFor(x => x.ImageUrl)
             .ValidImageReference();

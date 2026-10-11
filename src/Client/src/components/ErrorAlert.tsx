@@ -25,10 +25,9 @@ export function ErrorAlert({ error }: { error: unknown }) {
         {error.description && !isStackTrace && <p className="alert__hint">{error.description}</p>}
         {error.fieldErrors && (
           <ul>
+            {/* Alan anahtarı (Password, Title...) gösterilmez; mesajlar alanı zaten Türkçe adıyla anıyor. */}
             {Object.entries(error.fieldErrors).map(([field, messages]) => (
-              <li key={field}>
-                <strong>{field}:</strong> {messages.join(' ')}
-              </li>
+              <li key={field}>{messages.join(' ')}</li>
             ))}
           </ul>
         )}

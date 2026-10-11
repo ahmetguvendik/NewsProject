@@ -8,8 +8,8 @@ public class ValidationException : AppException
         : base(
             400,
             ErrorCodes.General.ValidationFailed,
-            "Doğrulama hatası oluştu.",
-            "Gönderilen veriler doğrulama kurallarını karşılamıyor. Ayrıntılar için 'errors' alanını inceleyin.")
+            "Bazı bilgiler hatalı.",
+            "Aşağıdaki alanları düzeltip tekrar deneyin.")
     {
         Errors = new Dictionary<string, string[]>(errors);
     }

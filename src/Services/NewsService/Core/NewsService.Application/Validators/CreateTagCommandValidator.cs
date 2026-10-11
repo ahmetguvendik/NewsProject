@@ -9,6 +9,6 @@ public class CreateTagCommandValidator : AbstractValidator<CreateTagCommand>
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Etiket adı gereklidir.")
-            .MaximumLength(50);
+            .MaximumLength(50).WithMessage("Ad en fazla 50 karakter olabilir.");
     }
 }

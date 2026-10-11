@@ -7,7 +7,7 @@ public static class ArticleImageRules
     public static IRuleBuilderOptions<T, string?> ValidImageReference<T>(this IRuleBuilder<T, string?> rule) =>
         rule.Must(BeKeyOrHttpUrl)
             .WithMessage("Görsel adresi yalnızca http(s) ile başlayabilir veya yüklenen bir dosyanın anahtarı olmalıdır.")
-            .MaximumLength(1000);
+            .MaximumLength(1000).WithMessage("Görsel adresi en fazla 1000 karakter olabilir.");
 
     private static bool BeKeyOrHttpUrl(string? value)
     {

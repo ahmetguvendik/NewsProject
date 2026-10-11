@@ -109,8 +109,10 @@ export function RegisterPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="new-password"
+              minLength={8}
               required
             />
+            <span className="field__hint">En az 8 karakter.</span>
           </label>
 
           <button className="btn btn--primary btn--block" disabled={busy}>
