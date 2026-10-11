@@ -29,9 +29,20 @@ export function writeToken(token: string) {
   window.dispatchEvent(new Event(CHANGE_EVENT))
 }
 
-export function clearToken() {
+const LOGOUT_REASON_KEY = 'telgraf.logout-reason'
+
+/** reason: oturum kullanıcı istemeden düştüyse giriş sayfasında gösterilecek açıklama. */
+export function clearToken(reason?: string) {
   localStorage.removeItem(STORAGE_KEY)
+  if (reason) sessionStorage.setItem(LOGOUT_REASON_KEY, reason)
   window.dispatchEvent(new Event(CHANGE_EVENT))
+}
+
+/** Bir kez okunur: sayfa yenilenince aynı açıklama tekrar çıkmaz. */
+export function takeLogoutReason(): string | null {
+  const reason = sessionStorage.getItem(LOGOUT_REASON_KEY)
+  sessionStorage.removeItem(LOGOUT_REASON_KEY)
+  return reason
 }
 
 /** Token dışarıdan (ör. 401 sonrası http katmanından) değiştiğinde haber verir. */

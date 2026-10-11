@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { forgotPasswordUrl } from '../api/auth'
 import { useAuth } from '../auth/AuthContext'
+import { takeLogoutReason } from '../auth/tokenStore'
 import { ErrorAlert } from '../components/ErrorAlert'
 
 export function LoginPage() {
@@ -13,6 +14,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  // Oturum kullanıcı istemeden düştüyse (rol değişti, süre doldu...) nedeni.
+  const [notice] = useState(takeLogoutReason)
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -36,6 +39,7 @@ export function LoginPage() {
         <h1 className="card__title">Giriş yap</h1>
         <p className="card__sub">Telgraf hesabınızla giriş yapın.</p>
 
+        {notice && !error && <div className="alert alert--info">{notice}</div>}
         <ErrorAlert error={error} />
 
         <form onSubmit={submit}>

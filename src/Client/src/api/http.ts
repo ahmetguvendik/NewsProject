@@ -70,7 +70,10 @@ async function request<T>(
   // AuthContext bu değişikliği tokenStore olayı üzerinden dinliyor.
   if (!response.ok) {
     const error = await ApiError.fromResponse(response)
-    if (response.status === 401 || error.errorCode === 'AUTH_ACCOUNT_DISABLED') clearToken()
+    // Yalnızca isteği atan token hâlâ geçerliyse: aynı anda dönen ikinci 401 ya da
+    // yeni girişten önceki eski bir istek oturumu (ve açıklamayı) tekrar düşürmesin.
+    const sessionEnded = response.status === 401 || error.errorCode === 'AUTH_ACCOUNT_DISABLED'
+    if (sessionEnded && token && readToken() === token) clearToken(`${error.message} ${error.description}`)
     throw error
   }
 

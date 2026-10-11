@@ -14,6 +14,8 @@ interface AuthValue {
 
 const AuthContext = createContext<AuthValue | null>(null)
 
+const SESSION_EXPIRED = 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.'
+
 function readStoredSession(): Session | null {
   const token = readToken()
   if (!token) return null
@@ -22,7 +24,7 @@ function readStoredSession(): Session | null {
     const session = toSession(token)
     // Süresi dolmuş token'ı hiç yükleme
     if (session.expiresAt <= Date.now()) {
-      clearToken()
+      clearToken(SESSION_EXPIRED)
       return null
     }
     return session
@@ -53,9 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Token süresi dolduğunda oturumu kendiliğinden düşür
   useEffect(() => {
     if (!session) return
-    const timeout = setTimeout(signOut, Math.max(0, session.expiresAt - Date.now()))
+    const expire = () => clearToken(SESSION_EXPIRED)
+    const timeout = setTimeout(expire, Math.max(0, session.expiresAt - Date.now()))
     return () => clearTimeout(timeout)
-  }, [session, signOut])
+  }, [session])
 
   const value = useMemo<AuthValue>(
     () => ({
