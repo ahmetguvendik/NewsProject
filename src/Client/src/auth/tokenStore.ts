@@ -45,8 +45,16 @@ export function takeLogoutReason(): string | null {
   return reason
 }
 
-/** Token dışarıdan (ör. 401 sonrası http katmanından) değiştiğinde haber verir. */
+/** Token dışarıdan (401 sonrası http katmanı ya da başka sekmede giriş/çıkış) değiştiğinde haber verir. */
 export function onTokenChange(listener: () => void) {
+  // storage olayı yalnızca diğer sekmelerde tetiklenir; key null ise localStorage.clear() çağrılmıştır.
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) listener()
+  }
   window.addEventListener(CHANGE_EVENT, listener)
-  return () => window.removeEventListener(CHANGE_EVENT, listener)
+  window.addEventListener('storage', onStorage)
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, listener)
+    window.removeEventListener('storage', onStorage)
+  }
 }
