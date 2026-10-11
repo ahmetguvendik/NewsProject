@@ -4,6 +4,7 @@ using IdentityService.Persistance;
 using IdentityService.Persistance.Contexts;
 using IdentityService.WebApi.BackgroundServices;
 using IdentityService.WebApi.Infrastructure;
+using IdentityService.WebApi.Middlewares;
 using Shared.Extensions;
 using HealthCheck.Registration;
 using Microsoft.AspNetCore.Authentication;
@@ -105,7 +106,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // UseAuthorization'dan sonra: context.User dolu olmalı.
-app.UseMiddleware<RevokedTokenGuard>();
+app.UseMiddleware<TokenRevocationMiddleware>();
 app.MapControllers();
 app.MapAppHealthChecks();
 

@@ -6,9 +6,9 @@ using NewsService.Application;
 using NewsService.Persistance;
 using NewsService.Persistance.Contexts;
 using NewsService.WebApi.Infrastructure;
+using NewsService.WebApi.Middlewares;
 using Shared.Extensions;
 using HealthCheck.Registration;
-using NewsService.WebApi.Infrastructure;
 using Shared.Exceptions;
 using Shared.Models;
 using System.Text.Json;
@@ -100,7 +100,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // UseAuthorization'dan sonra: context.User dolu olmalı.
-app.UseMiddleware<RevokedTokenGuard>();
+app.UseMiddleware<TokenRevocationMiddleware>();
 app.MapControllers();
 app.MapAppHealthChecks();
 

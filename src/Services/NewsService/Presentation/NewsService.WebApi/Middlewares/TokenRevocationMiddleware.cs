@@ -4,9 +4,9 @@ using Shared.Exceptions;
 using Shared.Security;
 using StackExchange.Redis;
 
-namespace NewsService.WebApi.Infrastructure;
+namespace NewsService.WebApi.Middlewares;
 
-public sealed class RevokedTokenGuard
+public sealed class TokenRevocationMiddleware
 {
     private static readonly string DisabledBody =
         $$"""
@@ -20,12 +20,12 @@ public sealed class RevokedTokenGuard
 
     private readonly RequestDelegate _next;
     private readonly IConnectionMultiplexer _redis;
-    private readonly ILogger<RevokedTokenGuard> _logger;
+    private readonly ILogger<TokenRevocationMiddleware> _logger;
 
-    public RevokedTokenGuard(
+    public TokenRevocationMiddleware(
         RequestDelegate next,
         IConnectionMultiplexer redis,
-        ILogger<RevokedTokenGuard> logger)
+        ILogger<TokenRevocationMiddleware> logger)
     {
         _next = next;
         _redis = redis;
