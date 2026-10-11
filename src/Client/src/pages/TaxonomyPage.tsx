@@ -129,7 +129,11 @@ export function TaxonomyPage() {
                       <button
                         className="btn btn--sm btn--danger"
                         disabled={busy}
-                        onClick={() => void run(() => newsApi.deleteCategory(category.id))}
+                        onClick={() => {
+                          if (confirm(`"${category.name}" kategorisi silinsin mi?`)) {
+                            void run(() => newsApi.deleteCategory(category.id))
+                          }
+                        }}
                       >
                         Sil
                       </button>
@@ -181,7 +185,12 @@ export function TaxonomyPage() {
                       <button
                         className="btn btn--sm btn--danger"
                         disabled={busy}
-                        onClick={() => void run(() => newsApi.deleteTag(tag.id))}
+                        onClick={() => {
+                          const used = tag.articleCount > 0 ? ` ${tag.articleCount} haberden kaldırılacak.` : ''
+                          if (confirm(`"#${tag.name}" etiketi silinsin mi?${used}`)) {
+                            void run(() => newsApi.deleteTag(tag.id))
+                          }
+                        }}
                       >
                         Sil
                       </button>

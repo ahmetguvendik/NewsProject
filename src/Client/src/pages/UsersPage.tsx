@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { identityApi } from '../api/identity'
+import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { Pagination } from '../components/Pagination'
 import { RoleBadges } from '../components/RoleBadges'
@@ -8,7 +9,10 @@ import type { AppUser, Role } from '../types'
 const ASSIGNABLE: Role[] = ['editor', 'admin']
 const PAGE_SIZE = 20
 
+const fullName = (user: AppUser) => `${user.firstName} ${user.lastName}`
+
 export function UsersPage() {
+  const { session } = useAuth()
   const [users, setUsers] = useState<AppUser[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(1)
@@ -34,6 +38,7 @@ export function UsersPage() {
   }, [load])
 
   const assign = async (user: AppUser, role: Role) => {
+    if (role === 'admin' && !confirm(`${fullName(user)} kullanıcısına admin yetkisi verilsin mi? Kullanıcıları ve tüm içeriği yönetebilir.`)) return
     setBusyId(user.id)
     setError(null)
     try {
@@ -47,6 +52,10 @@ export function UsersPage() {
   }
 
   const unassign = async (user: AppUser, role: Role) => {
+    const selfAdmin = role === 'admin' && user.email === session?.email
+      ? '\n\nKendi admin yetkinizi kaldırıyorsunuz; bu sayfaya bir daha erişemezsiniz.'
+      : ''
+    if (!confirm(`${fullName(user)} kullanıcısından "${role}" rolü kaldırılsın mı?${selfAdmin}`)) return
     setBusyId(user.id)
     setError(null)
     try {
@@ -62,6 +71,7 @@ export function UsersPage() {
 
   const toggleActive = async (user: AppUser) => {
     // Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir
+    if (user.isActive && !confirm(`${fullName(user)} pasife alınsın mı? Oturumu hemen kapanır ve giriş yapamaz.`)) return
     setBusyId(user.id)
     setError(null)
     try {
