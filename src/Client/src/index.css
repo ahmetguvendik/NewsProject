@@ -599,6 +599,46 @@ button, input, textarea, select { font: inherit; }
 .table td.right, .table th.right { text-align: right; }
 .table tbody tr:hover td { background: rgba(255, 255, 255, .015); }
 
+/* ── Kullanıcılar ─────────────────────────────────────────────── */
+
+.users-table td { vertical-align: middle; }
+
+.user-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.user-cell__text { min-width: 0; }
+.user-cell__name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.user-cell__mail { color: var(--text-dim); font-size: 13px; overflow-wrap: anywhere; }
+.users-table tr.is-inactive .user-cell { opacity: .5; }
+
+.avatar.avatar--sm { width: 36px; height: 36px; font-size: 13px; }
+
+.badge--self { background: var(--accent-wash); color: var(--accent); }
+
+.role-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.role-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--text-faint);
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .14s, border-color .14s, color .14s;
+}
+
+.role-toggle:hover:not(:disabled) { color: var(--text); border-color: var(--text-faint); }
+.role-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.role-toggle:disabled { opacity: .45; cursor: not-allowed; }
+.role-toggle[aria-pressed='true'] { border-style: solid; }
+
+.role-toggle--editor[aria-pressed='true'] { background: var(--violet-wash); border-color: rgba(167, 139, 250, .35); color: var(--violet); }
+.role-toggle--admin[aria-pressed='true'] { background: var(--danger-wash); border-color: rgba(248, 113, 113, .35); color: var(--danger); }
+
 /* ── Hesap sayfası ────────────────────────────────────────────── */
 
 .account-hero {
@@ -682,6 +722,9 @@ button, input, textarea, select { font: inherit; }
 .switch input:checked + .switch__track { background: var(--accent); border-color: var(--accent); }
 .switch input:checked + .switch__track::after { transform: translateX(20px); background: #fff; }
 .switch input:disabled + .switch__track { opacity: .5; }
+.switch input:focus-visible + .switch__track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch:has(input:disabled) { cursor: not-allowed; }
+.switch--live input:checked + .switch__track { background: var(--live); border-color: var(--live); }
 .switch__label { font-size: 14px; font-weight: 550; }
 
 .pagination {
@@ -805,6 +848,14 @@ button, input, textarea, select { font: inherit; }
   .topbar__row2 { height: auto; flex-wrap: wrap; padding: 8px 0; }
   .page__head { flex-direction: column; align-items: flex-start; }
   .reader__title { font-size: 30px; }
+
+  /* Tablo yana kaymasın: her kullanıcı bir kart olur. */
+  .users-table thead { display: none; }
+  .users-table, .users-table tbody, .users-table tr, .users-table td { display: block; }
+  .users-table tr { padding: 14px 16px; border-bottom: 1px solid var(--border-soft); }
+  .users-table tr:last-child { border-bottom: none; }
+  .users-table td { padding: 0; border-bottom: none; }
+  .users-table td + td { margin-top: 12px; }
 }
 
 /* Editördeki kapak görseli önizlemesi */

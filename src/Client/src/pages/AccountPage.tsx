@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { RoleBadges } from '../components/RoleBadges'
 import { coverStyle } from '../lib/cover'
-import { formatDate } from '../lib/format'
+import { formatDate, initials } from '../lib/format'
 import type { MyProfile } from '../types'
 
 export function AccountPage() {
@@ -120,14 +120,4 @@ export function AccountPage() {
       )}
     </>
   )
-}
-
-/** Görsel olmadığı için avatar baş harflerden oluşuyor. */
-function initials(profile: MyProfile) {
-  const letters = [profile.firstName, profile.lastName]
-    .map((part) => part.trim()[0])
-    .filter(Boolean)
-    .join('')
-
-  return letters || profile.email[0]
 }

@@ -3,7 +3,9 @@ import { identityApi } from '../api/identity'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorAlert } from '../components/ErrorAlert'
 import { Pagination } from '../components/Pagination'
-import { RoleBadges } from '../components/RoleBadges'
+import { coverStyle } from '../lib/cover'
+import { initials } from '../lib/format'
+import { ROLE_LABELS } from '../lib/roles'
 import type { AppUser, Role } from '../types'
 
 const ASSIGNABLE: Role[] = ['editor', 'admin']
@@ -37,12 +39,11 @@ export function UsersPage() {
     void load()
   }, [load])
 
-  const assign = async (user: AppUser, role: Role) => {
-    if (role === 'admin' && !confirm(`${fullName(user)} kullanıcısına admin yetkisi verilsin mi? Kullanıcıları ve tüm içeriği yönetebilir.`)) return
+  const run = async (user: AppUser, action: () => Promise<unknown>) => {
     setBusyId(user.id)
     setError(null)
     try {
-      await identityApi.assignRole(user.id, role)
+      await action()
       await load()
     } catch (err) {
       setError(err)
@@ -51,40 +52,28 @@ export function UsersPage() {
     }
   }
 
-  const unassign = async (user: AppUser, role: Role) => {
-    const selfAdmin = role === 'admin' && user.email === session?.email
+  const toggleRole = (user: AppUser, role: Role, isSelf: boolean) => {
+    const label = ROLE_LABELS[role]
+
+    if (!user.roles.includes(role)) {
+      if (role === 'admin' && !confirm(`${fullName(user)} kullanıcısına admin yetkisi verilsin mi? Kullanıcıları ve tüm içeriği yönetebilir.`)) return
+      void run(user, () => identityApi.assignRole(user.id, role))
+      return
+    }
+
+    const selfAdmin = role === 'admin' && isSelf
       ? '\n\nKendi admin yetkinizi kaldırıyorsunuz; bu sayfaya bir daha erişemezsiniz.'
       : ''
-    if (!confirm(`${fullName(user)} kullanıcısından "${role}" rolü kaldırılsın mı?${selfAdmin}`)) return
-    setBusyId(user.id)
-    setError(null)
-    try {
-      await identityApi.removeRole(user.id, role)
-      await load()
-    } catch (err) {
-      setError(err)
-    } finally {
-      setBusyId(null)
-    }
+    if (!confirm(`${fullName(user)} kullanıcısından ${label} rolü kaldırılsın mı?${selfAdmin}`)) return
+    void run(user, () => identityApi.removeRole(user.id, role))
   }
 
-
-  const toggleActive = async (user: AppUser) => {
-    // Delete'ten farklı: kullanıcı listede kalır, yalnızca login edemez hale gelir
-    if (user.isActive && !confirm(`${fullName(user)} pasife alınsın mı? Oturumu hemen kapanır ve giriş yapamaz.`)) return
-    setBusyId(user.id)
-    setError(null)
-    try {
-      if (user.isActive) {
-        await identityApi.deactivateUser(user.id)
-      } else {
-        await identityApi.activateUser(user.id)
-      }
-      await load()
-    } catch (err) {
-      setError(err)
-    } finally {
-      setBusyId(null)
+  const toggleActive = (user: AppUser) => {
+    if (user.isActive) {
+      if (!confirm(`${fullName(user)} pasife alınsın mı? Oturumu hemen kapanır ve giriş yapamaz.`)) return
+      void run(user, () => identityApi.deactivateUser(user.id))
+    } else {
+      void run(user, () => identityApi.activateUser(user.id))
     }
   }
 
@@ -93,14 +82,14 @@ export function UsersPage() {
       <div className="page__head">
         <div>
           <h1 className="page__title">Kullanıcılar</h1>
-          <p className="page__sub">{totalCount} kullanıcı</p>
+          <p className="page__sub">{loading ? 'Yükleniyor…' : `${totalCount} kullanıcı`}</p>
         </div>
       </div>
 
       <ErrorAlert error={error} />
 
       <div className="alert alert--info">
-        Rol değişikliği hemen geçerli olur; kullanıcının yeniden giriş yapması gerekir.
+        Yetki değişikliği hemen geçerli olur; kullanıcının yeniden giriş yapması gerekir.
       </div>
 
       {loading ? (
@@ -108,63 +97,79 @@ export function UsersPage() {
       ) : (
         <>
           <div className="table-wrap">
-            <table className="table">
+            <table className="table users-table">
               <thead>
                 <tr>
                   <th>Kullanıcı</th>
-                  <th>Roller</th>
+                  <th>Yetkiler</th>
                   <th>Durum</th>
-                  <th className="right">İşlemler</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <strong>{user.firstName} {user.lastName}</strong>
-                      <div style={{ color: 'var(--muted)', fontSize: 13 }}>{user.email}</div>
-                    </td>
-                    <td><RoleBadges roles={user.roles} /></td>
-                    <td>
-                      <span className={`badge badge--${user.isActive ? 'published' : 'draft'}`}>
-                        {user.isActive ? 'aktif' : 'pasif'}
-                      </span>
-                    </td>
-                    <td className="right">
-                      <div className="row row--wrap" style={{ justifyContent: 'flex-end' }}>
-                        {ASSIGNABLE.filter((role) => user.roles.includes(role)).map((role) => (
-                          <button
-                            key={role}
-                            className="btn btn--sm btn--ghost"
-                            disabled={busyId === user.id}
-                            onClick={() => unassign(user, role)}
-                            title={`${role} rolünü kaldır`}
-                          >
-                            − {role}
-                          </button>
-                        ))}
-                        {ASSIGNABLE.filter((role) => !user.roles.includes(role)).map((role) => (
-                          <button
-                            key={role}
-                            className="btn btn--sm"
-                            disabled={busyId === user.id}
-                            onClick={() => assign(user, role)}
-                          >
-                            + {role}
-                          </button>
-                        ))}
-                        <button
-                          className="btn btn--sm"
-                          disabled={busyId === user.id}
-                          onClick={() => toggleActive(user)}
-                          title={user.isActive ? 'Kullanıcı login edemez hale gelir' : 'Kullanıcı tekrar login edebilir'}
+                {users.map((user) => {
+                  const isSelf = user.email === session?.email
+                  const busy = busyId === user.id
+
+                  return (
+                    <tr key={user.id} className={user.isActive ? undefined : 'is-inactive'}>
+                      <td>
+                        <div className="user-cell">
+                          <span className="avatar avatar--sm" style={coverStyle(null, user.email)} aria-hidden>
+                            {initials(user)}
+                          </span>
+                          <div className="user-cell__text">
+                            <div className="user-cell__name">
+                              {fullName(user)}
+                              {isSelf && <span className="badge badge--self">Siz</span>}
+                            </div>
+                            <div className="user-cell__mail">{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="role-toggles" role="group" aria-label={`${fullName(user)} yetkileri`}>
+                          {ASSIGNABLE.map((role) => {
+                            const has = user.roles.includes(role)
+                            return (
+                              <button
+                                key={role}
+                                type="button"
+                                className={`role-toggle role-toggle--${role}`}
+                                aria-pressed={has}
+                                disabled={busy}
+                                onClick={() => toggleRole(user, role, isSelf)}
+                                title={has ? `${ROLE_LABELS[role]} rolünü kaldır` : `${ROLE_LABELS[role]} rolü ver`}
+                              >
+                                {has ? <CheckIcon /> : <PlusIcon />}
+                                {ROLE_LABELS[role]}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </td>
+
+                      <td>
+                        <label
+                          className="switch switch--live"
+                          title={isSelf ? 'Kendi hesabınızı pasife alamazsınız' : undefined}
                         >
-                          {user.isActive ? 'Pasife al' : 'Aktif et'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <input
+                            type="checkbox"
+                            role="switch"
+                            checked={user.isActive}
+                            disabled={busy || isSelf}
+                            onChange={() => toggleActive(user)}
+                          />
+                          <span className="switch__track" />
+                          <span className="switch__label">
+                            {busy ? 'Kaydediliyor…' : user.isActive ? 'Aktif' : 'Pasif'}
+                          </span>
+                        </label>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -175,3 +180,15 @@ export function UsersPage() {
     </>
   )
 }
+
+const CheckIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+)
+
+const PlusIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+)
