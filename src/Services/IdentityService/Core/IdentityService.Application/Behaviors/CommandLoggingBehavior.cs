@@ -99,6 +99,9 @@ public class CommandLoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRe
             "Name" => $"target.{_entity}.name",
             "Title" => $"target.{_entity}.title",
 
+            // İşlemi yapan zaten actor.id olarak loglanıyor; hedef sanılmasın.
+            "ActorKeycloakId" => null,
+
             _ when propertyName.EndsWith("Id", StringComparison.Ordinal) =>
                 propertyName.Length == 2
                     ? $"target.{_entity}.id"

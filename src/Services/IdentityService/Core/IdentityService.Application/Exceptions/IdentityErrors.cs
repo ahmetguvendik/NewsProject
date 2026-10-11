@@ -30,6 +30,24 @@ public static class IdentityErrors
             $"Kullanıcıda '{roleName}' rolü zaten var.");
     }
 
+    extension(BusinessException)
+    {
+        public static BusinessException LastAdminRoleRemoval() => new(
+            ErrorCodes.User.LastAdminCannotBeRemoved,
+            "Son aktif adminin rolü kaldırılamaz.",
+            "Sistemde en az bir aktif admin kalmalı. Önce başka bir kullanıcıya admin rolü atayın.");
+
+        public static BusinessException LastAdminDeactivation() => new(
+            ErrorCodes.User.LastAdminCannotBeDeactivated,
+            "Son aktif admin pasife alınamaz.",
+            "Sistemde en az bir aktif admin kalmalı. Önce başka bir kullanıcıya admin rolü atayın.");
+
+        public static BusinessException SelfDeactivation() => new(
+            ErrorCodes.User.CannotDeactivateSelf,
+            "Kendi hesabınızı pasife alamazsınız.",
+            "Gerekirse bu işlemi başka bir admin yapabilir.");
+    }
+
     extension(ExternalServiceException)
     {
         public static ExternalServiceException Keycloak(string errorCode, string operation, string detail) => new(

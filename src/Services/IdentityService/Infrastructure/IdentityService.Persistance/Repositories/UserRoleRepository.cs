@@ -1,4 +1,5 @@
 using IdentityService.Application.Interfaces;
+using IdentityService.Domain.Constants;
 using IdentityService.Domain.Entities;
 using IdentityService.Persistance.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,10 @@ public class UserRoleRepository : IUserRoleRepository
         _context.UserRoles.Remove(userRole);
         return Task.CompletedTask;
     }
+
+    public async Task<int> CountActiveAdminsAsync(CancellationToken cancellationToken = default)
+        => await _context.UserRoles.CountAsync(
+            ur => ur.RoleId == RoleConstants.AdminId && ur.User.IsActive && !ur.User.IsDeleted, cancellationToken);
 
     public IQueryable<UserRole> GetQueryable()
         => _context.UserRoles.AsQueryable();

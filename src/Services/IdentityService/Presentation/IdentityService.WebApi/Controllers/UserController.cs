@@ -136,7 +136,7 @@ public class UserController : ControllerBase
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new DeactivateUserCommand { UserId = id }, cancellationToken);
+        await _mediator.Send(new DeactivateUserCommand { UserId = id, ActorKeycloakId = CurrentKeycloakId() }, cancellationToken);
         return NoContent();
     }
 
