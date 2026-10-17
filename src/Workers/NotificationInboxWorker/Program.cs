@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("notification-inbox-worker");
 
-builder.Services.AddAllElasticApm();
+builder.UseAppApm();
 
 builder.Services.AddDbContext<InboxWorkerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

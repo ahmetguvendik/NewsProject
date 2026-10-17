@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("identity-service");
 
-builder.Services.AddAllElasticApm();
+builder.UseAppApm();
 
 // Keycloak'ın parola olaylarını kendi log hattımıza taşır. Parola sıfırlama
 // baştan sona Keycloak'ın içinde geçtiği için servislerimiz onu hiç görmüyordu.

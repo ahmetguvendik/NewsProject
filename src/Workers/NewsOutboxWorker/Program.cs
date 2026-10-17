@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("news-outbox-worker");
 
-builder.Services.AddAllElasticApm();
+builder.UseAppApm();
 
 builder.Services.AddDbContext<OutboxWorkerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

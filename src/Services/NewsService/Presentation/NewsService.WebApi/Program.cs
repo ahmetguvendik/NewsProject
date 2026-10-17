@@ -18,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("news-service");
 
-builder.Services.AddAllElasticApm();
+builder.UseAppApm();
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>

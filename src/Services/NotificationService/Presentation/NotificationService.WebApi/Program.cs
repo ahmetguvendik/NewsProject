@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.UseAppLogging("notification-service");
 
-builder.Services.AddAllElasticApm();
+builder.UseAppApm();
 
 builder.Services.AddPersistenceServices(builder.Configuration);
 builder.Services.AddInfrastructureServices();
